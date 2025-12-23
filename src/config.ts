@@ -83,7 +83,7 @@ export const navBarConfig: NavBarConfig = {
 		},
 				{
 			name: "流量监控（新）",
-			url: "https://eo.acofork.com", // Internal links should not include the base path, as it is automatically added
+			url: "https://eo.ddos.2x.nz", // Internal links should not include the base path, as it is automatically added
 			external: true, // Show an external link icon and will open in a new tab
 		},
 	],
