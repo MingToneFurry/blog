@@ -18,13 +18,33 @@ export function getHue(): number {
 	return stored ? Number.parseInt(stored) : getDefaultHue();
 }
 
-export function setHue(hue: number): void {
-	localStorage.setItem("hue", String(hue));
+export function setHue(hue: number, save: boolean = true): void {
+	if (save) {
+		localStorage.setItem("hue", String(hue));
+	}
 	const r = document.querySelector(":root") as HTMLElement;
 	if (!r) {
 		return;
 	}
 	r.style.setProperty("--hue", String(hue));
+}
+
+export function getRainbowMode(): boolean {
+	const stored = localStorage.getItem("rainbow-mode");
+	return stored === "true";
+}
+
+export function setRainbowMode(enabled: boolean): void {
+	localStorage.setItem("rainbow-mode", String(enabled));
+}
+
+export function getRainbowSpeed(): number {
+	const stored = localStorage.getItem("rainbow-speed");
+	return stored ? Number.parseFloat(stored) : 5; // Default speed
+}
+
+export function setRainbowSpeed(speed: number): void {
+	localStorage.setItem("rainbow-speed", String(speed));
 }
 
 export function applyThemeToDocument(theme: LIGHT_DARK_MODE) {
