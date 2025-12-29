@@ -13,6 +13,9 @@ import {
 	setRainbowSpeed,
 	getBgBlur,
 	setBgBlur,
+    setBgHueRotate,
+    getHideBg,
+    setHideBg,
 } from "@utils/setting-utils";
 import { AUTO_MODE, DARK_MODE, LIGHT_MODE } from "@constants/constants";
 
@@ -21,7 +24,10 @@ let theme = getStoredTheme();
 let isRainbowMode = getRainbowMode();
 let rainbowSpeed = getRainbowSpeed();
 let bgBlur = getBgBlur();
+let hideBg = getHideBg();
 let animationId: number;
+let lastUpdate = 0;
+let rainbowHue = 0; // Independent hue for background rotation
 
 const defaultHue = getDefaultHue();
 
@@ -56,11 +62,19 @@ function toggleRainbow() {
 	setRainbowMode(isRainbowMode);
 
 	if (isRainbowMode) {
-		updateRainbow();
+		lastUpdate = performance.now();
+        rainbowHue = 0; // Reset rotation start
+		animationId = requestAnimationFrame(updateRainbow);
 	} else {
 		cancelAnimationFrame(animationId);
-		setHue(hue, true);
+        // Reset background rotation to 0 when stopped
+        setBgHueRotate(0);
 	}
+}
+
+function toggleHideBg() {
+	hideBg = !hideBg;
+	setHideBg(hideBg);
 }
 
 function onSpeedChange() {
@@ -132,6 +146,16 @@ onMount(() => {
     <div class="w-full h-6 px-1 bg-[oklch(0.80_0.10_0)] dark:bg-[oklch(0.70_0.10_0)] rounded select-none mb-3">
         <input aria-label="主题色彩" type="range" min="0" max="360" bind:value={hue} disabled={isRainbowMode}
                class="slider" id="colorSlider" step="1" style="width: 100%">
+    </div>
+
+    <div class="flex flex-row gap-2 mb-3 items-center justify-between">
+        <div class="flex gap-2 font-bold text-lg text-neutral-900 dark:text-neutral-100 transition relative ml-3
+            before:w-1 before:h-4 before:rounded-md before:bg-[var(--primary)]
+            before:absolute before:-left-3 before:top-[0.33rem]"
+        >
+            禁用背景
+        </div>
+        <input type="checkbox" class="toggle-switch" checked={hideBg} on:change={toggleHideBg} />
     </div>
 
     <div class="flex flex-row gap-2 mb-3 items-center justify-between">

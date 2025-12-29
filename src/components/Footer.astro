@@ -16,7 +16,10 @@ try {
     const year = date.getFullYear();
     const month = (date.getMonth() + 1).toString().padStart(2, '0');
     const day = date.getDate().toString().padStart(2, '0');
-    buildDate = `${year}-${month}-${day}`;
+    const hours = date.getHours().toString().padStart(2, '0');
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+    const seconds = date.getSeconds().toString().padStart(2, '0');
+    buildDate = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
 } catch (e) {
     console.warn("Failed to get git info", e);
 }
@@ -45,7 +48,19 @@ try {
 
 		<a class="transition link text-[var(--primary)] font-medium inline-flex items-center" href="https://beian.miit.gov.cn/#/Integrated/index" target="_blank"><img alt="" src="/favicon/foot-icp.png" class="h-4 mr-1">皖ICP备2025099787号-2</a>
         <br>
+        <span id="server-info" class="text-black/30 dark:text-white/30 text-xs"></span>
          <!-- <a class="transition link text-[var(--primary)] font-medium inline-flex items-center" href="https://beian.mps.gov.cn/#/query/webSearch?code=34010302002608" target="_blank"><img alt="" src="/favicon/foot-ga.png" class="h-4 mr-1">皖公网安备34010302002608号</a>
         <br> -->
     </div>
 </div>
+
+<script>
+    fetch(window.location.href, { method: "HEAD" }).then(response => {
+        const server = response.headers.get('server');
+        const serverInfo = document.getElementById('server-info');
+        if (serverInfo) {
+            if (server) {
+                serverInfo.innerText = `访问节点: ${server}`;
+        }
+    });
+</script>
