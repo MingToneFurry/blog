@@ -66,13 +66,28 @@ export const navBarConfig: NavBarConfig = {
 		LinkPreset.Home,
 		LinkPreset.Archive,
 		{
+			name: "关于",
+			url: "/about/",
+			external: false,
+		},
+		{
+			name: "联系方式",
+			url: "/contact/",
+			external: false,
+		},
+		{
+			name: "隐私",
+			url: "/privacy/",
+			external: false,
+		},
+		{
 			name: "友链",
-			url: "/friends/", // Internal links should not include the base path, as it is automatically added
+			url: "/friends/",
 			external: false, // Show an external link icon and will open in a new tab
 		},
 		{
 			name: "状态",
-			url: "https://stats.uptimerobot.com/6zqrufirxf", // Internal links should not include the base path, as it is automatically added
+			url: "https://stats.uptimerobot.com/6zqrufirxf",
 			external: true, // Show an external link icon and will open in a new tab
 		},
 	],
