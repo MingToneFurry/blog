@@ -1,6 +1,8 @@
 {
-	"attachmentFolderPath": "assets/images",
-	"newLinkFormat": "relative",
-	"useMarkdownLinks": true,
-	"uriCallbacks": false
+  "attachmentFolderPath": "assets/images",
+  "newLinkFormat": "relative",
+  "useMarkdownLinks": true,
+  "uriCallbacks": false,
+  "newFileLocation": "folder",
+  "newFileFolderPath": "posts"
 }
