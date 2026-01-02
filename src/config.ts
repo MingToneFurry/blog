@@ -11,16 +11,16 @@ import type {
 import { LinkPreset } from "./types/config";
 
 export const siteConfig: SiteConfig = {
-	title: "AcoFork Blog",
-	subtitle: "技术分享与实践",
+	title: "MingTone滴小站",
+	subtitle: "一个小透明的个人空间",
 	description:
-		"分享网络技术、服务器部署、内网穿透、静态网站搭建、CDN优化、容器化部署等技术教程与实践经验的个人技术博客，专注于云原生、无服务器架构和前后端开发，作者为afoim/二叉树树",
+		"介绍自己生活有趣的事情，分享Cloudflare的妙用和小技巧，也会分享一些自己喜欢的歌曲",
 
 	keywords: [],
 	lang: "zh_CN", // 'en', 'zh_CN', 'zh_TW', 'ja', 'ko', 'es', 'th'
 	themeColor: {
-		hue: 361, // Default hue for the theme color, from 0 to 360. e.g. red: 0, teal: 200, cyan: 250, pink: 345
-		fixed: false, // Hide the theme color picker for visitors
+		hue: 160, // Default hue for the theme color, from 0 to 360. e.g. red: 0, teal: 200, cyan: 250, pink: 345
+		fixed: true, // Hide the theme color picker for visitors
 		forceDarkMode: false, // Force dark mode and hide theme switcher
 	},
 	banner: {
@@ -37,7 +37,7 @@ export const siteConfig: SiteConfig = {
 	},
 	background: {
 		enable: true, // Enable background image
-		src: "", // Background image URL (supports HTTPS)
+		src: "https://api.furry.ist/furry-img", // Background image URL (supports HTTPS)
 		position: "center", // Background position: 'top', 'center', 'bottom'
 		size: "cover", // Background size: 'cover', 'contain', 'auto'
 		repeat: "no-repeat", // Background repeat: 'no-repeat', 'repeat', 'repeat-x', 'repeat-y'
@@ -51,14 +51,13 @@ export const siteConfig: SiteConfig = {
 	favicon: [
 		// Leave this array empty to use the default favicon
 		{
-			src: "https://q2.qlogo.cn/headimg_dl?dst_uin=2726730791&spec=0", // Path of the favicon, relative to the /public directory
+			src: "https://q2.qlogo.cn/headimg_dl?dst_uin=2244347713&spec=0", // Path of the favicon, relative to the /public directory
 			//   theme: 'light',              // (Optional) Either 'light' or 'dark', set only if you have different favicons for light and dark mode
 			//   sizes: '32x32',              // (Optional) Size of the favicon, set only if you have favicons of different sizes
 		},
 	],
 	officialSites: [
-		{ url: "https://acofork.com", alias: "EdgeOne CN" },
-		{ url: "https://2x.nz", alias: "Global" },
+		{ url: "https://blog.furry.ist", alias: "Global" },
 	],
 };
 
@@ -72,37 +71,27 @@ export const navBarConfig: NavBarConfig = {
 			external: false, // Show an external link icon and will open in a new tab
 		},
 		{
-			name: "赞助",
-			url: "/sponsors/", // Internal links should not include the base path, as it is automatically added
-			external: false, // Show an external link icon and will open in a new tab
-		},
-		{
-			name: "统计",
-			url: "https://umami.acofork.com/share/CdkXbGgZr6ECKOyK", // Internal links should not include the base path, as it is automatically added
-			external: true, // Show an external link icon and will open in a new tab
-		},
-		{
 			name: "状态",
-			url: "https://ok.2x.nz", // Internal links should not include the base path, as it is automatically added
+			url: "https://stats.uptimerobot.com/6zqrufirxf", // Internal links should not include the base path, as it is automatically added
 			external: true, // Show an external link icon and will open in a new tab
 		},
 	],
 };
 
 export const profileConfig: ProfileConfig = {
-	avatar: "https://q2.qlogo.cn/headimg_dl?dst_uin=2726730791&spec=0", // Relative to the /src directory. Relative to the /public directory if it starts with '/'
-	name: "二叉树树",
-	bio: "Protect What You Love.",
+	avatar: "https://q2.qlogo.cn/headimg_dl?dst_uin=2244347713&spec=0", // Relative to the /src directory. Relative to the /public directory if it starts with '/'
+	name: "MingTone",
+	bio: "furry!",
 	links: [
 		{
 			name: "Bilibli",
 			icon: "fa6-brands:bilibili",
-			url: "https://space.bilibili.com/325903362",
+			url: "https://space.bilibili.com/1092335855",
 		},
 		{
 			name: "GitHub",
 			icon: "fa6-brands:github",
-			url: "https://github.com/afoim",
+			url: "https://github.com/MingToneFurry",
 		},
 	],
 };
@@ -114,15 +103,15 @@ export const licenseConfig: LicenseConfig = {
 };
 
 export const imageFallbackConfig: ImageFallbackConfig = {
-	enable: false,
-	originalDomain: "https://eopfapi.acofork.com/pic?img=ua",
-	fallbackDomain: "https://eopfapi.acofork.com/pic?img=ua",
+	enable: true,
+	originalDomain: "https://api.furry.ist/furry-img",
+	fallbackDomain: "https://sni-api.furry.ist/furry-img",
 };
 
 export const umamiConfig: UmamiConfig = {
 	enable: true,
-	baseUrl: "https://umami.acofork.com",
-	shareId: "CdkXbGgZr6ECKOyK",
+	baseUrl: "https://cloud.umami.is",
+	shareId: "HdVBrs2TcRJ2LJd4",
 	timezone: "Asia/Shanghai",
 };
 
@@ -132,7 +121,7 @@ export const expressiveCodeConfig: ExpressiveCodeConfig = {
 
 export const gitHubEditConfig: GitHubEditConfig = {
 	enable: true,
-	baseUrl: "https://github.com/afoim/fuwari/blob/main/src/content/posts",
+	baseUrl: "https://github.com/MingToneFurry/blog/blob/main/src/content/posts",
 };
 
 // todoConfig removed from here
