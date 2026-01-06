@@ -240,12 +240,32 @@ const bannerOffset =
 				background-attachment: var(--bg-attachment);
 				opacity: 0;
 				pointer-events: none;
-				z-index: -1;
+				z-index: 0;
+				/* Force compositing on iOS Safari to avoid occasional blank rendering */
+				transform: translate3d(0, 0, 0);
+				-webkit-transform: translate3d(0, 0, 0);
+				backface-visibility: hidden;
+				-webkit-backface-visibility: hidden;
+				will-change: opacity, transform, filter;
 				transition: opacity 0.3s ease-in-out;
 			}
 
 			#bg-box.loaded {
-				opacity: calc(var(--bg-opacity) * var(--bg-enable));
+				/* iOS Safari has quirks with calc() + CSS vars in opacity. Keep it simple. */
+				opacity: var(--bg-opacity);
+			}
+
+			/* iOS Safari: background-attachment: fixed is buggy; this element is already fixed */
+			@supports (-webkit-touch-callout: none) {
+				#bg-box {
+					background-attachment: scroll;
+				}
+			}
+
+			#page-root {
+				position: relative;
+				z-index: 1;
+				min-height: 100%;
 			}
 		</style>
 
@@ -257,6 +277,9 @@ const bannerOffset =
 			title={profileConfig.name}
 			href={`${Astro.site}rss.xml`}
 		/>
+
+		<!-- Umami share API helper (for stats widgets) -->
+		<script defer src="/js/umami-share.js"></script>
 
 		<!-- ✅ Only analytics kept: Umami Cloud -->
 		<script
@@ -275,11 +298,13 @@ const bannerOffset =
 		data-overlayscrollbars-initialize
 	>
 		<div id="bg-box"></div>
-		<ConfigCarrier />
-		<slot />
+		<div id="page-root">
+			<ConfigCarrier />
+			<slot />
 
-		<!-- increase the page height during page transition to prevent the scrolling animation from jumping -->
-		<div id="page-height-extend" class="hidden h-[300vh]"></div>
+			<!-- increase the page height during page transition to prevent the scrolling animation from jumping -->
+			<div id="page-height-extend" class="hidden h-[300vh]"></div>
+		</div>
 	</body>
 </html>
 

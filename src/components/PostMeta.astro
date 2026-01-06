@@ -86,7 +86,10 @@ const className = Astro.props.class;
     async function fetchPageViews() {
         if (!umamiConfig.enable) return;
         try {
-            const statsData = await fetchUmamiStats(umamiConfig.baseUrl, umamiConfig.shareId, {
+			// Umami share helper is exposed on window (loaded in Layout.astro)
+			if (typeof window.fetchUmamiStats !== 'function') return;
+
+			const statsData = await window.fetchUmamiStats(umamiConfig.baseUrl, umamiConfig.shareId, {
                 timezone: umamiConfig.timezone,
                 path: `eq./posts/${slug}/`
             });
