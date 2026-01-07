@@ -5,6 +5,9 @@ on:
     branches: ["main"]
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   purge:
     runs-on: ubuntu-latest
@@ -22,23 +25,30 @@ jobs:
           BEFORE_SHA: ${{ github.event.before }}
           AFTER_SHA: ${{ github.sha }}
         run: |
-          python3 - << 'PY'
+          python3 - <<'PY'
           import os, subprocess, sys
 
-          before = os.environ.get("BEFORE_SHA","").strip()
-          after  = os.environ.get("AFTER_SHA","").strip()
+          before = os.environ.get("BEFORE_SHA", "").strip()
+          after  = os.environ.get("AFTER_SHA", "").strip()
+          out_path = os.environ.get("GITHUB_OUTPUT", "").strip()
 
-          # 无法可靠 diff（第一次 push / force push 等）时：保守起见认为会影响
+          def write_output(k, v):
+            if not out_path:
+              return
+            with open(out_path, "a", encoding="utf-8") as f:
+              f.write(f"{k}={v}\n")
+
+          # 无法可靠 diff（第一次 push / force push / workflow_dispatch 等）时：保守认为会影响
           can_diff = bool(before) and before != "0000000000000000000000000000000000000000"
           if not can_diff:
-            print("SHOULD_RUN=true")
-            print("REASON=no-before-sha")
+            write_output("CHANGED_COUNT", 0)
+            write_output("SHOULD_RUN", "true")
+            write_output("REASON", "no-before-sha")
             sys.exit(0)
 
           out = subprocess.check_output(["git", "diff", "--name-only", before, after], text=True).strip()
           changed = [x.strip() for x in out.splitlines() if x.strip()]
 
-          # 认为会影响 HTML 的路径/文件（按你博客常见结构设的“安全集合”）
           affect_prefixes = (
             "src/pages/",
             "src/content/",
@@ -58,16 +68,12 @@ jobs:
             "tailwind.config.cjs",
           )
 
-          should = False
-          for f in changed:
-            if f in affect_files or f.startswith(affect_prefixes):
-              should = True
-              break
+          should = any((f in affect_files) or f.startswith(affect_prefixes) for f in changed)
 
-          print(f"CHANGED_COUNT={len(changed)}")
-          print("SHOULD_RUN=" + ("true" if should else "false"))
-          print("REASON=" + ("html-affected" if should else "no-html-affect"))
-          PY >> "$GITHUB_OUTPUT"
+          write_output("CHANGED_COUNT", len(changed))
+          write_output("SHOULD_RUN", "true" if should else "false")
+          write_output("REASON", "html-affected" if should else "no-html-affect")
+          PY
 
       - name: Stop early if HTML not affected
         if: steps.detect.outputs.SHOULD_RUN != 'true'
@@ -133,12 +139,12 @@ jobs:
           BEFORE_SHA: ${{ github.event.before }}
           AFTER_SHA: ${{ github.sha }}
         run: |
-          python3 - << 'PY'
+          python3 - <<'PY'
           import os, json, pathlib, hashlib, subprocess
 
-          site = os.environ.get("SITE_ORIGIN","https://blog.furry.ist").rstrip("/")
-          before = os.environ.get("BEFORE_SHA","").strip()
-          after  = os.environ.get("AFTER_SHA","").strip()
+          site = os.environ.get("SITE_ORIGIN", "https://blog.furry.ist").rstrip("/")
+          before = os.environ.get("BEFORE_SHA", "").strip()
+          after  = os.environ.get("AFTER_SHA", "").strip()
 
           dist_prev = pathlib.Path("dist_prev")
           dist_new  = pathlib.Path("dist_new")
@@ -146,7 +152,7 @@ jobs:
           def sha256_file(p: pathlib.Path) -> str:
             h = hashlib.sha256()
             with p.open("rb") as f:
-              for chunk in iter(lambda: f.read(1024*1024), b""):
+              for chunk in iter(lambda: f.read(1024 * 1024), b""):
                 h.update(chunk)
             return h.hexdigest()
 
@@ -183,20 +189,21 @@ jobs:
           can_diff = bool(before) and before != "0000000000000000000000000000000000000000"
           if can_diff:
             try:
-              out = subprocess.check_output(["git","diff","--name-only",before,after], text=True).strip()
+              out = subprocess.check_output(["git", "diff", "--name-only", before, after], text=True).strip()
               changed = [x.strip() for x in out.splitlines() if x.strip()]
               for f in changed:
                 if f in global_affect_files or f.startswith(global_affect_prefixes):
                   global_purge = True
                   break
             except Exception:
-              # diff 失败则保守：如果没有 prev，就全 purge；有 prev 则走 hash diff
+              # diff 失败：保守处理交给后续 has_prev/global_purge 分支
               pass
 
           new_html = sorted(dist_new.rglob("*.html"))
           new_map = {p.relative_to(dist_new).as_posix(): p for p in new_html}
 
           has_prev = dist_prev.exists() and any(dist_prev.iterdir())
+
           if not has_prev or global_purge:
             # 没有 prev 或全站影响：purge 所有 HTML（仍然只 HTML）
             urls = [to_url(p, dist_new) for p in new_html]
@@ -204,7 +211,7 @@ jobs:
               "mode": "all_html",
               "count": len(urls),
               "urls": urls,
-              "reason": "no-prev-dist" if not has_prev else "global-affect-changes"
+              "reason": "no-prev-dist" if not has_prev else "global-affect-changes",
             }
           else:
             prev_html = list(dist_prev.rglob("*.html"))
@@ -221,7 +228,6 @@ jobs:
             # 删除（旧有新无）：也要 purge 对应 URL（避免边缘节点还留旧页）
             deleted = set(prev_map.keys()) - set(new_map.keys())
             for rel in sorted(deleted):
-              # 用 rel 构造 URL（按同样规则）
               if rel == "index.html":
                 urls.append(f"{site}/")
               elif rel.endswith("/index.html"):
@@ -231,8 +237,7 @@ jobs:
                 urls.append(f"{site}/{rel}")
 
             # 去重
-            dedup = []
-            seen = set()
+            dedup, seen = [], set()
             for u in urls:
               if u not in seen:
                 seen.add(u)
@@ -242,12 +247,13 @@ jobs:
               "mode": "changed_only",
               "count": len(dedup),
               "urls": dedup,
-              "reason": "hash-diff-dist-html"
+              "reason": "hash-diff-dist-html",
             }
 
           out = json.dumps(plan, ensure_ascii=False)
           print(out)
-          open("plan.json","w",encoding="utf-8").write(out)
+          with open("plan.json", "w", encoding="utf-8") as f:
+            f.write(out)
           PY
 
       # 5) 调用 Cloudflare Purge by URL（每批 30）
@@ -257,13 +263,18 @@ jobs:
           CLOUDFLARE_ZONE_ID: ${{ secrets.CLOUDFLARE_ZONE_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
-          python3 - << 'PY'
-          import os, json, urllib.request, sys
+          python3 - <<'PY'
+          import os, json, urllib.request, sys, urllib.error
 
-          zone_id = os.environ["CLOUDFLARE_ZONE_ID"].strip()
-          token   = os.environ["CLOUDFLARE_API_TOKEN"].strip()
+          zone_id = (os.environ.get("CLOUDFLARE_ZONE_ID") or "").strip()
+          token   = (os.environ.get("CLOUDFLARE_API_TOKEN") or "").strip()
 
-          plan = json.load(open("plan.json","r",encoding="utf-8"))
+          if not zone_id or not token:
+            raise SystemExit("❌ Missing CLOUDFLARE_ZONE_ID or CLOUDFLARE_API_TOKEN secrets.")
+
+          with open("plan.json", "r", encoding="utf-8") as f:
+            plan = json.load(f)
+
           urls = plan.get("urls", [])
 
           if not urls:
@@ -283,17 +294,24 @@ jobs:
                 "Authorization": f"Bearer {token}",
               },
             )
-            with urllib.request.urlopen(req, timeout=30) as resp:
-              data = json.loads(resp.read().decode("utf-8"))
+            try:
+              with urllib.request.urlopen(req, timeout=30) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+            except urllib.error.HTTPError as e:
+              detail = e.read().decode("utf-8", errors="replace")
+              raise SystemExit(f"❌ Purge HTTP error: {e.code}\n{detail}")
+            except Exception as e:
+              raise SystemExit(f"❌ Purge request failed: {e}")
+
             if not data.get("success"):
               raise SystemExit("❌ Purge failed: " + json.dumps(data, ensure_ascii=False))
 
-          # Free/Pro/Business 常见：单次最多 30 URLs；Enterprise 更高，这里按 30 分批最稳 :contentReference[oaicite:6]{index=6}
+          # 按 30 分批更稳
           batch_size = 30
           for i in range(0, len(urls), batch_size):
-            batch = urls[i:i+batch_size]
+            batch = urls[i:i + batch_size]
             purge(batch)
-            print(f"🧹 Purged {i+1}-{i+len(batch)} / {len(urls)}")
+            print(f"🧹 Purged {i + 1}-{i + len(batch)} / {len(urls)}")
 
           print(f"🎉 Done. Purged {len(urls)} URLs.")
           PY
