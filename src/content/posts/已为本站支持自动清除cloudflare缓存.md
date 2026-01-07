@@ -33,6 +33,7 @@ lang: ""
 7. 接下来，在编辑器内填入以下代码
  
 ```yaml
+
 name: Purge Cloudflare Changed HTML Pages (fast)
 
 on:
@@ -42,6 +43,10 @@ on:
 
 permissions:
   contents: read
+
+concurrency:
+  group: purge-cf-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   purge:
@@ -53,7 +58,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      # 0) 先判断：这次提交是否可能影响 HTML（不影响就直接结束）
+      # 0) 判断：这次提交是否可能影响 HTML（不影响就结束）
       - name: Detect whether HTML can be affected
         id: detect
         env:
@@ -76,6 +81,7 @@ jobs:
           # 无法可靠 diff（第一次 push / force push / workflow_dispatch 等）时：保守认为会影响
           can_diff = bool(before) and before != "0000000000000000000000000000000000000000"
           if not can_diff:
+            print("⚠️  No reliable BEFORE_SHA; assume HTML affected.")
             write_output("CHANGED_COUNT", 0)
             write_output("SHOULD_RUN", "true")
             write_output("REASON", "no-before-sha")
@@ -84,15 +90,24 @@ jobs:
           out = subprocess.check_output(["git", "diff", "--name-only", before, after], text=True).strip()
           changed = [x.strip() for x in out.splitlines() if x.strip()]
 
+          print("Changed files:")
+          for f in changed:
+            print(" -", f)
+          print(f"Total changed: {len(changed)}")
+
+          # 更稳：文章/内容常见是 md/mdx；模板/组件/配置改动也会影响 HTML
           affect_prefixes = (
             "src/pages/",
             "src/content/",
-            "content/",
             "src/layouts/",
             "src/components/",
             "src/middleware/",
+            "content/",
+            "posts/",
+            "src/posts/",
           )
-          affect_files = (
+
+          affect_files_exact = (
             "astro.config.mjs",
             "astro.config.js",
             "package.json",
@@ -103,30 +118,55 @@ jobs:
             "tailwind.config.cjs",
           )
 
-          should = any((f in affect_files) or f.startswith(affect_prefixes) for f in changed)
+          affect_exts = (".md", ".mdx", ".markdown", ".html", ".astro")
 
+          def affects_html(path: str) -> bool:
+            if path in affect_files_exact:
+              return True
+            if path.startswith(affect_prefixes):
+              return True
+            if path.endswith(affect_exts) and not path.startswith(".github/"):
+              return True
+            return False
+
+          should = any(affects_html(f) for f in changed)
+
+          print("Decision:", "RUN" if should else "SKIP")
           write_output("CHANGED_COUNT", len(changed))
           write_output("SHOULD_RUN", "true" if should else "false")
           write_output("REASON", "html-affected" if should else "no-html-affect")
           PY
+
+      - name: Debug detect outputs
+        run: |
+          echo "CHANGED_COUNT=${{ steps.detect.outputs.CHANGED_COUNT }}"
+          echo "SHOULD_RUN=${{ steps.detect.outputs.SHOULD_RUN }}"
+          echo "REASON=${{ steps.detect.outputs.REASON }}"
 
       - name: Stop early if HTML not affected
         if: steps.detect.outputs.SHOULD_RUN != 'true'
         run: |
           echo "✅ No HTML-affecting changes. Skip build & purge."
 
-      # 1) 只有在需要时才继续（省时间关键）
+      # 1) 只有需要时才继续
       - name: Setup Node.js
         if: steps.detect.outputs.SHOULD_RUN == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: "20"
 
+      # ✅ 不再指定 version，避免与 package.json#packageManager 冲突
       - name: Setup pnpm
         if: steps.detect.outputs.SHOULD_RUN == 'true'
         uses: pnpm/action-setup@v4
 
-      # pnpm store 缓存（加速安装，通常收益很大）
+      - name: Show pnpm version
+        if: steps.detect.outputs.SHOULD_RUN == 'true'
+        run: |
+          pnpm -v
+          node -v
+
+      # pnpm store 缓存
       - name: Get pnpm store path
         if: steps.detect.outputs.SHOULD_RUN == 'true'
         id: pnpm-store
@@ -156,6 +196,14 @@ jobs:
             dist-prev-${{ runner.os }}-${{ github.ref_name }}-
             dist-prev-${{ runner.os }}-
 
+      - name: List restored dist_prev
+        if: steps.detect.outputs.SHOULD_RUN == 'true'
+        run: |
+          echo "dist_prev exists?"
+          ls -la dist_prev || true
+          echo "dist_prev html count:"
+          (find dist_prev -type f -name "*.html" | wc -l) || true
+
       # 3) Build 一次，产物放 dist_new
       - name: Build (Astro)
         if: steps.detect.outputs.SHOULD_RUN == 'true'
@@ -163,8 +211,10 @@ jobs:
           pnpm build
           rm -rf dist_new
           mv dist dist_new
+          echo "dist_new html count:"
+          find dist_new -type f -name "*.html" | wc -l
 
-      # 4) 生成 purge 列表（只 HTML，只变化的；全站影响则 purge 全部 HTML）
+      # 4) 生成 purge 列表：只 HTML；如果全站影响或没 prev，则 purge 全部 HTML
       - name: Plan purge URLs (changed HTML only)
         if: steps.detect.outputs.SHOULD_RUN == 'true'
         env:
@@ -201,7 +251,7 @@ jobs:
           if not dist_new.exists():
             raise SystemExit("❌ dist_new not found. build failed?")
 
-          # 判断是否“全站渲染影响”（layout/component/config 等）
+          # “全站渲染影响”的改动：layout/component/config
           global_affect_prefixes = (
             "src/layouts/",
             "src/components/",
@@ -229,7 +279,6 @@ jobs:
                   global_purge = True
                   break
             except Exception:
-              # diff 失败：保守处理交给后续 has_prev/global_purge 分支
               pass
 
           new_html = sorted(dist_new.rglob("*.html"))
@@ -238,7 +287,6 @@ jobs:
           has_prev = dist_prev.exists() and any(dist_prev.iterdir())
 
           if not has_prev or global_purge:
-            # 没有 prev 或全站影响：purge 所有 HTML（仍然只 HTML）
             urls = [to_url(p, dist_new) for p in new_html]
             plan = {
               "mode": "all_html",
@@ -258,7 +306,7 @@ jobs:
               if old is None or sha256_file(p) != sha256_file(old):
                 urls.append(to_url(p, dist_new))
 
-            # 删除（旧有新无）：也要 purge 对应 URL（避免边缘节点还留旧页）
+            # 删除：旧有新无
             deleted = set(prev_map.keys()) - set(new_map.keys())
             for rel in sorted(deleted):
               if rel == "index.html":
@@ -284,12 +332,19 @@ jobs:
             }
 
           out = json.dumps(plan, ensure_ascii=False)
-          print(out)
+          print("Purge plan:", out)
+
           with open("plan.json", "w", encoding="utf-8") as f:
             f.write(out)
           PY
 
-      # 5) 调用 Cloudflare Purge by URL（每批 30）
+      - name: Show plan.json
+        if: steps.detect.outputs.SHOULD_RUN == 'true'
+        run: |
+          echo "=== plan.json ==="
+          cat plan.json || true
+
+      # 5) 调用 Cloudflare Purge by URL（每批 30，带重试）
       - name: Purge Cloudflare cache by URL (batched)
         if: steps.detect.outputs.SHOULD_RUN == 'true'
         env:
@@ -297,7 +352,7 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
           python3 - <<'PY'
-          import os, json, urllib.request, sys, urllib.error
+          import os, json, urllib.request, urllib.error, time, sys
 
           zone_id = (os.environ.get("CLOUDFLARE_ZONE_ID") or "").strip()
           token   = (os.environ.get("CLOUDFLARE_API_TOKEN") or "").strip()
@@ -308,7 +363,8 @@ jobs:
           with open("plan.json", "r", encoding="utf-8") as f:
             plan = json.load(f)
 
-          urls = plan.get("urls", [])
+          urls = plan.get("urls", []) or []
+          print(f"Plan mode={plan.get('mode')} reason={plan.get('reason')} urls={len(urls)}")
 
           if not urls:
             print("✅ No changed HTML pages to purge.")
@@ -316,7 +372,7 @@ jobs:
 
           endpoint = f"https://api.cloudflare.com/client/v4/zones/{zone_id}/purge_cache"
 
-          def purge(batch):
+          def request_purge(batch):
             body = json.dumps({"files": batch}).encode("utf-8")
             req = urllib.request.Request(
               endpoint,
@@ -325,25 +381,45 @@ jobs:
               headers={
                 "Content-Type": "application/json",
                 "Authorization": f"Bearer {token}",
+                "User-Agent": "github-actions-purge-html/1.0",
               },
             )
-            try:
-              with urllib.request.urlopen(req, timeout=30) as resp:
-                data = json.loads(resp.read().decode("utf-8"))
-            except urllib.error.HTTPError as e:
-              detail = e.read().decode("utf-8", errors="replace")
-              raise SystemExit(f"❌ Purge HTTP error: {e.code}\n{detail}")
-            except Exception as e:
-              raise SystemExit(f"❌ Purge request failed: {e}")
+            with urllib.request.urlopen(req, timeout=30) as resp:
+              return json.loads(resp.read().decode("utf-8"))
 
-            if not data.get("success"):
-              raise SystemExit("❌ Purge failed: " + json.dumps(data, ensure_ascii=False))
+          def purge_with_retry(batch, max_attempts=5):
+            delay = 1.0
+            last_err = None
+            for attempt in range(1, max_attempts + 1):
+              try:
+                data = request_purge(batch)
+                if data.get("success"):
+                  return
+                # Cloudflare API 逻辑失败
+                raise RuntimeError("API success=false: " + json.dumps(data, ensure_ascii=False))
+              except urllib.error.HTTPError as e:
+                detail = e.read().decode("utf-8", errors="replace")
+                code = getattr(e, "code", None)
+                last_err = f"HTTP {code}: {detail}"
+                # 429/5xx 重试
+                if code in (429, 500, 502, 503, 504):
+                  print(f"⚠️  Attempt {attempt}/{max_attempts} failed ({code}), retry in {delay:.1f}s")
+                  time.sleep(delay)
+                  delay = min(delay * 2, 16)
+                  continue
+                raise SystemExit(f"❌ Purge HTTP error (non-retryable): {code}\n{detail}")
+              except Exception as e:
+                last_err = str(e)
+                print(f"⚠️  Attempt {attempt}/{max_attempts} failed ({e}), retry in {delay:.1f}s")
+                time.sleep(delay)
+                delay = min(delay * 2, 16)
+                continue
+            raise SystemExit("❌ Purge failed after retries: " + (last_err or "unknown error"))
 
-          # 按 30 分批更稳
           batch_size = 30
           for i in range(0, len(urls), batch_size):
             batch = urls[i:i + batch_size]
-            purge(batch)
+            purge_with_retry(batch)
             print(f"🧹 Purged {i + 1}-{i + len(batch)} / {len(urls)}")
 
           print(f"🎉 Done. Purged {len(urls)} URLs.")
@@ -355,6 +431,7 @@ jobs:
         run: |
           rm -rf dist_prev
           mv dist_new dist_prev
+
 
 ```
 
