@@ -31,8 +31,8 @@ lang: ""
 5. 前往你的 action 页面，点击 New workflow
 6. 接下来你会看到一个 Choose a workflow界面，在这里点击 set up a workflow your self![](../assets/images/已为本站支持自动清除cloudflare缓存-3.png)
 7. 接下来，在编辑器内填入以下代码
-8.  
-   ```yaml
+ 
+```yaml
 name: Purge Cloudflare Changed HTML Pages (fast)
 
 on:
@@ -358,9 +358,9 @@ jobs:
 
 ```
 
- 9. 点击 Commit changes
- 10. 再次点击 Commit changes
- 11. 提交一个新文件试试效果吧！
+ 8. 点击 Commit changes
+ 9. 再次点击 Commit changes
+ 10. 提交一个新文件试试效果吧！
 
 ---
 
