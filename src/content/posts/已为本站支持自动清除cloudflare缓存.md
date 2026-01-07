@@ -33,7 +33,6 @@ lang: ""
 7. 接下来，在编辑器内填入以下代码
  
 ```yaml
-
 name: Purge Cloudflare Changed HTML Pages (fast)
 
 on:
@@ -87,7 +86,12 @@ jobs:
             write_output("REASON", "no-before-sha")
             sys.exit(0)
 
-          out = subprocess.check_output(["git", "diff", "--name-only", before, after], text=True).strip()
+          # ⭐ 关键修复：关闭 quotepath，避免中文路径被 \"...\\345...\" 这种形式转义
+          out = subprocess.check_output(
+            ["git", "-c", "core.quotepath=false", "diff", "--name-only", before, after],
+            text=True,
+          ).strip()
+
           changed = [x.strip() for x in out.splitlines() if x.strip()]
 
           print("Changed files:")
@@ -155,7 +159,7 @@ jobs:
         with:
           node-version: "20"
 
-      # ✅ 不再指定 version，避免与 package.json#packageManager 冲突
+      # ✅ 不指定 version，避免与 package.json#packageManager 冲突
       - name: Setup pnpm
         if: steps.detect.outputs.SHOULD_RUN == 'true'
         uses: pnpm/action-setup@v4
@@ -272,7 +276,10 @@ jobs:
           can_diff = bool(before) and before != "0000000000000000000000000000000000000000"
           if can_diff:
             try:
-              out = subprocess.check_output(["git", "diff", "--name-only", before, after], text=True).strip()
+              out = subprocess.check_output(
+                ["git", "-c", "core.quotepath=false", "diff", "--name-only", before, after],
+                text=True
+              ).strip()
               changed = [x.strip() for x in out.splitlines() if x.strip()]
               for f in changed:
                 if f in global_affect_files or f.startswith(global_affect_prefixes):
@@ -395,13 +402,11 @@ jobs:
                 data = request_purge(batch)
                 if data.get("success"):
                   return
-                # Cloudflare API 逻辑失败
                 raise RuntimeError("API success=false: " + json.dumps(data, ensure_ascii=False))
               except urllib.error.HTTPError as e:
                 detail = e.read().decode("utf-8", errors="replace")
                 code = getattr(e, "code", None)
                 last_err = f"HTTP {code}: {detail}"
-                # 429/5xx 重试
                 if code in (429, 500, 502, 503, 504):
                   print(f"⚠️  Attempt {attempt}/{max_attempts} failed ({code}), retry in {delay:.1f}s")
                   time.sleep(delay)
@@ -431,7 +436,6 @@ jobs:
         run: |
           rm -rf dist_prev
           mv dist_new dist_prev
-
 
 ```
 
