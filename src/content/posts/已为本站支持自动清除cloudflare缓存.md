@@ -30,7 +30,7 @@ lang: ""
 4. 设置好的示例如图： ![](../assets/images/已为本站支持自动清除cloudflare缓存-2.png)
 5. 前往你的 action 页面，点击 New workflow
 6. 接下来你会看到一个 Choose a workflow界面，在这里点击 set up a workflow your self![](../assets/images/已为本站支持自动清除cloudflare缓存-3.png)
-7. 接下来，在编辑器内填入以下代码
+7. 接下来，在编辑器内填入以下代码(注意！要**更改所有的 https://blog.furry.ist 为你自己的站点url**，否则会不起作用！)
  
 ```yaml
 name: Purge Cloudflare Changed HTML Pages (fast)
