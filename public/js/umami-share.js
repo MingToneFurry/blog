@@ -54,7 +54,7 @@
 	/**
 	 * Build candidate API bases for Umami Cloud / self-hosted.
 	 * - Self-hosted: https://umami.example.com
-	 * - Umami Cloud v3 may serve UI under /analytics/{region}/..., while API lives under the same basePath.
+	 * - Umami Cloud: UI + API often live under /analytics/{region}/...
 	 */
 	function buildBaseCandidates(baseUrl) {
 		const normalized = normalizeBaseUrl(baseUrl);
@@ -65,7 +65,7 @@
 			const origin = u.origin;
 			const pathname = (u.pathname || "/").replace(/\/+$/, "");
 
-			// If user configured a path (e.g. /analytics/eu), also try origin-only.
+			// If user configured a path (e.g. /analytics/us), also try origin-only.
 			if (pathname && pathname !== "/") {
 				candidates.push(origin);
 			}
@@ -215,6 +215,7 @@
 			const res = await fetch(statsUrl, {
 				headers: {
 					"x-umami-share-token": token,
+					"x-kl-ajax-request": "Ajax_Request",
 					Accept: "application/json",
 				},
 				credentials: "omit",
