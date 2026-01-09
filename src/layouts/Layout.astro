@@ -3,7 +3,7 @@ import "@fontsource/roboto/400.css";
 import "@fontsource/roboto/500.css";
 import "@fontsource/roboto/700.css";
 
-import { profileConfig, siteConfig } from "@/config";
+import { profileConfig, siteConfig, imageFallbackConfig } from "@/config";
 import ConfigCarrier from "@components/ConfigCarrier.astro";
 import {
 	AUTO_MODE,
@@ -33,6 +33,26 @@ let { title, banner, description, lang, setOGTypeArticle } = Astro.props;
 const isHomePage = pathsEqual(Astro.url.pathname, url("/"));
 
 const configHue = siteConfig.themeColor.hue;
+
+const backgroundSrc = (siteConfig.background.src || "").trim();
+const backgroundEnabled = siteConfig.background.enable && backgroundSrc !== "";
+
+// object-fit does not support "auto", map it to "cover" to keep behavior consistent.
+const backgroundObjectFit =
+	siteConfig.background.size === "contain" ? "contain" : "cover";
+
+const backgroundFallbackSrc =
+	imageFallbackConfig.enable &&
+	backgroundSrc.includes(imageFallbackConfig.originalDomain)
+		? backgroundSrc.replace(
+				imageFallbackConfig.originalDomain,
+				imageFallbackConfig.fallbackDomain,
+			)
+		: "";
+
+const bgImgOnError = backgroundFallbackSrc
+	? `this.onerror=null; this.src='${backgroundFallbackSrc}';`
+	: undefined;
 
 if (!banner || typeof banner !== "string" || banner.trim() === "") {
 	banner = siteConfig.banner.src;
@@ -166,81 +186,29 @@ const bannerOffset =
 				`${offset}px`,
 			);
 
-			// Background image loading detection -> #bg-box.loaded
-			window.addEventListener("DOMContentLoaded", () => {
-				const bgBox = document.getElementById("bg-box");
-				if (!bgBox) return;
-
-				const bgUrl = getComputedStyle(document.documentElement)
-					.getPropertyValue("--bg-url")
-					.trim();
-				const bgEnable = getComputedStyle(document.documentElement)
-					.getPropertyValue("--bg-enable")
-					.trim();
-
-				if (!bgUrl || bgUrl === "none" || bgEnable !== "1") return;
-
-				const urlMatch = bgUrl.match(/url\(["']?([^"')]+)["']?\)/);
-				if (!urlMatch) return;
-
-				const img = new Image();
-				img.onload = () => bgBox.classList.add("loaded");
-				img.onerror = () =>
-					console.warn("Background image failed to load:", urlMatch[1]);
-				img.src = urlMatch[1];
-			});
 		</script>
 
 		<style
 			define:vars={{
 				configHue,
 				"page-width": `${PAGE_WIDTH}rem`,
-				"bg-url": siteConfig.background.src
-					? `url(${siteConfig.background.src})`
-					: "none",
-				"bg-enable": siteConfig.background.enable ? "1" : "0",
+				"bg-enable": backgroundEnabled ? "1" : "0",
 				"bg-position": siteConfig.background.position || "center",
-				"bg-size": siteConfig.background.size || "cover",
-				"bg-repeat": siteConfig.background.repeat || "no-repeat",
-				"bg-attachment": siteConfig.background.attachment || "fixed",
+				"bg-object-fit": backgroundObjectFit,
 				"bg-opacity": (siteConfig.background.opacity || 0.3).toString(),
 			}}
 		>
-			:root {
-				--bg-url: var(--bg-url);
-				--bg-enable: var(--bg-enable);
-				--bg-position: var(--bg-position);
-				--bg-size: var(--bg-size);
-				--bg-repeat: var(--bg-repeat);
-				--bg-attachment: var(--bg-attachment);
-				--bg-opacity: var(--bg-opacity);
-			}
-
-			body {
-				--bg-url: var(--bg-url);
-				--bg-enable: var(--bg-enable);
-				--bg-position: var(--bg-position);
-				--bg-size: var(--bg-size);
-				--bg-repeat: var(--bg-repeat);
-				--bg-attachment: var(--bg-attachment);
-				--bg-opacity: var(--bg-opacity);
-			}
-
 			#bg-box {
 				position: fixed;
 				top: 0;
 				left: 0;
 				width: 100%;
 				height: 100%;
-				background-image: var(--bg-url);
-
-				background-position: var(--bg-position);
-				background-size: var(--bg-size);
-				background-repeat: var(--bg-repeat);
-				background-attachment: var(--bg-attachment);
 				opacity: 0;
 				pointer-events: none;
 				z-index: 0;
+				overflow: hidden;
+
 				/* Force compositing on iOS Safari to avoid occasional blank rendering */
 				transform: translate3d(0, 0, 0);
 				-webkit-transform: translate3d(0, 0, 0);
@@ -251,15 +219,15 @@ const bannerOffset =
 			}
 
 			#bg-box.loaded {
-				/* iOS Safari has quirks with calc() + CSS vars in opacity. Keep it simple. */
 				opacity: var(--bg-opacity);
 			}
 
-			/* iOS Safari: background-attachment: fixed is buggy; this element is already fixed */
-			@supports (-webkit-touch-callout: none) {
-				#bg-box {
-					background-attachment: scroll;
-				}
+			#bg-img {
+				width: 100%;
+				height: 100%;
+				display: block;
+				object-fit: var(--bg-object-fit);
+				object-position: var(--bg-position);
 			}
 
 			#page-root {
@@ -297,7 +265,19 @@ const bannerOffset =
 		]}
 		data-overlayscrollbars-initialize
 	>
-		<div id="bg-box"></div>
+		{backgroundEnabled && (
+			<div id="bg-box" aria-hidden="true">
+				<img
+					id="bg-img"
+					src={backgroundSrc}
+					alt=""
+					decoding="async"
+					loading="eager"
+					onload="this.parentElement.classList.add('loaded');"
+					onerror={bgImgOnError}
+				/>
+			</div>
+		)}
 		<div id="page-root">
 			<ConfigCarrier />
 			<slot />
