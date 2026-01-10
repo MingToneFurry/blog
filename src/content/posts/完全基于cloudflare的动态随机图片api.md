@@ -237,844 +237,152 @@ _依旧建议使用ai编写脚本批量处理_
 
 
 
-> 请根据你的实际情况修改此脚本
+> 请根据你的实际情况修改此脚本，别忘记替换 api.furry.ist imgmirror.furry.ist等替换为你自己的域名！ 
 
 
 
 ```
-
 // Cloudflare Snippets for api.furry.ist
-
-
-
 // Goals:
-
-
-
 // 1) /furry-img/ implements format=json|file, redirect=0|1, mode=auto|box|large
-
-
-
 // 2) /large/* and /box/* are served under api.furry.ist by proxying to imgmirror.furry.ist
-
-
-
 // 3) JSON url always uses https://api.furry.ist/... (compat)
-
-
-
 // 4) redirect=1 issues 302 but stays on api.furry.ist
-
-
-
-  
-
-
-
 const MIRROR_ORIGIN = "https://imgmirror.furry.ist";
-
-
-
 const PUBLIC_ORIGIN = "https://api.furry.ist";
-
-
-
 const COUNTS_URL = `${MIRROR_ORIGIN}/counts.json`;
-
-
-
 const COUNTS_CACHE_TTL = 300; // seconds
-
-
-
 const DEFAULT_PAD = 8;        // 00000001
-
-
-
-const EXT = ".webp";
-
-
-
-  
-
-
-
-export default {
-
-
-
+const EXT = ".webp";export default {
   async fetch(request, env, ctx) {
-
-
-
     const url = new URL(request.url);
-
-
-
-    const path = url.pathname;
-
-
-
-  
-
-
-
-    // 1) Proxy counts.json (optional but handy for debugging)
-
-
-
+    const path = url.pathname;    // 1) Proxy counts.json (optional but handy for debugging)
     if (path === "/counts.json") {
-
-
-
       return proxyToMirror(request, ctx, "/counts.json", { cacheMode: "counts" });
-
-
-
-    }
-
-
-
-  
-
-
-
-    // 2) Proxy static images under api.furry.ist (NO redirect, keep same-domain)
-
-
-
+    }    // 2) Proxy static images under api.furry.ist (NO redirect, keep same-domain)
     if (path.startsWith("/large/") || path.startsWith("/box/")) {
-
-
-
       return proxyToMirror(request, ctx, path, { cacheMode: "image" });
-
-
-
-    }
-
-
-
-  
-
-
-
-    // 3) Random endpoint (support /furry-img and /furry-img/)
-
-
-
+    }    // 3) Random endpoint (support /furry-img and /furry-img/)
     if (path === "/furry-img" || path.startsWith("/furry-img/")) {
-
-
-
-      const q = url.searchParams;
-
-
-
-  
-
-
-
-      const format = (q.get("format") || "file").toLowerCase();    // json | file
-
-
-
+      const q = url.searchParams;      const format = (q.get("format") || "file").toLowerCase();    // json | file
       const redirect = (q.get("redirect") || "0").toLowerCase();   // 0 | 1
-
-
-
-      const mode = (q.get("mode") || "auto").toLowerCase();        // auto | box | large
-
-
-
-  
-
-
-
-      if (!["json", "file"].includes(format)) {
-
-
-
+      const mode = (q.get("mode") || "auto").toLowerCase();        // auto | box | large      if (!["json", "file"].includes(format)) {
         return new Response("bad format", { status: 400 });
-
-
-
       }
-
-
-
       if (!["0", "1"].includes(redirect)) {
-
-
-
         return new Response("bad redirect", { status: 400 });
-
-
-
       }
-
-
-
       if (!["auto", "box", "large"].includes(mode)) {
-
-
-
         return new Response("bad mode", { status: 400 });
-
-
-
-      }
-
-
-
-  
-
-
-
-      const counts = await getCounts(ctx);
-
-
-
-      const type = decideType(mode, request); // "large" | "box"
-
-
-
-  
-
-
-
-      const maxN = counts[type] || 0;
-
-
-
+      }      const counts = await getCounts(ctx);
+      const type = decideType(mode, request); // "large" | "box"      const maxN = counts[type] || 0;
       const pad = counts.pad || DEFAULT_PAD;
-
-
-
-      if (maxN <= 0) return new Response("empty library", { status: 503 });
-
-
-
-  
-
-
-
-      const id = randomInt(1, maxN);
-
-
-
+      if (maxN <= 0) return new Response("empty library", { status: 503 });      const id = randomInt(1, maxN);
       const filename = `${String(id).padStart(pad, "0")}${EXT}`;
-
-
-
-      const filePath = `/${type}/${filename}`;
-
-
-
-  
-
-
-
-      // IMPORTANT:
-
-
-
+      const filePath = `/${type}/${filename}`;      // IMPORTANT:
       // - JSON url must be https://api.furry.ist/... (your requirement)
-
-
-
       // - redirect=1 must also redirect to api.furry.ist/... (same-domain)
-
-
-
       const publicUrl = `${PUBLIC_ORIGIN}${filePath}`;
-
-
-
-      const mirrorUrl = `${MIRROR_ORIGIN}${filePath}`;
-
-
-
-  
-
-
-
-      if (format === "json") {
-
-
-
+      const mirrorUrl = `${MIRROR_ORIGIN}${filePath}`;      if (format === "json") {
         const body = JSON.stringify({
-
-
-
           url: publicUrl,
-
-
-
           type: type,
-
-
-
           filename: filename,
-
-
-
         });
-
-
-
         return new Response(body, {
-
-
-
           status: 200,
-
-
-
           headers: {
-
-
-
             "Content-Type": "application/json; charset=utf-8",
-
-
-
             "Cache-Control": "no-store",
-
-
-
             "Access-Control-Allow-Origin": "*",
-
-
-
           },
-
-
-
         });
-
-
-
-      }
-
-
-
-  
-
-
-
-      // format=file
-
-
-
+      }      // format=file
       if (redirect === "1") {
-
-
-
         // stays on api.furry.ist by design
-
-
-
         return Response.redirect(publicUrl, 302);
-
-
-
-      }
-
-
-
-  
-
-
-
-      // redirect=0: direct binary response (no redirect)
-
-
-
+      }      // redirect=0: direct binary response (no redirect)
       // Fetch from mirror but do not expose mirror to client
-
-
-
       return fetchBinaryFromMirror(request, ctx, mirrorUrl, {
-
-
-
         noStore: true,
-
-
-
         extraHeaders: {
-
-
-
           "Access-Control-Allow-Origin": "*",
-
-
-
           "x-furry-img-type": type,
-
-
-
           "x-furry-img-file": filename,
-
-
-
         },
-
-
-
       });
-
-
-
-    }
-
-
-
-  
-
-
-
-    // Not matched: passthrough to your existing origin (other API paths unaffected)
-
-
-
+    }    // Not matched: passthrough to your existing origin (other API paths unaffected)
     return fetch(request);
-
-
-
   },
-
-
-
-};
-
-
-
-  
-
-
-
-function decideType(mode, request) {
-
-
-
-  if (mode === "large" || mode === "box") return mode;
-
-
-
-  
-
-
-
-  // mode=auto: prefer Client Hint
-
-
-
+};function decideType(mode, request) {
+  if (mode === "large" || mode === "box") return mode;  // mode=auto: prefer Client Hint
   const ch = request.headers.get("Sec-CH-UA-Mobile");
-
-
-
-  if (ch) return ch.includes("?1") ? "box" : "large";
-
-
-
-  
-
-
-
-  // fallback UA
-
-
-
+  if (ch) return ch.includes("?1") ? "box" : "large";  // fallback UA
   const ua = (request.headers.get("User-Agent") || "").toLowerCase();
-
-
-
   const isMobile =
-
-
-
     ua.includes("mobile") ||
-
-
-
     ua.includes("android") ||
-
-
-
     ua.includes("iphone") ||
-
-
-
     ua.includes("ipad") ||
-
-
-
     ua.includes("ipod") ||
-
-
-
     ua.includes("micromessenger");
-
-
-
   return isMobile ? "box" : "large";
-
-
-
-}
-
-
-
-  
-
-
-
-async function proxyToMirror(request, ctx, path, { cacheMode }) {
-
-
-
-  const mirrorUrl = `${MIRROR_ORIGIN}${path}`;
-
-
-
-  
-
-
-
-  // For images: we generally want to keep upstream cache headers (immutable)
-
-
-
+}async function proxyToMirror(request, ctx, path, { cacheMode }) {
+  const mirrorUrl = `${MIRROR_ORIGIN}${path}`;  // For images: we generally want to keep upstream cache headers (immutable)
   // For counts: edge-cache it a bit to reduce load
-
-
-
   if (cacheMode === "counts") {
-
-
-
     return fetchCountsWithEdgeCache(ctx, mirrorUrl);
-
-
-
-  }
-
-
-
-  
-
-
-
-  // image / other static: proxy straight through
-
-
-
+  }  // image / other static: proxy straight through
   return fetchBinaryFromMirror(request, ctx, mirrorUrl, {
-
-
-
     noStore: false, // let image caching work via upstream headers
-
-
-
     extraHeaders: {
-
-
-
       "Access-Control-Allow-Origin": "*",
-
-
-
     },
-
-
-
   });
-
-
-
-}
-
-
-
-  
-
-
-
-async function fetchCountsWithEdgeCache(ctx, mirrorUrl) {
-
-
-
+}async function fetchCountsWithEdgeCache(ctx, mirrorUrl) {
   const cache = caches.default;
-
-
-
-  const cacheKey = new Request(mirrorUrl, { method: "GET" });
-
-
-
-  
-
-
-
-  let resp = await cache.match(cacheKey);
-
-
-
+  const cacheKey = new Request(mirrorUrl, { method: "GET" });  let resp = await cache.match(cacheKey);
   if (!resp) {
-
-
-
     resp = await fetch(mirrorUrl, { method: "GET" });
-
-
-
     const cached = new Response(resp.body, resp);
-
-
-
     cached.headers.set("Cache-Control", `s-maxage=${COUNTS_CACHE_TTL}`);
-
-
-
     ctx.waitUntil(cache.put(cacheKey, cached.clone()));
-
-
-
     resp = cached;
-
-
-
   } else {
-
-
-
     resp = new Response(resp.body, resp);
-
-
-
   }
-
-
-
   // counts can be cached; but still safe to expose
-
-
-
   resp.headers.set("Access-Control-Allow-Origin", "*");
-
-
-
   return resp;
-
-
-
-}
-
-
-
-  
-
-
-
-async function getCounts(ctx) {
-
-
-
+}async function getCounts(ctx) {
   const resp = await fetchCountsWithEdgeCache(ctx, COUNTS_URL);
-
-
-
   return JSON.parse(await resp.text());
-
-
-
-}
-
-
-
-  
-
-
-
-async function fetchBinaryFromMirror(request, ctx, mirrorUrl, { noStore, extraHeaders }) {
-
-
-
+}async function fetchBinaryFromMirror(request, ctx, mirrorUrl, { noStore, extraHeaders }) {
   // Keep it simple: forward minimal headers
-
-
-
   const upstreamReq = new Request(mirrorUrl, {
-
-
-
     method: request.method === "HEAD" ? "HEAD" : "GET",
-
-
-
     headers: pickUpstreamHeaders(request.headers),
-
-
-
-  });
-
-
-
-  
-
-
-
-  const upstreamResp = await fetch(upstreamReq);
-
-
-
-  
-
-
-
-  // Build response to client, without exposing mirror domain
-
-
-
-  const resp = new Response(upstreamResp.body, upstreamResp);
-
-
-
-  
-
-
-
-  if (noStore) resp.headers.set("Cache-Control", "no-store");
-
-
-
+  });  const upstreamResp = await fetch(upstreamReq);  // Build response to client, without exposing mirror domain
+  const resp = new Response(upstreamResp.body, upstreamResp);  if (noStore) resp.headers.set("Cache-Control", "no-store");
   for (const [k, v] of Object.entries(extraHeaders || {})) {
-
-
-
     resp.headers.set(k, v);
-
-
-
   }
-
-
-
   return resp;
-
-
-
-}
-
-
-
-  
-
-
-
-function pickUpstreamHeaders(headers) {
-
-
-
+}function pickUpstreamHeaders(headers) {
   const h = new Headers();
-
-
-
   const accept = headers.get("Accept");
-
-
-
-  if (accept) h.set("Accept", accept);
-
-
-
-  
-
-
-
-  const range = headers.get("Range");
-
-
-
-  if (range) h.set("Range", range);
-
-
-
-  
-
-
-
-  return h;
-
-
-
-}
-
-
-
-  
-
-
-
-// unbiased crypto random in [min,max]
-
-
-
+  if (accept) h.set("Accept", accept);  const range = headers.get("Range");
+  if (range) h.set("Range", range);  return h;
+}// unbiased crypto random in [min,max]
 function randomInt(min, max) {
-
-
-
   const range = max - min + 1;
-
-
-
   const maxUint = 0xffffffff;
-
-
-
-  const bucketSize = Math.floor((maxUint + 1) / range) * range;
-
-
-
-  
-
-
-
-  let x;
-
-
-
+  const bucketSize = Math.floor((maxUint + 1) / range) * range;  let x;
   do {
-
-
-
     const arr = new Uint32Array(1);
-
-
-
     crypto.getRandomValues(arr);
-
-
-
     x = arr[0];
-
-
-
-  } while (x >= bucketSize);
-
-
-
-  
-
-
-
-  return min + (x % range);
-
-
-
+  } while (x >= bucketSize);  return min + (x % range);
 }
 
 ```
@@ -1091,8 +399,3 @@ function randomInt(min, max) {
 
 2026，服务器别炸了！
 
-
-
-
-
-  [1]: https://blog.furry.ist/usr/uploads/2026/01/2242067516.png
