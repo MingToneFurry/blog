@@ -1,5 +1,6 @@
 ((global) => {
-	const SHARE_CACHE_PREFIX = "umami-share-cache:";
+	// Bump prefix to avoid stale cached region (e.g. mistakenly resolved to EU)
+	const SHARE_CACHE_PREFIX = "umami-share-cache:v2:";
 	const SHARE_CACHE_TTL = 3600_000; // 1h
 
 	// In-memory caches (per page load)
@@ -70,10 +71,12 @@
 				candidates.push(origin);
 			}
 
-			// Umami Cloud region fallbacks (common regions: eu / us)
+			// Umami Cloud region fallbacks (common regions: us / eu)
+			// NOTE: Some accounts only have data in one region. We will verify candidates later.
 			if (origin.includes("cloud.umami.is") && !normalized.includes("/analytics/")) {
-				candidates.push(`${origin}/analytics/eu`);
+				// Prefer US first, then EU.
 				candidates.push(`${origin}/analytics/us`);
+				candidates.push(`${origin}/analytics/eu`);
 			}
 		} catch {
 			// ignore URL parse errors
@@ -115,6 +118,21 @@
 		return { websiteId, token };
 	}
 
+	async function verifyWebsiteAccess(apiBase, websiteId, token) {
+		// A lightweight probe to ensure the region is correct for this website.
+		// Umami Cloud Share pages call this endpoint too.
+		const res = await fetch(`${apiBase}/api/websites/${websiteId}`, {
+			method: "GET",
+			headers: {
+				Accept: "application/json",
+				"x-umami-share-token": token,
+				"x-kl-ajax-request": "Ajax_Request",
+			},
+			credentials: "omit",
+		});
+		return res.ok;
+	}
+
 	async function fetchShareData(baseUrl, shareId) {
 		const shareCacheKey = getShareCacheKey(baseUrl, shareId);
 
@@ -137,6 +155,13 @@
 		for (const apiBase of candidates) {
 			try {
 				const { websiteId, token } = await fetchShareFrom(apiBase, shareId);
+				const ok = await verifyWebsiteAccess(apiBase, websiteId, token);
+				if (!ok) {
+					throw new Error(
+						`Umami 区域探测失败：${apiBase} 无法访问 websiteId=${websiteId}`,
+					);
+				}
+
 				const value = { websiteId, token, apiBase };
 				safeSetItem(
 					shareCacheKey,
@@ -194,6 +219,17 @@
 			return { ...data, _fromCache: true };
 		}
 
+		function normalizeQueryParams(qp) {
+			const out = { ...qp };
+			// Umami v2+ uses `path` instead of `url` as filter key.
+			// Keep backward-compat: if caller sends url, map it to path.
+			if (out.url && !out.path) {
+				out.path = out.url;
+				delete out.url;
+			}
+			return out;
+		}
+
 		async function doFetch(isRetry = false) {
 			const { websiteId, token, apiBase } = await global.getUmamiShareData(
 				baseUrl,
@@ -201,13 +237,14 @@
 			);
 
 			const now = Date.now();
+			const normalizedQP = normalizeQueryParams(queryParams);
 			const params = new URLSearchParams({
 				startAt: 0,
 				endAt: now,
 				unit: "hour",
-				timezone: queryParams.timezone || "Asia/Shanghai",
+				timezone: normalizedQP.timezone || "Asia/Shanghai",
 				compare: "false",
-				...queryParams,
+				...normalizedQP,
 			});
 
 			const statsUrl = `${apiBase}/api/websites/${websiteId}/stats?${params.toString()}`;
@@ -222,7 +259,8 @@
 			});
 
 			if (!res.ok) {
-				if (res.status === 401 && !isRetry) {
+				// 401/403/404 are common when the cached region is wrong or token expired.
+				if ([401, 403, 404].includes(res.status) && !isRetry) {
 					// token may have expired, retry once after clearing share cache
 					global.clearUmamiShareCache(baseUrl, shareId);
 					return doFetch(true);

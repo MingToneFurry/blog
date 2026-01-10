@@ -95,8 +95,8 @@ const config = profileConfig;
                 timezone: umamiConfig.timezone
             });
             
-            const pageviews = statsData.pageviews || 0;
-            const visitors = statsData.visitors || 0;
+			const pageviews = (statsData.pageviews && statsData.pageviews.value) || statsData.pageviews || 0;
+			const visitors = (statsData.visitors && statsData.visitors.value) || statsData.visitors || 0;
             
             const viewsElement = document.getElementById('site-views');
             const visitorsElement = document.getElementById('site-visitors');
