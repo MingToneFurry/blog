@@ -241,7 +241,7 @@ _依旧建议使用ai编写脚本批量处理_
 
 
 
-```
+```js
 // Cloudflare Snippets for api.furry.ist
 // Goals:
 // 1) /furry-img/ implements format=json|file, redirect=0|1, mode=auto|box|large
