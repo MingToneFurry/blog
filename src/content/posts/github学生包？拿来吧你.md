@@ -8,7 +8,8 @@ lang: ""
 ---
 起因是这样的，我想用copilot写点代码，结果一下就用到了限额，根本不够用...
 于是我便想起了Github还有个学生开发者包（GitHub Student Developer Pack），可以获得免费的github copilot pro
-p.s:我的github账号预先绑定过一个edu邮箱，未尝试无edu邮箱的情况，且该教程适用于有一定基础的群众
+ > p.s
+ > 我的github账号预先绑定过一个edu邮箱，未尝试无edu邮箱的情况，且该教程适用于有一定基础的群众
 
 ---
 
