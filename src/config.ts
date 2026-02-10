@@ -56,9 +56,7 @@ export const siteConfig: SiteConfig = {
 			//   sizes: '32x32',              // (Optional) Size of the favicon, set only if you have favicons of different sizes
 		},
 	],
-	officialSites: [
-		{ url: "https://blog.furry.ist", alias: "Global" },
-	],
+	officialSites: [{ url: "https://blog.furry.ist", alias: "Global" }],
 };
 
 export const navBarConfig: NavBarConfig = {
