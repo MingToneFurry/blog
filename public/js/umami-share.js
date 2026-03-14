@@ -221,11 +221,12 @@
 
 		function normalizeQueryParams(qp) {
 			const out = { ...qp };
-			// Umami v2+ uses `path` instead of `url` as filter key.
-			// Keep backward-compat: if caller sends url, map it to path.
-			if (out.url && !out.path) {
-				out.path = out.url;
-				delete out.url;
+			// Umami stats API uses `url` as the filter key for URL/path filtering.
+			// Support legacy `path` parameter by converting it to `url` and stripping
+			// any PostgREST operator prefix (e.g. "eq.") that may have been used previously.
+			if (out.path && !out.url) {
+				out.url = String(out.path).replace(/^[a-z]+\./, '');
+				delete out.path;
 			}
 			return out;
 		}
@@ -241,9 +242,7 @@
 			const params = new URLSearchParams({
 				startAt: 0,
 				endAt: now,
-				unit: "hour",
 				timezone: normalizedQP.timezone || "Asia/Shanghai",
-				compare: "false",
 				...normalizedQP,
 			});
 

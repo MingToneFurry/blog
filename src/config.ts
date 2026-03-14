@@ -88,6 +88,11 @@ export const navBarConfig: NavBarConfig = {
 			url: "https://stats.uptimerobot.com/6zqrufirxf",
 			external: true, // Show an external link icon and will open in a new tab
 		},
+		{
+			name: "统计",
+			url: "https://cloud.umami.is/analytics/us/share/HdVBrs2TcRJ2LJd4",
+			external: true, // Show an external link icon and will open in a new tab
+		},
 	],
 };
 
