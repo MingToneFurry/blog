@@ -1,11 +1,18 @@
 ---
 title: Github学生包？拿来吧你
 published: 2026-01-11T01:54:05
-description: Github学生包难过？轻松拿下！
+description:
 image: ""
 draft: false
 lang: ""
 ---
+---
+
+# 该文章存在过时的信息，阅读时请根据实际为准
+### 目前仅测试过SchoolCraft，且绑定了edu邮箱，不一定适用于所有人
+
+---
+
 起因是这样的，我想用copilot写点代码，结果一下就用到了限额，根本不够用...
 于是我便想起了Github还有个学生开发者包（GitHub Student Developer Pack），可以获得免费的github copilot pro
  > p.s
