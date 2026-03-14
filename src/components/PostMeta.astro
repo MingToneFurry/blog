@@ -91,7 +91,7 @@ const className = Astro.props.class;
 
 			const statsData = await window.fetchUmamiStats(umamiConfig.baseUrl, umamiConfig.shareId, {
                 timezone: umamiConfig.timezone,
-                url: `/posts/${slug}/`
+                path: `/posts/${slug}/`
             });
             
             const pageViews = (statsData.pageviews && statsData.pageviews.value) || statsData.pageviews || 0;

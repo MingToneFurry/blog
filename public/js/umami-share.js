@@ -221,12 +221,15 @@
 
 		function normalizeQueryParams(qp) {
 			const out = { ...qp };
-			// Umami stats API uses `url` as the filter key for URL/path filtering.
-			// Support legacy `path` parameter by converting it to `url` and stripping
-			// any PostgREST operator prefix (e.g. "eq.") that may have been used previously.
-			if (out.path && !out.url) {
-				out.url = String(out.path).replace(/^[a-z]+\./, '');
-				delete out.path;
+			// Umami Cloud stats API uses `path=eq.{url}` format for URL filtering.
+			// Convert convenience `url` param to `path` with the required `eq.` prefix.
+			if (out.url && !out.path) {
+				out.path = 'eq.' + out.url;
+				delete out.url;
+			}
+			// If path is provided without the eq. prefix, add it.
+			if (out.path && !String(out.path).startsWith('eq.')) {
+				out.path = 'eq.' + out.path;
 			}
 			return out;
 		}
