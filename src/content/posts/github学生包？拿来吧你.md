@@ -1,11 +1,12 @@
 ---
 title: Github学生包？拿来吧你
 published: 2026-01-11T01:54:05
-description:
+description: GIthub学生权益的快速获取~
 image: ""
 draft: false
 lang: ""
 ---
+
 ---
 
 # 该文章存在过时的信息，阅读时请根据实际为准
