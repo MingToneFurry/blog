@@ -437,6 +437,10 @@ const bannerOffset =
 	}
 
 	init();
+	// Mark the page as ready so onload-animation elements can start animating.
+	// By adding this class after init() completes, we ensure all DOM setup (scrollbar,
+	// theme, banner, etc.) is done before animations begin, preventing double-play.
+	document.documentElement.classList.add("page-ready");
 
 	const setup = () => {
 		window.swup.hooks.on("link:click", () => {

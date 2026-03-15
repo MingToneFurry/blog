@@ -19,8 +19,12 @@ html.is-animating .transition-swup-fade {
 }
 
 /* Main components */
+/* Keep elements invisible until JS marks the page as ready, preventing
+   animations from restarting due to DOM changes during initialization */
 .onload-animation {
     opacity: 0;
+}
+html.page-ready .onload-animation {
     animation: 300ms fade-in-up;
     animation-fill-mode: forwards;
 }
