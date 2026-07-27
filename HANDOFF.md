@@ -19,6 +19,7 @@
 - 网络失败时使用 `socks5://127.0.0.1:10808`，当前仅配置在本仓库 `.git/config`。
 - Umami 分享页仍为 `https://cloud.umami.is/analytics/us/share/HdVBrs2TcRJ2LJd4`。
 - 新 API 基址为 `https://gateway-us.umami.is`；分享上下文请求必须带 `x-umami-share-context: 1` 和动态分享令牌。
+- 所有统计请求使用 `startAt=0`，全站与文章 PV/UV 均表示 Umami 开始记录以来的累计值；接入前或已删除的历史数据无法补算。
 - 公开分享令牌只在浏览器内动态获取，不写入仓库或交接文档。
 - `iudesigns` 目录共三种风格：`arcade.md`、`glass.md`、`mono.md`。
 

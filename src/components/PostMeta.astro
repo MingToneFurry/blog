@@ -51,12 +51,14 @@ const className = Astro.props.class;
                 <div class="meta-icon">
                     <Icon name="material-symbols:visibility-outline-rounded" class="text-xl"></Icon>
                 </div>
+                <span class="sr-only">累计浏览：</span>
                 <span class="text-50 text-sm font-medium" id={`page-views-${slug}`} aria-label="累计浏览 PV">-- 次</span>
             </div>
             <div class="flex items-center">
                 <div class="meta-icon">
                     <Icon name="material-symbols:person" class="text-xl"></Icon>
                 </div>
+                <span class="sr-only">累计访客：</span>
                 <span class="text-50 text-sm font-medium" id={`page-visitors-${slug}`} aria-label="累计访客 UV">-- 人</span>
             </div>
         </>
