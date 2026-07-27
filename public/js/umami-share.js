@@ -1,7 +1,8 @@
 ((global) => {
-	// Bump prefix to avoid stale cached region (e.g. mistakenly resolved to EU)
-	const SHARE_CACHE_PREFIX = "umami-share-cache:v2:";
+	// Invalidate cached Cloud API locations whenever Umami changes its gateway.
+	const SHARE_CACHE_PREFIX = "umami-share-cache:v3:";
 	const SHARE_CACHE_TTL = 3600_000; // 1h
+	const UMAMI_SHARE_CONTEXT = "1";
 
 	// In-memory caches (per page load)
 	const dataCache = (global.__umamiDataCache = global.__umamiDataCache || new Map());
@@ -52,34 +53,55 @@
 		return out;
 	}
 
+	function getRequestHeaders(token) {
+		const headers = {
+			Accept: "application/json",
+			"Content-Type": "application/json",
+		};
+
+		if (token) {
+			headers["x-umami-share-context"] = UMAMI_SHARE_CONTEXT;
+			headers["x-umami-share-token"] = token;
+		}
+
+		return headers;
+	}
+
 	/**
 	 * Build candidate API bases for Umami Cloud / self-hosted.
-	 * - Self-hosted: https://umami.example.com
-	 * - Umami Cloud: UI + API often live under /analytics/{region}/...
+	 * Umami Cloud serves the UI from cloud.umami.is and the API from a
+	 * region-specific gateway (for example gateway-us.umami.is).
 	 */
 	function buildBaseCandidates(baseUrl) {
 		const normalized = normalizeBaseUrl(baseUrl);
-		const candidates = [normalized];
+		const candidates = [];
 
 		try {
 			const u = new URL(normalized);
 			const origin = u.origin;
 			const pathname = (u.pathname || "/").replace(/\/+$/, "");
+			const regionMatch = pathname.match(/\/analytics\/([^/]+)/);
 
-			// If user configured a path (e.g. /analytics/us), also try origin-only.
+			if (u.hostname === "cloud.umami.is") {
+				const regions = regionMatch ? [regionMatch[1]] : ["us", "eu"];
+				for (const region of regions) {
+					candidates.push(`https://gateway-${region}.umami.is`);
+				}
+			}
+
+			candidates.push(normalized);
+
 			if (pathname && pathname !== "/") {
 				candidates.push(origin);
 			}
 
-			// Umami Cloud region fallbacks (common regions: us / eu)
-			// NOTE: Some accounts only have data in one region. We will verify candidates later.
-			if (origin.includes("cloud.umami.is") && !normalized.includes("/analytics/")) {
-				// Prefer US first, then EU.
+			// Keep legacy Cloud endpoints as fallbacks for older deployments.
+			if (u.hostname === "cloud.umami.is" && !regionMatch) {
 				candidates.push(`${origin}/analytics/us`);
 				candidates.push(`${origin}/analytics/eu`);
 			}
 		} catch {
-			// ignore URL parse errors
+			candidates.push(normalized);
 		}
 
 		return uniq(candidates.map(normalizeBaseUrl));
@@ -88,7 +110,7 @@
 	async function fetchShareFrom(apiBase, shareId) {
 		const res = await fetch(`${apiBase}/api/share/${shareId}`, {
 			method: "GET",
-			headers: { Accept: "application/json" },
+			headers: getRequestHeaders(),
 			credentials: "omit",
 		});
 
@@ -123,11 +145,7 @@
 		// Umami Cloud Share pages call this endpoint too.
 		const res = await fetch(`${apiBase}/api/websites/${websiteId}`, {
 			method: "GET",
-			headers: {
-				Accept: "application/json",
-				"x-umami-share-token": token,
-				"x-kl-ajax-request": "Ajax_Request",
-			},
+			headers: getRequestHeaders(token),
 			credentials: "omit",
 		});
 		return res.ok;
@@ -252,11 +270,7 @@
 			const statsUrl = `${apiBase}/api/websites/${websiteId}/stats?${params.toString()}`;
 
 			const res = await fetch(statsUrl, {
-				headers: {
-					"x-umami-share-token": token,
-					"x-kl-ajax-request": "Ajax_Request",
-					Accept: "application/json",
-				},
+				headers: getRequestHeaders(token),
 				credentials: "omit",
 			});
 

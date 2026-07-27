@@ -9,6 +9,7 @@
 		"preview": "astro preview",
 		"astro": "astro",
 		"type-check": "tsc --noEmit --isolatedDeclarations",
+		"test:umami": "node scripts/test-umami-share.mjs",
 		"new-post": "node scripts/new-post.js",
 		"clean": "node scripts/clean-unused-images.js",
 		"format": "biome format --write ./src",
