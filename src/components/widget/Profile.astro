@@ -4,21 +4,22 @@ import { profileConfig, siteConfig, umamiConfig } from "../../config";
 
 const config = profileConfig;
 ---
-<div class="card-base p-3 border border-black/10 dark:border-white/10">
-    <div class="relative mx-auto mt-1 lg:mx-0 lg:mt-0 mb-3 max-w-[12rem] lg:max-w-none rounded-xl overflow-hidden" style={`--theme-hue: ${siteConfig.themeColor.hue}`}>
+<div class="profile-card card-base border border-black/10 dark:border-white/10">
+    <div class="profile-avatar relative mx-auto lg:mx-0 overflow-hidden" style={`--theme-hue: ${siteConfig.themeColor.hue}`}>
         <div class="loading-bar absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-32 h-1 bg-gray-200 dark:bg-gray-700 z-10 rounded-full overflow-hidden">
-            <div class="loading-progress h-full w-8 bg-[oklch(0.70_0.14_var(--theme-hue))] animate-loading-progress rounded-full"></div>
+            <div class="loading-progress h-full w-8 bg-[var(--ui-fg-muted)] animate-loading-progress rounded-full"></div>
         </div>
         <img src={config.avatar} alt="Profile Image of the Author" class="w-full h-full object-cover opacity-0 transition-opacity duration-500" onload="this.style.opacity='1'; this.parentElement.querySelector('.loading-bar').style.opacity='0';"/>
     </div>
-    <div class="px-2">
-        <div class="font-bold text-xl text-center mb-1 dark:text-neutral-50 transition">{config.name}</div>
-        <div class="h-1 w-5 bg-[var(--primary)] mx-auto rounded-full mb-2 transition"></div>
-        <div class="text-center text-neutral-400 mb-2.5 transition">{config.bio}</div>
-        <div class="flex flex-wrap gap-2 justify-center mb-1">
+    <div class="profile-body">
+        <div class="mono-badge mb-3">AUTHOR</div>
+        <div class="profile-name font-bold text-xl mb-1 dark:text-neutral-50 transition">{config.name}</div>
+        <div class="profile-bio text-neutral-400 mb-2.5 transition">{config.bio}</div>
+        <div class="profile-links flex flex-wrap gap-2 justify-center mb-1">
             {config.links.length > 1 && config.links.map(item =>
-                    <a rel="me" aria-label={item.name} href={item.url} target="_blank" class="btn-regular rounded-lg h-10 w-10 active:scale-90">
+                    <a rel="me" aria-label={item.name} href={item.url} target="_blank" class="btn-regular h-10 w-10 active:scale-90">
                         <Icon name={item.icon} class="text-[1.5rem]"></Icon>
+                        <span>{item.name}</span>
                     </a>
             )}
             {config.links.length == 1 && <a rel="me" aria-label={config.links[0].name} href={config.links[0].url} target="_blank"
@@ -29,20 +30,18 @@ const config = profileConfig;
         </div>
         
         <!-- 全站访问量统计 -->
-        <div class="grid grid-cols-2 mt-3 pt-3 border-t border-neutral-300 dark:border-neutral-700">
-            <div class="text-center">
-                <div class="text-xs text-neutral-500 mb-1 flex items-center justify-center gap-1">
-                    <Icon name="material-symbols:visibility-outline" class="text-base"></Icon>
-                    <span class="text-xs">访问量</span>
+        <div class="site-stats grid grid-cols-2 mt-3 pt-3 border-t border-neutral-300 dark:border-neutral-700">
+            <div class="site-stat text-center">
+                <div class="site-stat-label text-xs text-neutral-500 mb-1 flex items-center justify-center gap-1">
+                    <span>[TOTAL PV] 累计浏览 PV</span>
                 </div>
-                <div id="site-views" class="font-bold text-lg text-neutral-700 dark:text-neutral-300">0</div>
+                <div id="site-views" data-stat="total-pv" class="site-stat-value font-bold text-lg text-neutral-700 dark:text-neutral-300">0</div>
             </div>
-            <div class="text-center border-l border-neutral-300 dark:border-neutral-700">
-                <div class="text-xs text-neutral-500 mb-1 flex items-center justify-center gap-1">
-                    <Icon name="material-symbols:person" class="text-base"></Icon>
-                    <span class="text-xs">访客数</span>
+            <div class="site-stat text-center border-l border-neutral-300 dark:border-neutral-700">
+                <div class="site-stat-label text-xs text-neutral-500 mb-1 flex items-center justify-center gap-1">
+                    <span>[TOTAL UV] 累计访客 UV</span>
                 </div>
-                <div id="site-visitors" class="font-bold text-lg text-neutral-700 dark:text-neutral-300">0</div>
+                <div id="site-visitors" data-stat="total-uv" class="site-stat-value font-bold text-lg text-neutral-700 dark:text-neutral-300">0</div>
             </div>
         </div>
     </div>
@@ -74,11 +73,11 @@ const config = profileConfig;
         const step = (timestamp) => {
             if (!startTimestamp) startTimestamp = timestamp;
             const progress = Math.min((timestamp - startTimestamp) / duration, 1);
-            obj.innerHTML = Math.floor(progress * (end - start) + start);
+            obj.textContent = Math.floor(progress * (end - start) + start);
             if (progress < 1) {
                 window.requestAnimationFrame(step);
             } else {
-                obj.innerHTML = end;
+                obj.textContent = end;
             }
         };
         window.requestAnimationFrame(step);
@@ -87,8 +86,10 @@ const config = profileConfig;
     // 获取全站访问量统计
     async function loadSiteStats() {
         if (!umamiConfig.enable) return;
-        try {
-			// Umami share helper is exposed on window (loaded in Layout.astro)
+		try {
+			for (let attempt = 0; attempt < 40 && typeof window.fetchUmamiStats !== 'function'; attempt++) {
+				await new Promise((resolve) => setTimeout(resolve, 100));
+			}
 			if (typeof window.fetchUmamiStats !== 'function') return;
 
 			const statsData = await window.fetchUmamiStats(umamiConfig.baseUrl, umamiConfig.shareId, {

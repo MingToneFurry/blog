@@ -33,10 +33,11 @@ const coverWidth = "28%";
 
 const { remarkPluginFrontmatter } = await entry.render();
 ---
-<div class:list={["card-base card-hover flex flex-col w-full relative", className]} style={style}>
-    <div class:list={["pl-9 pr-2 pt-6 pb-6 relative", {"w-[calc(100%_-_52px_-_12px)]": !hasCover, "w-[calc(100%_-_var(--coverWidth)_-_12px)]": hasCover}]}>
+<article class:list={["post-card card-base card-hover flex flex-col w-full relative", className]} style={style}>
+    <div class:list={["post-card-body relative", {"w-[calc(100%_-_48px)]": !hasCover, "w-[calc(100%_-_var(--coverWidth))]": hasCover}]}>
+        <div class="mono-badge mb-3">{isPinned ? "PINNED" : "ARTICLE"}</div>
         <a href={url}
-           class="transition group w-full block font-bold mb-2 md:mb-3 text-xl md:text-3xl text-90 relative
+           class="post-card-title transition group w-full block font-bold mb-2 md:mb-3 text-xl md:text-3xl text-90 relative
         hover:text-[var(--primary)] dark:hover:text-[var(--primary)]
         active:text-[var(--title-active)] dark:active:text-[var(--title-active)]
         before:w-1 before:h-5 before:rounded-md before:bg-[var(--primary)]
@@ -48,26 +49,32 @@ const { remarkPluginFrontmatter } = await entry.render();
         </a>
 
         <!-- description -->
-        <div class:list={["transition text-75 mb-3.5 pr-4 line-clamp-1 md:line-clamp-2"]}>
+        <div class:list={["post-card-description transition text-75 mb-3.5 pr-4 line-clamp-2"]}>
             { description || remarkPluginFrontmatter.excerpt }
         </div>
 
         <!-- metadata -->
-        <PostMetadata published={published} updated={updated} hideUpdateDate={true} hidePublishedDate={true} slug={entry.slug} class="mb-2 md:mb-4"></PostMetadata>
+        <div
+            class="post-card-stats"
+            data-stats-url={`/posts/${entry.slug}/`}
+            data-stats-base-url={umamiConfig.baseUrl}
+            data-stats-share-id={umamiConfig.shareId}
+            data-stats-timezone={umamiConfig.timezone}
+        >
+            <PostMetadata published={published} updated={updated} hideUpdateDate={true} hidePublishedDate={true} slug={entry.slug} deferStats={true} class="mb-2 md:mb-4"></PostMetadata>
+        </div>
 
         <!-- word count, read time and page views -->
-        <div class="text-sm text-black/30 dark:text-white/30 flex gap-4 transition">
-            <div>{formatDateToYYYYMMDD(published)}</div>
-            <div>|</div>
-            <div>{remarkPluginFrontmatter.words} 字</div>
-            <div>|</div>
-            <div>{remarkPluginFrontmatter.minutes} 分钟</div>
+        <div class="post-card-data transition">
+            <time datetime={published.toISOString()}>[DATE] {formatDateToYYYYMMDD(published)}</time>
+            <span>[WORDS] {remarkPluginFrontmatter.words}</span>
+            <span>[READ] {remarkPluginFrontmatter.minutes} MIN</span>
         </div>
 
     </div>
 
     {hasCover && <a href={url} aria-label={title}
-                    class:list={["group",
+                    class:list={["post-card-cover group",
                         "max-h-none mx-0 mt-0",
                         "w-[var(--coverWidth)] absolute top-3 bottom-3 right-3 rounded-xl overflow-hidden active:scale-95"
                     ]} >
@@ -84,7 +91,7 @@ const { remarkPluginFrontmatter } = await entry.render();
     </a>}
 
     {!hasCover &&
-        <a href={url} aria-label={title} class="!flex btn-regular w-[3.25rem]
+        <a href={url} aria-label={title} class="post-card-enter !flex btn-regular w-[3.25rem]
          absolute right-3 top-3 bottom-3 rounded-xl bg-[var(--enter-btn-bg)]
          hover:bg-[var(--enter-btn-bg-hover)] active:bg-[var(--enter-btn-bg-active)] active:scale-95
         ">
@@ -93,79 +100,7 @@ const { remarkPluginFrontmatter } = await entry.render();
             </Icon>
         </a>
     }
-</div>
+</article>
 <div class="transition border-t-[1px] border-dashed mx-6 border-black/10 dark:border-white/[0.15] last:border-t-0 hidden"></div>
-
-
-
 <style define:vars={{coverWidth}}>
 </style>
-
-<script>
-    // 数字动画函数
-    function animateValue(obj, start, end, duration) {
-        let startTimestamp = null;
-        const step = (timestamp) => {
-            if (!startTimestamp) startTimestamp = timestamp;
-            const progress = Math.min((timestamp - startTimestamp) / duration, 1);
-            obj.innerHTML = Math.floor(progress * (end - start) + start);
-            if (progress < 1) {
-                window.requestAnimationFrame(step);
-            } else {
-                obj.innerHTML = end;
-            }
-        };
-        window.requestAnimationFrame(step);
-    }
-
-    async function loadCardStats() {
-        const elements = document.querySelectorAll('.post-pageviews');
-        
-        elements.forEach(async (el) => {
-            // 如果元素已经处理过，且已有内容（非0），则不再处理
-            if (el.classList.contains('processed') && el.textContent !== '0') return;
-            
-            el.classList.add('processed');
-            const url = el.dataset.url;
-            const baseUrl = el.dataset.umamiBaseUrl;
-            const shareId = el.dataset.umamiShareId;
-            const timezone = el.dataset.umamiTimezone;
-            
-            if (!baseUrl || !shareId) return;
-            
-            try {
-                // Check if fetchUmamiStats exists
-                if (typeof window.fetchUmamiStats !== 'function') return;
-
-                const statsData = await window.fetchUmamiStats(baseUrl, shareId, {
-                    url: url,
-                    timezone: timezone
-                });
-                
-                const pageviews = (statsData.pageviews && statsData.pageviews.value) || statsData.pageviews || 0;
-                
-                // 如果数据来自缓存，直接显示结果，跳过动画
-                if (statsData._fromCache) {
-                    el.innerHTML = pageviews;
-                    return;
-                }
-                
-                const startVal = parseInt(el.textContent) || 0;
-                
-                if (startVal !== pageviews) {
-                    // 只有当开始值是0的时候才播放动画（首次加载）
-                    if (startVal === 0) {
-                         animateValue(el, startVal, pageviews, 1000);
-                    } else {
-                         el.innerHTML = pageviews;
-                    }
-                }
-            } catch (e) {
-                console.error('Failed to load stats for', url, e);
-            }
-        });
-    }
-    
-    document.addEventListener('DOMContentLoaded', loadCardStats);
-    document.addEventListener('swup:contentReplaced', loadCardStats);
-</script>

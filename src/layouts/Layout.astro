@@ -19,6 +19,7 @@ import { defaultFavicons } from "../constants/icon";
 import type { Favicon } from "../types/config";
 import { url, pathsEqual } from "../utils/url-utils";
 import "katex/dist/katex.css";
+import "../styles/mono.css";
 
 interface Props {
 	title?: string;
@@ -97,7 +98,8 @@ const bannerOffset =
 <!DOCTYPE html>
 <html
 	lang={siteLang}
-	class="bg-[var(--page-bg)] transition text-[12px] md:text-[16px]"
+	class="bg-[var(--page-bg)] transition text-[14px] md:text-[15px]"
+	data-design="mono"
 	data-overlayscrollbars-initialize
 >
 	<head>
@@ -214,12 +216,24 @@ const bannerOffset =
 				-webkit-transform: translate3d(0, 0, 0);
 				backface-visibility: hidden;
 				-webkit-backface-visibility: hidden;
-				will-change: opacity, transform, filter;
-				transition: opacity 0.3s ease-in-out;
+				will-change: opacity, transform;
+				filter: grayscale(1) contrast(0.82) !important;
+				transition: opacity var(--ui-dur-slow) var(--ui-ease);
 			}
 
 			#bg-box.loaded {
-				opacity: var(--bg-opacity);
+				opacity: 0.18;
+			}
+
+			#bg-box::after {
+				position: absolute;
+				inset: 0;
+				background: rgb(10 10 10 / 0.76);
+				content: "";
+			}
+
+			:root:not(.dark) #bg-box::after {
+				background: rgb(252 252 252 / 0.76);
 			}
 
 			#bg-img {
@@ -259,7 +273,7 @@ const bannerOffset =
 
 	<body
 		class:list={[
-			"min-h-screen",
+			"min-h-screen mono-shell",
 			"transition",
 			{ "lg:is-home": isHomePage, "enable-banner": enableBanner },
 		]}

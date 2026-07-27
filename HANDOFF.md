@@ -49,5 +49,21 @@
 
 - 仓库已克隆并跟踪 `origin/main`。
 - Umami 修复已完成本地单测、生产构建与浏览器端到端验证：全站和文章 PV/UV 均恢复显示。
-- 三份设计规范已完成清点，尚未开始设计分支实现。
-- 仓库基线仍有既存类型检查问题：缺少 `hast` 类型，以及 `src/utils/content-utils.ts` 的隐式 `any`；生产构建不受影响。
+- 所有统计请求使用 `startAt=0`，全站与文章 PV/UV 均表示 Umami 开始记录以来的累计值；接入前或已删除的历史数据无法补算。
+- `design/mono` 已按 `iudesigns/mono.md` 完成结构化重写：导航、首页文章卡片、文章页、归档、友链、搜索、个人资料与显示设置均采用纯黑白、直角、1px 边框和排版优先的 MONO 系统。
+- MONO 显示设置仅保留明暗主题与动态背景开关；旧主题色、彩虹、背景模糊和色相旋转不会覆盖强制灰度显示。
+- MONO 保留 `https://api.furry.ist/furry-img` 动态背景及 `https://sni-api.furry.ist/furry-img` 回退，所有统计标签与数字节点分离，脚本只更新数字。
+- 首页文章统计由列表组件统一调度，最大并发 4；网络或 API 异常会以 400ms/900ms 延迟有限重试，加载期间显示 `--`，避免将未完成请求误呈现为真实 0。
+- `design/arcade` 与 `design/glass` 由各自独立工作树继续实现；所有设计分支均禁止提前合入 `main`。
+- 仓库当前基线的 `pnpm type-check` 仍因缺少 `hast` 类型失败；早先出现的 `src/utils/content-utils.ts` 隐式 `any` 已不再复现，生产构建不受影响。
+
+## MONO 交付检查
+
+- 分支：`design/mono`；独立工作树：`D:\Projects\blog-mono`。
+- 必测页面：首页、文章页、`/archive/`、`/friends/`。
+- 必测交互：RSS 搜索、移动菜单、明暗/自动主题、动态背景开关、Swup 页面切换、键盘焦点与减少动效。
+- 必测数据：全站“累计浏览 PV / 累计访客 UV”与文章级累计 PV/UV，文案不得被异步请求替换。
+- 交付要求：运行 `pnpm test:umami`、`pnpm build`、记录 `pnpm type-check` 基线失败，完成桌面与移动截图后再供用户选择；不得合并到 `main`。
+- 2026-07-28 验证：`pnpm test:umami` 通过；`pnpm build` 通过并生成 36 页；`pnpm type-check` 与 `main` 同样仅报 `custom-copy-button.ts` 缺少 `hast` 类型。
+- 主代理已用精确 1440x1000 与 390x844 浏览器视口验收：首页、文章页、归档、友链、搜索、移动菜单、明暗主题、背景开关均通过；移动端无横向溢出，Footer 位于文章和分页之后。
+- 累计统计连续 3 轮、每轮观察 10 秒均通过：初始占位为 `--`，全站与首页 8 篇文章的 PV/UV 最终全部完成更新，无遗留加载占位或误报 0。

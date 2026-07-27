@@ -49,28 +49,19 @@ export function getBgBlur(): number {
 }
 
 export function setBgBlur(blur: number): void {
-	localStorage.setItem("bg-blur", String(blur));
+	void blur;
+	localStorage.setItem("bg-blur", "0");
 	const bgBox = document.getElementById("bg-box");
 	if (bgBox) {
-		// Retrieve existing hue-rotate value if any, or 0
-		const currentFilter = bgBox.style.filter || "";
-		const hueRotateMatch = currentFilter.match(/hue-rotate\((.*?)deg\)/);
-		const hueRotate = hueRotateMatch ? hueRotateMatch[1] : "0";
-		bgBox.style.setProperty(
-			"filter",
-			`blur(${blur}px) hue-rotate(${hueRotate}deg)`,
-		);
+		bgBox.style.removeProperty("filter");
 	}
 }
 
 export function setBgHueRotate(hue: number): void {
+	void hue;
 	const bgBox = document.getElementById("bg-box");
 	if (bgBox) {
-		// Retrieve existing blur value
-		const currentFilter = bgBox.style.filter || "";
-		const blurMatch = currentFilter.match(/blur\((.*?)px\)/);
-		const blur = blurMatch ? blurMatch[1] : getBgBlur();
-		bgBox.style.setProperty("filter", `blur(${blur}px) hue-rotate(${hue}deg)`);
+		bgBox.style.removeProperty("filter");
 	}
 }
 

@@ -2,370 +2,151 @@
 import { AUTO_MODE, DARK_MODE, LIGHT_MODE } from "@constants/constants";
 import Icon from "@iconify/svelte";
 import {
-	getBgBlur,
-	getDefaultHue,
-	getDevMode,
-	getDevServer,
 	getHideBg,
-	getHue,
-	getRainbowMode,
-	getRainbowSpeed,
 	getStoredTheme,
-	setBgBlur,
-	setBgHueRotate,
-	setDevMode,
-	setDevServer,
 	setHideBg,
-	setHue,
-	setRainbowMode,
-	setRainbowSpeed,
 	setTheme,
 } from "@utils/setting-utils";
-import { onMount } from "svelte";
 
-let hue = getHue();
 let theme = getStoredTheme();
-let isRainbowMode = getRainbowMode();
-let rainbowSpeed = getRainbowSpeed();
-let bgBlur = getBgBlur();
 let hideBg = getHideBg();
-let isDevMode = getDevMode();
-let devServer = getDevServer();
-let animationId: number;
-let lastUpdate = 0;
-let rainbowHue = 0; // Independent hue for background rotation
-
-const defaultHue = getDefaultHue();
-
-function resetHue() {
-	hue = getDefaultHue();
-}
-
-$: if ((hue || hue === 0) && !isRainbowMode) {
-	setHue(hue);
-}
-
-$: {
-	setBgBlur(bgBlur);
-}
 
 function switchTheme(newTheme: string) {
 	theme = newTheme;
 	setTheme(newTheme);
 }
 
-function updateRainbow() {
-	if (!isRainbowMode) return;
-
-	hue = (hue + rainbowSpeed * 0.05) % 360;
-	setHue(hue, false);
-
-	animationId = requestAnimationFrame(updateRainbow);
-}
-
-function toggleRainbow() {
-	isRainbowMode = !isRainbowMode;
-	setRainbowMode(isRainbowMode);
-
-	if (isRainbowMode) {
-		lastUpdate = performance.now();
-		rainbowHue = 0; // Reset rotation start
-		animationId = requestAnimationFrame(updateRainbow);
-	} else {
-		cancelAnimationFrame(animationId);
-		// Reset background rotation to 0 when stopped
-		setBgHueRotate(0);
-	}
-}
-
 function toggleHideBg() {
 	hideBg = !hideBg;
 	setHideBg(hideBg);
 }
-
-function toggleDevMode() {
-	isDevMode = !isDevMode;
-	setDevMode(isDevMode);
-}
-
-function onDevServerChange() {
-	setDevServer(devServer);
-}
-
-function onSpeedChange() {
-	setRainbowSpeed(rainbowSpeed);
-}
-
-onMount(() => {
-	if (isRainbowMode) {
-		updateRainbow();
-	}
-	return () => {
-		if (animationId) cancelAnimationFrame(animationId);
-	};
-});
 </script>
 
-<div id="display-setting" class="float-panel float-panel-closed absolute transition-all w-80 right-4 px-4 py-4">
-    <div class="flex flex-row gap-2 mb-3 items-center justify-between">
-        <div class="flex gap-2 font-bold text-lg text-neutral-900 dark:text-neutral-100 transition relative ml-3
-            before:w-1 before:h-4 before:rounded-md before:bg-[var(--primary)]
-            before:absolute before:-left-3 before:top-[0.33rem]"
-        >
-            主题模式
-        </div>
-        <div class="flex gap-1">
-            <button aria-label="Light Mode"
-                class="w-10 h-7 rounded-md transition flex items-center justify-center active:scale-90
-                {theme === LIGHT_MODE ? 'bg-[var(--primary)] text-white' : 'bg-[var(--btn-regular-bg)] text-[var(--btn-content)] hover:bg-[var(--btn-regular-bg-hover)]'}"
-                on:click={() => switchTheme(LIGHT_MODE)}
-            >
-                <Icon icon="material-symbols:wb-sunny-rounded" class="text-[1.1rem]"></Icon>
+<div id="display-setting" class="float-panel float-panel-closed absolute w-80 right-4 p-4">
+    <div class="mono-section-head -mx-4 -mt-4 mb-4">
+        <h2>Display system</h2>
+        <span class="mono-badge">MONO</span>
+    </div>
+
+    <fieldset class="mono-setting-group">
+        <legend>[MODE] 明暗主题</legend>
+        <div class="mono-segmented" aria-label="主题模式">
+            <button aria-label="Light Mode" class:active={theme === LIGHT_MODE} on:click={() => switchTheme(LIGHT_MODE)}>
+                <Icon icon="material-symbols:wb-sunny-outline" /> <span>Light</span>
             </button>
-            <button aria-label="Dark Mode"
-                class="w-10 h-7 rounded-md transition flex items-center justify-center active:scale-90
-                {theme === DARK_MODE ? 'bg-[var(--primary)] text-white' : 'bg-[var(--btn-regular-bg)] text-[var(--btn-content)] hover:bg-[var(--btn-regular-bg-hover)]'}"
-                on:click={() => switchTheme(DARK_MODE)}
-            >
-                <Icon icon="material-symbols:dark-mode-rounded" class="text-[1.1rem]"></Icon>
+            <button aria-label="Dark Mode" class:active={theme === DARK_MODE} on:click={() => switchTheme(DARK_MODE)}>
+                <Icon icon="material-symbols:dark-mode-outline" /> <span>Dark</span>
             </button>
-            <button aria-label="Auto Mode"
-                class="w-10 h-7 rounded-md transition flex items-center justify-center active:scale-90
-                {theme === AUTO_MODE ? 'bg-[var(--primary)] text-white' : 'bg-[var(--btn-regular-bg)] text-[var(--btn-content)] hover:bg-[var(--btn-regular-bg-hover)]'}"
-                on:click={() => switchTheme(AUTO_MODE)}
-            >
-                <Icon icon="material-symbols:hdr-auto-rounded" class="text-[1.1rem]"></Icon>
+            <button aria-label="Auto Mode" class:active={theme === AUTO_MODE} on:click={() => switchTheme(AUTO_MODE)}>
+                <Icon icon="material-symbols:hdr-auto" /> <span>Auto</span>
             </button>
         </div>
+    </fieldset>
+
+    <div class="mono-setting-row">
+        <div>
+            <strong>[IMAGE] 动态背景</strong>
+            <p>灰度显示 api.furry.ist 图像</p>
+        </div>
+        <label class="mono-switch">
+            <input aria-label="显示动态背景" type="checkbox" checked={!hideBg} on:change={toggleHideBg} />
+            <span aria-hidden="true"></span>
+        </label>
     </div>
 
-    <div class="flex flex-row gap-2 mb-3 items-center justify-between">
-        <div class="flex gap-2 font-bold text-lg text-neutral-900 dark:text-neutral-100 transition relative ml-3
-            before:w-1 before:h-4 before:rounded-md before:bg-[var(--primary)]
-            before:absolute before:-left-3 before:top-[0.33rem]"
-        >
-            主题色彩
-            <button aria-label="Reset to Default" class="btn-regular w-7 h-7 rounded-md  active:scale-90"
-                    class:opacity-0={hue === defaultHue} class:pointer-events-none={hue === defaultHue} on:click={resetHue}>
-                <div class="text-[var(--btn-content)]">
-                    <Icon icon="fa6-solid:arrow-rotate-left" class="text-[0.875rem]"></Icon>
-                </div>
-            </button>
-        </div>
-        <div class="flex gap-1">
-            <input aria-label="Hue Value" id="hueValue" type="number" min="0" max="360" value={Math.round(hue)} on:input={(e) => hue = e.currentTarget.valueAsNumber} disabled={isRainbowMode}
-                   class="transition bg-[var(--btn-regular-bg)] w-12 h-7 rounded-md text-center font-bold text-sm text-[var(--btn-content)] outline-none"
-            />
-        </div>
-    </div>
-    <div class="w-full h-6 px-1 bg-[oklch(0.80_0.10_0)] dark:bg-[oklch(0.70_0.10_0)] rounded select-none mb-3">
-        <input aria-label="主题色彩" type="range" min="0" max="360" bind:value={hue} disabled={isRainbowMode}
-               class="slider" id="colorSlider" step="1" style="width: 100%">
-    </div>
-
-    <div class="flex flex-row gap-2 mb-3 items-center justify-between">
-        <div class="flex gap-2 font-bold text-lg text-neutral-900 dark:text-neutral-100 transition relative ml-3
-            before:w-1 before:h-4 before:rounded-md before:bg-[var(--primary)]
-            before:absolute before:-left-3 before:top-[0.33rem]"
-        >
-            禁用背景
-        </div>
-        <input type="checkbox" class="toggle-switch" checked={hideBg} on:change={toggleHideBg} />
-    </div>
-
-    <div class="flex flex-row gap-2 mb-3 items-center justify-between">
-        <div class="flex gap-2 font-bold text-lg text-neutral-900 dark:text-neutral-100 transition relative ml-3
-            before:w-1 before:h-4 before:rounded-md before:bg-[var(--primary)]
-            before:absolute before:-left-3 before:top-[0.33rem]"
-        >
-            彩虹模式
-        </div>
-        <input type="checkbox" class="toggle-switch" checked={isRainbowMode} on:change={toggleRainbow} />
-    </div>
-
-    {#if isRainbowMode}
-    <div class="flex flex-row gap-2 mb-3 items-center justify-between transition-all" >
-        <div class="flex gap-2 font-bold text-lg text-neutral-900 dark:text-neutral-100 transition relative ml-3
-            before:w-1 before:h-4 before:rounded-md before:bg-[var(--primary)]
-            before:absolute before:-left-3 before:top-[0.33rem]"
-        >
-            变换速率
-        </div>
-        <div class="flex gap-1">
-             <div class="transition bg-[var(--btn-regular-bg)] w-10 h-7 rounded-md flex justify-center
-            font-bold text-sm items-center text-[var(--btn-content)]">
-                {rainbowSpeed}
-            </div>
-        </div>
-    </div>
-    <div class="w-full h-6 bg-[var(--btn-regular-bg)] rounded select-none overflow-hidden">
-        <input aria-label="变换速率" type="range" min="1" max="100" bind:value={rainbowSpeed} on:change={onSpeedChange}
-               class="slider" step="1" style="width: 100%; --value-percent: {(rainbowSpeed - 1) / 99 * 100}%">
-    </div>
-    {/if}
-
-    <div class="flex flex-row gap-2 mb-3 mt-3 items-center justify-between">
-        <div class="flex gap-2 font-bold text-lg text-neutral-900 dark:text-neutral-100 transition relative ml-3
-            before:w-1 before:h-4 before:rounded-md before:bg-[var(--primary)]
-            before:absolute before:-left-3 before:top-[0.33rem]"
-        >
-            背景模糊
-        </div>
-        <div class="flex gap-1">
-            <div class="transition bg-[var(--btn-regular-bg)] w-10 h-7 rounded-md flex justify-center
-            font-bold text-sm items-center text-[var(--btn-content)]">
-                {bgBlur}px
-            </div>
-        </div>
-    </div>
-    <div class="w-full h-6 bg-[var(--btn-regular-bg)] rounded select-none overflow-hidden">
-        <input aria-label="背景模糊" type="range" min="0" max="20" bind:value={bgBlur}
-               class="slider" step="1" style="width: 100%; --value-percent: {bgBlur / 20 * 100}%">
-    </div>
-
-    <div class="flex flex-row gap-2 mb-3 mt-3 items-center justify-between">
-        <div class="flex gap-2 font-bold text-lg text-neutral-900 dark:text-neutral-100 transition relative ml-3
-            before:w-1 before:h-4 before:rounded-md before:bg-[var(--primary)]
-            before:absolute before:-left-3 before:top-[0.33rem]"
-        >
-            开发模式
-        </div>
-        <input type="checkbox" class="toggle-switch" checked={isDevMode} on:change={toggleDevMode} />
-    </div>
-
-    {#if isDevMode}
-    <div class="flex flex-row gap-2 mb-3 items-center justify-between transition-all" >
-        <div class="flex gap-2 font-bold text-lg text-neutral-900 dark:text-neutral-100 transition relative ml-3
-            before:w-1 before:h-4 before:rounded-md before:bg-[var(--primary)]
-            before:absolute before:-left-3 before:top-[0.33rem]"
-        >
-            Server
-        </div>
-        <div class="flex gap-1">
-             <input aria-label="Server Value" type="text" bind:value={devServer} on:input={onDevServerChange}
-                   class="transition bg-[var(--btn-regular-bg)] w-32 h-7 rounded-md text-center font-bold text-sm text-[var(--btn-content)] outline-none"
-            />
-        </div>
-    </div>
-    {/if}
+    <p class="mono-footnote">色彩、渐变与背景模糊在 MONO 系统中固定关闭。</p>
 </div>
 
+<style>
+    .mono-setting-group {
+        margin: 0 0 1rem;
+        padding: 0;
+        border: 0;
+    }
 
-<style lang="stylus">
-    #display-setting
-      input[type="number"]
-        -moz-appearance textfield
-        &::-webkit-inner-spin-button
-        &::-webkit-outer-spin-button
-          -webkit-appearance none
-          margin 0
+    legend {
+        display: block;
+        margin-bottom: .5rem;
+        color: var(--ui-fg-muted);
+        font-family: "JetBrains Mono Variable", ui-monospace, monospace;
+        font-size: .625rem;
+        letter-spacing: .07em;
+        text-transform: uppercase;
+    }
 
-      input[type="range"]
-        -webkit-appearance none
-        height 1.5rem
-        background-color transparent
-        transition background-image 0.15s ease-in-out
+    .mono-segmented {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        border: 1px solid var(--ui-line);
+    }
 
-        &:not(#colorSlider)
-            background-image linear-gradient(to right, var(--primary) 0%, var(--primary) var(--value-percent), transparent var(--value-percent), transparent 100%)
+    .mono-segmented button {
+        display: flex;
+        min-height: 2.5rem;
+        align-items: center;
+        justify-content: center;
+        gap: .35rem;
+        border: 0;
+        border-right: 1px solid var(--ui-line);
+        background: transparent;
+        color: var(--ui-fg-muted);
+        font-family: "JetBrains Mono Variable", ui-monospace, monospace;
+        font-size: .625rem;
+        letter-spacing: .04em;
+        text-transform: uppercase;
+    }
 
-      #colorSlider
-        background-image var(--color-selection-bar)
+    .mono-segmented button:last-child { border-right: 0; }
+    .mono-segmented button:hover { background: var(--ui-surface-2); color: var(--ui-fg); }
+    .mono-segmented button.active { background: var(--ui-accent); color: var(--ui-accent-fg); }
 
-      input[type="range"]
-        /* Input Thumb */
-        &::-webkit-slider-thumb
-          -webkit-appearance none
-          height 0
-          width 0
-          background transparent
-          box-shadow none
-          border none
+    .mono-setting-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: .875rem 0;
+        border-top: 1px solid var(--ui-line);
+    }
 
-        &::-moz-range-thumb
-          -webkit-appearance none
-          height 0
-          width 0
-          background transparent
-          box-shadow none
-          border none
+    .mono-setting-row strong {
+        display: block;
+        font-family: "JetBrains Mono Variable", ui-monospace, monospace;
+        font-size: .6875rem;
+        font-weight: 500;
+        letter-spacing: .04em;
+        text-transform: uppercase;
+    }
 
-        &::-ms-thumb
-          -webkit-appearance none
-          height 0
-          width 0
-          background transparent
-          box-shadow none
-          border none
+    .mono-setting-row p,
+    .mono-footnote {
+        margin: .15rem 0 0;
+        color: var(--ui-fg-subtle);
+        font-size: .6875rem;
+    }
 
-      #colorSlider
-        background-image var(--color-selection-bar)
-        &::-webkit-slider-thumb
-          -webkit-appearance none
-          height 1rem
-          width 0.5rem
-          border-radius 0.125rem
-          background rgba(255, 255, 255, 0.7)
-          box-shadow none
-          margin-top 0
-          transform none
-          transition background 0.15s
-          &:hover
-            background rgba(255, 255, 255, 0.8)
-          &:active
-            background rgba(255, 255, 255, 0.6)
+    .mono-switch input { position: absolute; opacity: 0; pointer-events: none; }
+    .mono-switch span {
+        position: relative;
+        display: block;
+        width: 2.75rem;
+        height: 1.5rem;
+        border: 1px solid var(--ui-line-strong);
+        background: transparent;
+        cursor: pointer;
+    }
+    .mono-switch span::after {
+        position: absolute;
+        top: .1875rem;
+        left: .1875rem;
+        width: 1rem;
+        height: 1rem;
+        background: var(--ui-fg-muted);
+        content: "";
+        transition: transform var(--ui-dur-fast) var(--ui-ease), background var(--ui-dur-fast) var(--ui-ease);
+    }
+    .mono-switch input:checked + span::after { transform: translateX(1.25rem); background: var(--ui-accent); }
+    .mono-switch input:focus-visible + span { outline: 1px solid var(--ui-accent); outline-offset: 3px; }
 
-        &::-moz-range-thumb
-          -webkit-appearance none
-          height 1rem
-          width 0.5rem
-          border-radius 0.125rem
-          border-width 0
-          background rgba(255, 255, 255, 0.7)
-          box-shadow none
-          transform none
-          transition background 0.15s
-          &:hover
-            background rgba(255, 255, 255, 0.8)
-          &:active
-            background rgba(255, 255, 255, 0.6)
-
-        &::-ms-thumb
-          -webkit-appearance none
-          height 1rem
-          width 0.5rem
-          border-radius 0.125rem
-          background rgba(255, 255, 255, 0.7)
-          box-shadow none
-          transform none
-          transition background 0.15s
-          &:hover
-            background rgba(255, 255, 255, 0.8)
-          &:active
-            background rgba(255, 255, 255, 0.6)
-
-      .toggle-switch
-        appearance none
-        width 3rem
-        height 1.5rem
-        background var(--btn-regular-bg)
-        border-radius 999px
-        position relative
-        cursor pointer
-        transition background 0.3s
-        &::after
-            content ''
-            position absolute
-            top 0.25rem
-            left 0.25rem
-            width 1rem
-            height 1rem
-            background var(--btn-content)
-            border-radius 50%
-            transition transform 0.3s
-        &:checked
-            background var(--primary)
-            &::after
-                transform translateX(1.5rem)
-                background white
+    .mono-footnote { padding-top: .75rem; border-top: 1px solid var(--ui-line); }
 </style>

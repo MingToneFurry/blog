@@ -10,7 +10,7 @@ import { Icon } from "astro-icon/components";
 import { gitHubEditConfig, licenseConfig } from "src/config";
 import PostMetadata from "../../components/PostMeta.astro";
 import ImageWrapper from "../../components/misc/ImageWrapper.astro";
-import { profileConfig, siteConfig, umamiConfig } from "../../config";
+import { profileConfig, siteConfig } from "../../config";
 import { formatDateToYYYYMMDD } from "../../utils/date-utils";
 
 export async function getStaticPaths() {
@@ -49,40 +49,28 @@ const jsonLd = {
         <div id="post-container" class:list={["card-base z-10 px-6 md:px-9 pt-6 pb-4 relative w-full",
             {}
         ]}>
-            <!-- word count and reading time -->
-            <div class="flex flex-row text-black/30 dark:text-white/30 gap-5 mb-3 transition onload-animation">
-                <div class="flex flex-row items-center">
-                    <div class="transition h-6 w-6 rounded-md bg-black/5 dark:bg-white/10 text-black/50 dark:text-white/50 flex items-center justify-center mr-2">
-                        <Icon name="material-symbols:notes-rounded"></Icon>
-                    </div>
-                    <div class="text-sm">{remarkPluginFrontmatter.words} 字</div>
-                </div>
-                <div class="flex flex-row items-center">
-                    <div class="transition h-6 w-6 rounded-md bg-black/5 dark:bg-white/10 text-black/50 dark:text-white/50 flex items-center justify-center mr-2">
-                        <Icon name="material-symbols:schedule-outline-rounded"></Icon>
-                    </div>
-                    <div class="text-sm">{remarkPluginFrontmatter.minutes} 分钟</div>
-                </div>
+            <div class="post-article-data onload-animation">
+                <span>[ARTICLE]</span>
+                <span>[WORDS] {remarkPluginFrontmatter.words}</span>
+                <span>[READ] {remarkPluginFrontmatter.minutes} MIN</span>
             </div>
 
             <!-- title -->
-            <div class="relative onload-animation">                <div
+            <div class="relative onload-animation">
+                <h1
                     data-pagefind-body data-pagefind-weight="10" data-pagefind-meta="title"
-                    class="transition w-full flex items-center font-bold mb-3
+                    class="post-article-title transition w-full font-bold mb-4
                     text-3xl md:text-[2.25rem]/[2.75rem]
                     text-black/90 dark:text-white/90
-                    md:before:w-1 before:h-5 before:rounded-md before:bg-[var(--primary)]
-                    before:absolute before:top-[0.75rem] before:left-[-1.125rem]
                 ">
-
-                    <span>{entry.data.title}</span>
-                </div>
+                    {entry.data.title}
+                </h1>
             </div>
 
             <!-- description/excerpt -->
             {(entry.data.description || remarkPluginFrontmatter.excerpt) && (
                 <div class="onload-animation mb-4">
-                    <div class="text-black/75 dark:text-white/75 text-sm leading-relaxed">
+                    <div class="post-article-description text-black/75 dark:text-white/75 text-sm leading-relaxed">
                         {entry.data.description || remarkPluginFrontmatter.excerpt}
                     </div>
                 </div>
@@ -112,11 +100,11 @@ const jsonLd = {
             </Markdown>
 
             <!-- 文章反馈与编辑区域 -->
-            <div class="mb-4 p-4 rounded-lg bg-[var(--license-block-bg)] border border-[var(--line-divider)] onload-animation">
+            <div class="article-action-panel mb-4 p-4 bg-[var(--license-block-bg)] border border-[var(--line-divider)] onload-animation">
                 <!-- 反馈区域 -->
                 <div class="flex items-center justify-between mb-4">
                     <div class="flex items-center gap-3">
-                        <div class="h-5 w-5 rounded bg-[var(--primary)] flex items-center justify-center">
+                        <div class="article-action-icon h-5 w-5 bg-[var(--primary)] flex items-center justify-center">
                             <Icon name="material-symbols:help-outline" class="text-[0.75rem] text-white dark:text-black/70"></Icon>
                         </div>
                         <p class="text-black/80 dark:text-white/80 text-sm">这篇文章是否对你有帮助？</p>
@@ -136,7 +124,7 @@ const jsonLd = {
                         
                         <!-- GitHub编辑区域 -->
                         <div class="flex items-start gap-3">
-                            <div class="h-5 w-5 rounded bg-[var(--primary)] flex items-center justify-center">
+                            <div class="article-action-icon h-5 w-5 bg-[var(--primary)] flex items-center justify-center">
                                 <Icon name="material-symbols:edit-outline" class="text-[0.875rem] text-white dark:text-black/70"></Icon>
                             </div>
                             <div class="flex-1">
@@ -145,7 +133,7 @@ const jsonLd = {
                                     href={`${gitHubEditConfig.baseUrl}/${entry.slug}.md`}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    class="inline-flex items-center gap-1 text-[var(--primary)] hover:text-[oklch(0.65_0.16_var(--hue))] text-sm font-medium transition-colors"
+                                    class="inline-flex items-center gap-1 text-[var(--primary)] hover:text-[var(--ui-fg-muted)] text-sm font-medium transition-colors"
                                 >
                                     <Icon name="fa6-brands:github" class="text-[0.875rem]"></Icon>
                                     在 GitHub 上编辑此页
@@ -183,7 +171,7 @@ const jsonLd = {
     <div class="flex flex-col md:flex-row justify-between mb-4 gap-4 overflow-hidden w-full">
         <a href={entry.data.nextSlug ? getPostUrlBySlug(entry.data.nextSlug) : "#"}
            class:list={["w-full font-bold overflow-hidden active:scale-95", {"pointer-events-none": !entry.data.nextSlug}]}>
-            {entry.data.nextSlug && <div class="btn-card rounded-2xl w-full h-[3.75rem] max-w-full px-4 flex items-center !justify-start gap-4" >
+            {entry.data.nextSlug && <div class="article-nav btn-card w-full h-[3.75rem] max-w-full px-4 flex items-center !justify-start gap-4" >
                 <Icon name="material-symbols:chevron-left-rounded" class="text-[2rem] text-[var(--primary)]" />
                 <div class="overflow-hidden transition overflow-ellipsis whitespace-nowrap max-w-[calc(100%_-_3rem)] text-black/75 dark:text-white/75">
                     {entry.data.nextTitle}
@@ -193,7 +181,7 @@ const jsonLd = {
 
         <a href={entry.data.prevSlug ? getPostUrlBySlug(entry.data.prevSlug) : "#"}
            class:list={["w-full font-bold overflow-hidden active:scale-95", {"pointer-events-none": !entry.data.prevSlug}]}>
-            {entry.data.prevSlug && <div class="btn-card rounded-2xl w-full h-[3.75rem] max-w-full px-4 flex items-center !justify-end gap-4" >
+            {entry.data.prevSlug && <div class="article-nav btn-card w-full h-[3.75rem] max-w-full px-4 flex items-center !justify-end gap-4" >
                 <div class="overflow-hidden transition overflow-ellipsis whitespace-nowrap max-w-[calc(100%_-_3rem)] text-black/75 dark:text-white/75">
                     {entry.data.prevTitle}
                 </div>
@@ -234,7 +222,7 @@ const jsonLd = {
             // 创建加载条
             const loadingBar = document.createElement('div');
             loadingBar.className = 'loading-bar absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-32 h-1 bg-gray-200 dark:bg-gray-700 z-10 rounded-full overflow-hidden';
-            loadingBar.innerHTML = `<div class="loading-progress h-full w-8 bg-[oklch(0.70_0.14_var(--theme-hue))] animate-loading-progress rounded-full"></div>`;
+            loadingBar.innerHTML = `<div class="loading-progress h-full w-8 bg-[var(--ui-fg-muted)] animate-loading-progress rounded-full"></div>`;
             
             // 插入DOM
             img.parentNode.insertBefore(wrapper, img);
@@ -272,63 +260,6 @@ const jsonLd = {
     
     // 支持 Swup 页面切换
     document.addEventListener('swup:contentReplaced', setupImageLoading);
-</script>
-
-<script define:vars={{ umamiConfig, postUrl: getPostUrlBySlug(entry.slug) }}>
-    // 数字动画函数
-    function animateValue(obj, start, end, duration) {
-        let startTimestamp = null;
-        const step = (timestamp) => {
-            if (!startTimestamp) startTimestamp = timestamp;
-            const progress = Math.min((timestamp - startTimestamp) / duration, 1);
-            obj.innerHTML = Math.floor(progress * (end - start) + start);
-            if (progress < 1) {
-                window.requestAnimationFrame(step);
-            } else {
-                obj.innerHTML = end;
-            }
-        };
-        window.requestAnimationFrame(step);
-    }
-
-    async function loadPageViews() {
-        if (!umamiConfig.enable) return;
-        try {
-			// Umami share helper is exposed on window (loaded in Layout.astro)
-			if (typeof window.fetchUmamiStats !== 'function') return;
-
-			const statsData = await window.fetchUmamiStats(umamiConfig.baseUrl, umamiConfig.shareId, {
-                url: postUrl,
-                timezone: umamiConfig.timezone
-            });
-            
-            const pageviews = (statsData.pageviews && statsData.pageviews.value) || statsData.pageviews || 0;
-            const element = document.getElementById('post-pageviews');
-            
-            if (element) {
-                // 如果数据来自缓存，直接显示结果，跳过动画
-                if (statsData._fromCache) {
-                    element.innerHTML = pageviews;
-                    return;
-                }
-                
-                const startVal = parseInt(element.textContent) || 0;
-                
-                if (startVal !== pageviews) {
-                    if (startVal === 0) {
-                        animateValue(element, startVal, pageviews, 1000);
-                    } else {
-                        element.innerHTML = pageviews;
-                    }
-                }
-            }
-        } catch (error) {
-            console.error('获取页面访问量失败:', error);
-        }
-    }
-
-    document.addEventListener('DOMContentLoaded', loadPageViews);
-    document.addEventListener('swup:contentReplaced', loadPageViews);
 </script>
 
 <style is:global>
