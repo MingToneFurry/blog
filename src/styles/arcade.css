@@ -148,6 +148,36 @@ html.arcade-system {
 	scroll-behavior: smooth;
 }
 
+html.arcade-system.dark {
+	--primary: var(--ui-accent);
+	--page-bg: var(--ui-bg);
+	--card-bg: var(--ui-surface);
+	--card-bg-transparent: var(--ui-surface);
+	--btn-content: var(--ui-fg-muted);
+	--btn-regular-bg: var(--ui-surface-2);
+	--btn-regular-bg-hover: var(--ui-accent);
+	--btn-regular-bg-active: color-mix(in srgb, var(--ui-accent) 80%, var(--ui-accent-fg));
+	--btn-plain-bg-hover: var(--ui-surface-2);
+	--btn-plain-bg-active: var(--ui-line);
+	--btn-card-bg-hover: var(--ui-surface-2);
+	--btn-card-bg-active: var(--ui-line);
+	--enter-btn-bg: var(--ui-surface-2);
+	--enter-btn-bg-hover: var(--ui-accent);
+	--enter-btn-bg-active: var(--ui-accent);
+	--line-divider: var(--ui-line);
+	--line-color: var(--ui-line);
+	--meta-divider: var(--ui-line-strong);
+	--inline-code-bg: var(--ui-surface-2);
+	--inline-code-color: var(--ui-fg);
+	--license-block-bg: var(--ui-surface-2);
+	--float-panel-bg: var(--ui-surface);
+	--float-panel-bg-transparent: var(--ui-surface);
+	--float-panel-bg-opaque: var(--ui-surface);
+	--toc-badge-bg: var(--ui-accent);
+	--toc-btn-hover: var(--ui-surface-2);
+	--toc-btn-active: var(--ui-accent);
+}
+
 html.arcade-system *,
 html.arcade-system *::before,
 html.arcade-system *::after {

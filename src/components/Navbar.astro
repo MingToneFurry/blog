@@ -34,7 +34,7 @@ let links: NavBarLink[] = navBarConfig.links.map(
         <div class="hidden md:flex arcade-nav-links">
             {links.map((l, index) => {
                 return <a aria-label={l.name} href={l.external ? l.url : url(l.url)} target={l.external ? "_blank" : null}
-                          class="btn-plain scale-animation h-11 font-bold px-4 active:scale-95"
+                          class="btn-plain scale-animation flex-none whitespace-nowrap h-11 font-bold text-sm px-3 active:scale-95"
                 >
                     <div class="flex items-center">
                         <span class="arcade-nav-index">{String(index + 1).padStart(2, "0")}</span>
