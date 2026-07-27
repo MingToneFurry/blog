@@ -77,6 +77,7 @@ for (const { options } of authenticatedRequests) {
 const statsRequest = requests.find(({ url }) => url.includes("/stats?"));
 assert.ok(statsRequest);
 const statsUrl = new URL(statsRequest.url);
+assert.equal(statsUrl.searchParams.get("startAt"), "0");
 assert.equal(statsUrl.searchParams.get("path"), "eq./posts/example/");
 assert.equal(statsUrl.searchParams.get("timezone"), "Asia/Shanghai");
 
