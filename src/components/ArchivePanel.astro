@@ -40,16 +40,20 @@ function formatDate(date: Date) {
 }
 ---
 
-<div class="card-base px-8 py-6">
+<div class="card-base archive-panel px-6 md:px-8 py-6">
+    <div class="flex items-center justify-between gap-4 mb-3">
+        <div class="arc-section-label">Archive ledger</div>
+        <div class="arc-status-chip">{posts.length.toString().padStart(2, "0")} ENTRIES</div>
+    </div>
     {
         groups.map(group => (
             <div>
                 <div class="flex flex-row w-full items-center h-[3.75rem]">
-                    <div class="w-[15%] md:w-[10%] transition text-2xl font-bold text-right text-75">{group.year}</div>
-                    <div class="w-[15%] md:w-[10%]">
+                    <div class="w-[18%] md:w-[12%] transition text-2xl font-bold text-right text-75 tracking-[-0.04em]">{group.year}</div>
+                    <div class="w-[12%] md:w-[8%]">
                         <div class="h-3 w-3 bg-none rounded-full outline outline-[var(--primary)] mx-auto -outline-offset-[2px] z-50 outline-3"></div>
                     </div>
-                    <div class="w-[70%] md:w-[80%] transition text-left text-50">{group.posts.length} 篇文章</div>
+                    <div class="w-[70%] md:w-[80%] transition text-left text-50 font-mono text-xs tracking-[0.08em]">{group.posts.length.toString().padStart(2, "0")} POSTS</div>
                 </div>
                 {group.posts.map(post => (
                     <a href={getPostUrlBySlug(post.slug)}
@@ -58,13 +62,13 @@ function formatDate(date: Date) {
                     >
                         <div class="flex flex-row justify-start items-center h-full">
                             <!-- date -->
-                            <div class="w-[15%] md:w-[10%] transition text-sm text-right text-50">
+                            <div class="w-[18%] md:w-[12%] transition text-xs font-mono text-right text-50">
                                 {formatDate(post.data.published)}
                             </div>
                             <!-- dot and line -->
-                            <div class="w-[15%] md:w-[10%] relative dash-line h-full flex items-center">
-                                <div class="transition-all mx-auto w-1 h-1 rounded group-hover:h-5
-                                bg-[oklch(0.5_0.05_var(--hue))] group-hover:bg-[var(--primary)]
+                            <div class="w-[12%] md:w-[8%] relative dash-line h-full flex items-center">
+                                <div class="transition-[height,background-color] mx-auto w-1 h-1 rounded group-hover:h-5
+                                bg-[var(--ui-fg-subtle)] group-hover:bg-[var(--primary)]
                                 outline outline-4 z-50
                                 outline-[var(--card-bg)]
                                 group-hover:outline-[var(--btn-plain-bg-hover)]
@@ -74,7 +78,7 @@ function formatDate(date: Date) {
                             </div>
                             <!-- post title -->
                             <div class="w-[70%] md:max-w-[65%] md:w-[65%] text-left font-bold
-                                group-hover:translate-x-1 transition-all group-hover:text-[var(--primary)]
+                                group-hover:translate-x-1 transition-[color,transform] group-hover:text-[var(--primary)]
                                 text-75 pr-8 whitespace-nowrap overflow-ellipsis overflow-hidden"
                             >
                                     {post.data.title}

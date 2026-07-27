@@ -151,34 +151,38 @@ $: search(keywordMobile, false);
 </script>
 
 <!-- search bar for desktop view -->
-<div id="search-bar" class="hidden lg:flex transition-all items-center h-11 mr-2 rounded-lg
+<div id="search-bar" class="hidden lg:flex transition-[width,background-color,border-color] items-center h-11 mr-2 rounded-lg
       bg-black/[0.04] hover:bg-black/[0.06] focus-within:bg-black/[0.06]
       dark:bg-white/5 dark:hover:bg-white/10 dark:focus-within:bg-white/10
 ">
     <Icon icon="material-symbols:search" class="absolute text-[1.25rem] pointer-events-none ml-3 transition my-auto text-black/30 dark:text-white/30"></Icon>
-    <input placeholder="搜索" bind:value={keywordDesktop} on:focus={() => search(keywordDesktop, true)}
-           class="transition-all pl-10 text-sm bg-transparent outline-0
+    <input aria-label="搜索文章" placeholder="SEARCH / 搜索" bind:value={keywordDesktop} on:focus={() => search(keywordDesktop, true)}
+           class="transition-[width,color] pl-10 text-sm bg-transparent outline-0
          h-full w-40 active:w-60 focus:w-60 text-black/50 dark:text-white/50"
     >
 </div>
 
 <!-- toggle btn for phone/tablet view -->
-<button on:click={togglePanel} aria-label="Search Panel" id="search-switch"
+<button on:click={togglePanel} aria-label="打开文章搜索" id="search-switch"
         class="btn-plain scale-animation lg:!hidden rounded-lg w-11 h-11 active:scale-90">
     <Icon icon="material-symbols:search" class="text-[1.25rem]"></Icon>
 </button>
 
 <!-- search panel -->
 <div id="search-panel" class="float-panel float-panel-closed search-panel absolute md:w-[30rem]
-top-20 left-4 md:left-[unset] right-4 shadow-2xl rounded-2xl p-2">
+top-20 left-4 md:left-[unset] right-4 p-2">
+    <div class="search-console-head hidden lg:flex items-center justify-between px-3 py-2 mb-1">
+        <span>SEARCH / RSS INDEX</span>
+        <span>{result.length.toString().padStart(2, "0")} RESULT</span>
+    </div>
 
     <!-- search bar inside panel for phone/tablet -->
-    <div id="search-bar-inside" class="flex relative lg:hidden transition-all items-center h-11 rounded-xl
+    <div id="search-bar-inside" class="flex relative lg:hidden transition-[background-color,border-color] items-center h-11 rounded-lg
       bg-black/[0.04] hover:bg-black/[0.06] focus-within:bg-black/[0.06]
       dark:bg-white/5 dark:hover:bg-white/10 dark:focus-within:bg-white/10
   ">
         <Icon icon="material-symbols:search" class="absolute text-[1.25rem] pointer-events-none ml-3 transition my-auto text-black/30 dark:text-white/30"></Icon>
-        <input placeholder="Search" bind:value={keywordMobile}
+        <input aria-label="搜索文章" placeholder="SEARCH / 搜索" bind:value={keywordMobile}
                class="pl-10 absolute inset-0 text-sm bg-transparent outline-0
                focus:w-60 text-black/50 dark:text-white/50"
         >
@@ -213,6 +217,15 @@ top-20 left-4 md:left-[unset] right-4 shadow-2xl rounded-2xl p-2">
     overflow-y: auto;
     scrollbar-width: none; /* Firefox */
     -ms-overflow-style: none; /* IE and Edge */
+  }
+
+  .search-console-head {
+    border-bottom: 1px solid var(--ui-line-soft);
+    font-family: "JetBrains Mono Variable", ui-monospace, monospace;
+    font-size: .62rem;
+    font-weight: 650;
+    letter-spacing: .14em;
+    color: var(--ui-fg-subtle);
   }
 
   .search-panel::-webkit-scrollbar {

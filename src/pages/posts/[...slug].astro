@@ -49,6 +49,10 @@ const jsonLd = {
         <div id="post-container" class:list={["card-base z-10 px-6 md:px-9 pt-6 pb-4 relative w-full",
             {}
         ]}>
+            <div class="flex items-center justify-between gap-4 mb-5 onload-animation">
+                <div class="arc-section-label">Article console</div>
+                <div class="arc-status-chip">PUBLISHED / ARCHIVE</div>
+            </div>
             <!-- word count and reading time -->
             <div class="flex flex-row text-black/30 dark:text-white/30 gap-5 mb-3 transition onload-animation">
                 <div class="flex flex-row items-center">
@@ -112,7 +116,7 @@ const jsonLd = {
             </Markdown>
 
             <!-- 文章反馈与编辑区域 -->
-            <div class="mb-4 p-4 rounded-lg bg-[var(--license-block-bg)] border border-[var(--line-divider)] onload-animation">
+            <div class="article-action-panel mb-4 p-4 rounded-lg bg-[var(--license-block-bg)] border border-[var(--line-divider)] onload-animation">
                 <!-- 反馈区域 -->
                 <div class="flex items-center justify-between mb-4">
                     <div class="flex items-center gap-3">
@@ -122,7 +126,7 @@ const jsonLd = {
                         <p class="text-black/80 dark:text-white/80 text-sm">这篇文章是否对你有帮助？</p>
                     </div>
                     <div class="flex gap-2">
-                        <a href="/contact/" class="group flex items-center gap-1 px-3 py-1.5 rounded bg-[var(--btn-regular-bg)] hover:bg-[var(--btn-regular-bg-hover)] active:bg-[var(--btn-regular-bg-active)] text-[var(--btn-content)] text-xs font-medium transition-all active:scale-95">
+                        <a href="/contact/" class="group flex items-center gap-1 px-3 py-1.5 rounded bg-[var(--btn-regular-bg)] hover:bg-[var(--btn-regular-bg-hover)] active:bg-[var(--btn-regular-bg-active)] text-[var(--btn-content)] text-xs font-medium transition-[color,background-color,transform] active:scale-95">
                             <Icon name="material-symbols:contact-mail-outline" class="text-[0.875rem] group-hover:scale-110 transition-transform"></Icon>
                             联系
                         </a>
@@ -137,7 +141,7 @@ const jsonLd = {
                         <!-- GitHub编辑区域 -->
                         <div class="flex items-start gap-3">
                             <div class="h-5 w-5 rounded bg-[var(--primary)] flex items-center justify-center">
-                                <Icon name="material-symbols:edit-outline" class="text-[0.875rem] text-white dark:text-black/70"></Icon>
+                            <Icon name="material-symbols:edit-outline" class="text-[0.875rem] text-white"></Icon>
                             </div>
                             <div class="flex-1">
                                 <p class="text-black/80 dark:text-white/80 text-sm mb-1">发现错误或想要改进这篇文章？</p>
@@ -145,7 +149,7 @@ const jsonLd = {
                                     href={`${gitHubEditConfig.baseUrl}/${entry.slug}.md`}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    class="inline-flex items-center gap-1 text-[var(--primary)] hover:text-[oklch(0.65_0.16_var(--hue))] text-sm font-medium transition-colors"
+                                    class="inline-flex items-center gap-1 text-[var(--primary)] hover:text-[var(--ui-accent-hover)] text-sm font-medium transition-colors"
                                 >
                                     <Icon name="fa6-brands:github" class="text-[0.875rem]"></Icon>
                                     在 GitHub 上编辑此页
@@ -183,7 +187,7 @@ const jsonLd = {
     <div class="flex flex-col md:flex-row justify-between mb-4 gap-4 overflow-hidden w-full">
         <a href={entry.data.nextSlug ? getPostUrlBySlug(entry.data.nextSlug) : "#"}
            class:list={["w-full font-bold overflow-hidden active:scale-95", {"pointer-events-none": !entry.data.nextSlug}]}>
-            {entry.data.nextSlug && <div class="btn-card rounded-2xl w-full h-[3.75rem] max-w-full px-4 flex items-center !justify-start gap-4" >
+            {entry.data.nextSlug && <div class="btn-card article-nav-card w-full h-[3.75rem] max-w-full px-4 flex items-center !justify-start gap-4" >
                 <Icon name="material-symbols:chevron-left-rounded" class="text-[2rem] text-[var(--primary)]" />
                 <div class="overflow-hidden transition overflow-ellipsis whitespace-nowrap max-w-[calc(100%_-_3rem)] text-black/75 dark:text-white/75">
                     {entry.data.nextTitle}
@@ -193,7 +197,7 @@ const jsonLd = {
 
         <a href={entry.data.prevSlug ? getPostUrlBySlug(entry.data.prevSlug) : "#"}
            class:list={["w-full font-bold overflow-hidden active:scale-95", {"pointer-events-none": !entry.data.prevSlug}]}>
-            {entry.data.prevSlug && <div class="btn-card rounded-2xl w-full h-[3.75rem] max-w-full px-4 flex items-center !justify-end gap-4" >
+            {entry.data.prevSlug && <div class="btn-card article-nav-card w-full h-[3.75rem] max-w-full px-4 flex items-center !justify-end gap-4" >
                 <div class="overflow-hidden transition overflow-ellipsis whitespace-nowrap max-w-[calc(100%_-_3rem)] text-black/75 dark:text-white/75">
                     {entry.data.prevTitle}
                 </div>
@@ -234,7 +238,7 @@ const jsonLd = {
             // 创建加载条
             const loadingBar = document.createElement('div');
             loadingBar.className = 'loading-bar absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-32 h-1 bg-gray-200 dark:bg-gray-700 z-10 rounded-full overflow-hidden';
-            loadingBar.innerHTML = `<div class="loading-progress h-full w-8 bg-[oklch(0.70_0.14_var(--theme-hue))] animate-loading-progress rounded-full"></div>`;
+            loadingBar.innerHTML = `<div class="loading-progress h-full w-8 bg-[var(--ui-accent)] animate-loading-progress rounded-full"></div>`;
             
             // 插入DOM
             img.parentNode.insertBefore(wrapper, img);

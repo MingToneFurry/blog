@@ -49,7 +49,7 @@ const imageStyle = `object-position: ${position}`;
 <div id={id} class:list={[className, 'overflow-hidden relative image-wrapper']} style={`--theme-hue: ${siteConfig.themeColor.hue}`}>
     <!-- 加载条 -->
     <div class="loading-bar absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-32 h-1 bg-gray-200 dark:bg-gray-700 z-10 rounded-full overflow-hidden">
-        <div class="loading-progress h-full w-8 bg-[oklch(0.70_0.14_var(--theme-hue))] animate-loading-progress rounded-full"></div>
+        <div class="loading-progress h-full w-8 bg-[var(--ui-accent)] animate-loading-progress rounded-full"></div>
     </div>
     
     <!-- 图片内容 -->

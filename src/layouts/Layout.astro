@@ -2,6 +2,14 @@
 import "@fontsource/roboto/400.css";
 import "@fontsource/roboto/500.css";
 import "@fontsource/roboto/700.css";
+import "../styles/variables.styl";
+import "../styles/main.css";
+import "../styles/transition.css";
+import "../styles/scrollbar.css";
+import "../styles/markdown.css";
+import "../styles/markdown-extend.styl";
+import "../styles/expressive-code.css";
+import "../styles/glass.css";
 
 import { imageFallbackConfig, profileConfig, siteConfig } from "@/config";
 import ConfigCarrier from "@components/ConfigCarrier.astro";
@@ -125,7 +133,7 @@ const bannerOffset =
 		<meta name="twitter:title" content={pageTitle} />
 		<meta name="twitter:description" content={description} />
 
-		<meta name="viewport" content="width=device-width" />
+		<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 		<meta name="generator" content={Astro.generator} />
 
 		{favicons.map((favicon) => (
@@ -259,7 +267,7 @@ const bannerOffset =
 
 	<body
 		class:list={[
-			"min-h-screen",
+			"min-h-screen arctower-ui",
 			"transition",
 			{ "lg:is-home": isHomePage, "enable-banner": enableBanner },
 		]}

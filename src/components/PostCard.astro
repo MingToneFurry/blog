@@ -6,7 +6,6 @@ import { Icon } from "astro-icon/components";
 import { umamiConfig } from "../config";
 import { formatDateToYYYYMMDD } from "../utils/date-utils";
 import { getDir } from "../utils/url-utils";
-import PostMetadata from "./PostMeta.astro";
 import ImageWrapper from "./misc/ImageWrapper.astro";
 
 interface Props {
@@ -33,10 +32,10 @@ const coverWidth = "28%";
 
 const { remarkPluginFrontmatter } = await entry.render();
 ---
-<div class:list={["card-base card-hover flex flex-col w-full relative", className]} style={style}>
+<div class:list={["card-base card-hover post-card flex flex-col w-full relative", className]} style={style}>
     <div class:list={["pl-9 pr-2 pt-6 pb-6 relative", {"w-[calc(100%_-_52px_-_12px)]": !hasCover, "w-[calc(100%_-_var(--coverWidth)_-_12px)]": hasCover}]}>
         <a href={url}
-           class="transition group w-full block font-bold mb-2 md:mb-3 text-xl md:text-3xl text-90 relative
+           class="transition post-card-title group w-full block font-bold mb-2 md:mb-3 text-xl md:text-3xl text-90 relative
         hover:text-[var(--primary)] dark:hover:text-[var(--primary)]
         active:text-[var(--title-active)] dark:active:text-[var(--title-active)]
         before:w-1 before:h-5 before:rounded-md before:bg-[var(--primary)]
@@ -48,26 +47,23 @@ const { remarkPluginFrontmatter } = await entry.render();
         </a>
 
         <!-- description -->
-        <div class:list={["transition text-75 mb-3.5 pr-4 line-clamp-1 md:line-clamp-2"]}>
+        <div class:list={["transition post-card-description text-75 mb-3.5 pr-4 line-clamp-1 md:line-clamp-2"]}>
             { description || remarkPluginFrontmatter.excerpt }
         </div>
 
         <!-- metadata -->
-        <PostMetadata published={published} updated={updated} hideUpdateDate={true} hidePublishedDate={true} slug={entry.slug} class="mb-2 md:mb-4"></PostMetadata>
-
-        <!-- word count, read time and page views -->
-        <div class="text-sm text-black/30 dark:text-white/30 flex gap-4 transition">
+        <!-- word count, read time and cumulative page views -->
+        <div class="post-card-stats text-sm text-black/30 dark:text-white/30 flex gap-4 transition">
             <div>{formatDateToYYYYMMDD(published)}</div>
-            <div>|</div>
             <div>{remarkPluginFrontmatter.words} 字</div>
-            <div>|</div>
             <div>{remarkPluginFrontmatter.minutes} 分钟</div>
+            <div><span>累计浏览 PV</span><span class="post-pageviews" data-url={url} data-umami-base-url={umamiConfig.baseUrl} data-umami-share-id={umamiConfig.shareId} data-umami-timezone={umamiConfig.timezone}>0</span></div>
         </div>
 
     </div>
 
     {hasCover && <a href={url} aria-label={title}
-                    class:list={["group",
+                    class:list={["group post-card-cover",
                         "max-h-none mx-0 mt-0",
                         "w-[var(--coverWidth)] absolute top-3 bottom-3 right-3 rounded-xl overflow-hidden active:scale-95"
                     ]} >
@@ -102,68 +98,91 @@ const { remarkPluginFrontmatter } = await entry.render();
 </style>
 
 <script>
+    const delay = (milliseconds) => new Promise(resolve => setTimeout(resolve, milliseconds));
+
+    async function waitForUmamiHelper(timeout = 5000) {
+        const startedAt = Date.now();
+        while (typeof window.fetchUmamiStats !== 'function') {
+            if (Date.now() - startedAt >= timeout) return false;
+            await delay(100);
+        }
+        return true;
+    }
+
     // 数字动画函数
     function animateValue(obj, start, end, duration) {
         let startTimestamp = null;
         const step = (timestamp) => {
             if (!startTimestamp) startTimestamp = timestamp;
             const progress = Math.min((timestamp - startTimestamp) / duration, 1);
-            obj.innerHTML = Math.floor(progress * (end - start) + start);
+            obj.textContent = Math.floor(progress * (end - start) + start);
             if (progress < 1) {
                 window.requestAnimationFrame(step);
             } else {
-                obj.innerHTML = end;
+                obj.textContent = end;
             }
         };
         window.requestAnimationFrame(step);
     }
 
     async function loadCardStats() {
-        const elements = document.querySelectorAll('.post-pageviews');
-        
-        elements.forEach(async (el) => {
+        if (!(await waitForUmamiHelper())) return;
+
+        const elements = Array.from(document.querySelectorAll('.post-pageviews'));
+
+        for (const el of elements) {
             // 如果元素已经处理过，且已有内容（非0），则不再处理
-            if (el.classList.contains('processed') && el.textContent !== '0') return;
-            
-            el.classList.add('processed');
+            if (el.classList.contains('processed') && el.textContent !== '0') continue;
+
+            if (el.classList.contains('loading')) continue;
+            el.classList.add('loading');
             const url = el.dataset.url;
             const baseUrl = el.dataset.umamiBaseUrl;
             const shareId = el.dataset.umamiShareId;
             const timezone = el.dataset.umamiTimezone;
             
-            if (!baseUrl || !shareId) return;
+            if (!baseUrl || !shareId) continue;
             
             try {
-                // Check if fetchUmamiStats exists
-                if (typeof window.fetchUmamiStats !== 'function') return;
+                let statsData;
+                for (let attempt = 0; attempt < 2; attempt++) {
+                    try {
+                        statsData = await window.fetchUmamiStats(baseUrl, shareId, {
+                            url: url,
+                            timezone: timezone
+                        });
+                        break;
+                    } catch (error) {
+                        if (attempt === 1) throw error;
+                        await delay(350);
+                    }
+                }
 
-                const statsData = await window.fetchUmamiStats(baseUrl, shareId, {
-                    url: url,
-                    timezone: timezone
-                });
+                if (!statsData) throw new Error('Umami stats response unavailable');
                 
                 const pageviews = (statsData.pageviews && statsData.pageviews.value) || statsData.pageviews || 0;
                 
                 // 如果数据来自缓存，直接显示结果，跳过动画
                 if (statsData._fromCache) {
-                    el.innerHTML = pageviews;
-                    return;
-                }
-                
-                const startVal = parseInt(el.textContent) || 0;
-                
-                if (startVal !== pageviews) {
-                    // 只有当开始值是0的时候才播放动画（首次加载）
-                    if (startVal === 0) {
-                         animateValue(el, startVal, pageviews, 1000);
-                    } else {
-                         el.innerHTML = pageviews;
+                    el.textContent = pageviews;
+                } else {
+                    const startVal = parseInt(el.textContent) || 0;
+
+                    if (startVal !== pageviews) {
+                        if (startVal === 0) {
+                             animateValue(el, startVal, pageviews, 1000);
+                        } else {
+                             el.textContent = pageviews;
+                        }
                     }
                 }
+                el.classList.add('processed');
             } catch (e) {
                 console.error('Failed to load stats for', url, e);
+            } finally {
+                el.classList.remove('loading');
             }
-        });
+        }
     }
     
     document.addEventListener('DOMContentLoaded', loadCardStats);

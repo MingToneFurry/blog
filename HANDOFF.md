@@ -49,5 +49,17 @@
 
 - 仓库已克隆并跟踪 `origin/main`。
 - Umami 修复已完成本地单测、生产构建与浏览器端到端验证：全站和文章 PV/UV 均恢复显示。
-- 三份设计规范已完成清点，尚未开始设计分支实现。
-- 仓库基线仍有既存类型检查问题：缺少 `hast` 类型，以及 `src/utils/content-utils.ts` 的隐式 `any`；生产构建不受影响。
+- `design/glass` 已完成 ArcTower/GLASS 全站视觉重写，尚未合并 `main`，等待用户与其余风格对比后选择。
+- ArcTower 实现采用单一蓝强调、素色点阵画布、不透明内容表面、发丝描边、4/6/10/16px 圆角、卡片零投影、蓝竖条签名、状态软底 chip、统一焦点环与暗亮对等 token。
+- 已重构或统一覆盖导航、移动菜单、RSS 搜索浮层、首页文章卡与累计 PV、资料卡与累计 PV/UV、归档、友链、文章页、Markdown、TOC、License、文章导航、分页、Footer、返回顶部及加载状态。
+- 保留 `https://api.furry.ist/furry-img` 动态背景及 `https://sni-api.furry.ist/furry-img` fallback；背景使用中性去饱和遮罩，内容使用不透明表面保证可读性。
+- 统计文案固定为“累计浏览 PV / 累计访客 UV”，脚本仅更新数字节点；卡片统计会等待 Umami helper、串行获取并失败重试，降低首屏并发失败概率。
+- 精确浏览器验收已覆盖桌面和 390×844 移动视口：无横向溢出，资料统计两列完整，Footer 位于文章与分页之后，累计站点及文章统计正常更新，动态背景和导航功能保留。
+- `pnpm test:umami` 与 `pnpm build` 通过；`pnpm type-check` 仍因既存的 `src/plugins/expressive-code/custom-copy-button.ts` 缺少 `hast` 类型而失败，生产构建不受影响。
+
+## design/glass 后续边界
+
+- 禁止在用户选定前将 `design/glass` 合并进 `main`。
+- 后续若继续微调，应保持 ArcTower 单蓝约束，不恢复主题 hue 彩虹选择器或多色品牌强调。
+- 若修改统计 UI，必须保留开站以来累计语义、动态分享令牌机制以及 PV/UV 标签与数字节点分离。
+- 若修改背景处理，必须保留原始 `api.furry.ist` 地址和现有 fallback，不把外部图片数据写入仓库。
