@@ -56,7 +56,7 @@
   - 保留 `https://api.furry.ist/furry-img` 动态背景及 `https://sni-api.furry.ist/furry-img` fallback；视觉层仅降饱和/对比，不替换图片源或加载逻辑。
   - 显示设置保留明暗/自动主题、背景显示与模糊、开发节点；去除会破坏唯一品牌强调色的自定义 hue / 彩虹模式入口。
   - 统计文案明确为开站以来“累计浏览 PV / 累计访客 UV”，统计 helper 仍以 `startAt=0` 获取累计范围，脚本只替换数值节点文本。
-  - 首页文章统计使用单一可重入队列顺序加载，并为网络/API 短暂失败提供最多 3 次退避重试，避免同时请求全部文章触发限流；Swup 替换后会重新扫描尚未完成的卡片。
+  - 首页文章统计使用并发上限为 4 的集中式可重入队列；每篇最多重试 2 次，分别退避 400ms / 900ms，在弱网下兼顾完成速度与限流保护；Swup 替换后会重新扫描尚未完成的卡片。
 - `design/arcade` 验证：`pnpm test:umami` 通过，`pnpm build` 通过（36 个页面）；`pnpm type-check` 仅剩既存 `hast` 类型依赖缺失。
 - `design/arcade` 本地预览：`http://127.0.0.1:4321/`（若进程仍在）；本地视觉 QA 截图位于忽略目录 `artifacts/arcade/`，不进入 Git；主要验收图为 `home-desktop-v2.png`、`home-mobile-v2.png`、`friends-desktop.png`、`post-desktop-v2.png`。
 - 仓库基线仍有既存类型检查问题：缺少 `hast` 类型，以及 `src/utils/content-utils.ts` 的隐式 `any`；生产构建不受影响。

@@ -54,10 +54,35 @@ const interval = 50;
                 return await window.fetchUmamiStats(baseUrl, shareId, { timezone, url: path });
             } catch (error) {
                 lastError = error;
-                await delay(300 * (attempt + 1));
+                if (attempt < 2) await delay(attempt === 0 ? 400 : 900);
             }
         }
         throw lastError;
+    }
+
+    async function loadCardStats(card, baseUrl, shareId, timezone) {
+        if (card.dataset.statsLoaded === "true" || card.dataset.statsLoaded === "loading") return;
+
+        const titleLink = card.querySelector("a.post-card-title");
+        if (!(titleLink instanceof HTMLAnchorElement)) return;
+
+        card.dataset.statsLoaded = "loading";
+        try {
+            const path = decodeURIComponent(
+                new URL(titleLink.href, window.location.origin).pathname,
+            );
+            const stats = await fetchStatsWithRetry(baseUrl, shareId, timezone, path);
+            const pageviews = stats.pageviews?.value ?? stats.pageviews ?? 0;
+            const visitors = stats.visitors?.value ?? stats.visitors ?? 0;
+            const viewNode = card.querySelector("[id^='page-views-']");
+            const visitorNode = card.querySelector("[id^='page-visitors-']");
+            updateStat(viewNode, pageviews, "次");
+            updateStat(visitorNode, visitors, "人");
+            card.dataset.statsLoaded = "true";
+        } catch (error) {
+            card.dataset.statsLoaded = "false";
+            console.error("Failed to load cumulative post stats", error);
+        }
     }
 
     async function loadPostCardStats() {
@@ -70,32 +95,20 @@ const interval = 50;
         const timezone = list.dataset.umamiTimezone;
         if (!baseUrl || !shareId) return;
 
-        const cards = Array.from(document.querySelectorAll("article.post-card"));
-        for (const card of cards) {
-            if (card.dataset.statsLoaded === "true") continue;
+        const cards = Array.from(list.querySelectorAll("article.post-card"));
+        let nextIndex = 0;
 
-            const titleLink = card.querySelector("a.post-card-title");
-            if (!(titleLink instanceof HTMLAnchorElement)) continue;
-
-            card.dataset.statsLoaded = "loading";
-            try {
-                const path = decodeURIComponent(
-                    new URL(titleLink.href, window.location.origin).pathname,
-                );
-                const stats = await fetchStatsWithRetry(baseUrl, shareId, timezone, path);
-                const pageviews = stats.pageviews?.value ?? stats.pageviews ?? 0;
-                const visitors = stats.visitors?.value ?? stats.visitors ?? 0;
-                const viewNode = card.querySelector("[id^='page-views-']");
-                const visitorNode = card.querySelector("[id^='page-visitors-']");
-                updateStat(viewNode, pageviews, "次");
-                updateStat(visitorNode, visitors, "人");
-                card.dataset.statsLoaded = "true";
-            } catch (error) {
-                card.dataset.statsLoaded = "false";
-                console.error("Failed to load cumulative post stats", error);
+        async function worker() {
+            while (nextIndex < cards.length) {
+                const card = cards[nextIndex];
+                nextIndex += 1;
+                if (!(card instanceof HTMLElement)) continue;
+                await loadCardStats(card, baseUrl, shareId, timezone);
             }
-            await delay(80);
         }
+
+        const workerCount = Math.min(4, cards.length);
+        await Promise.all(Array.from({ length: workerCount }, () => worker()));
     }
 
     if (document.readyState === "loading") {
