@@ -57,6 +57,7 @@
   - 显示设置保留明暗/自动主题、背景显示与模糊、开发节点；去除会破坏唯一品牌强调色的自定义 hue / 彩虹模式入口。
   - 统计文案明确为开站以来“累计浏览 PV / 累计访客 UV”，统计 helper 仍以 `startAt=0` 获取累计范围，脚本只替换数值节点文本。
   - 首页文章统计使用并发上限为 4 的集中式可重入队列；每篇最多重试 2 次，分别退避 400ms / 900ms，在弱网下兼顾完成速度与限流保护；Swup 替换后会重新扫描尚未完成的卡片。
+  - 文章详情页会等待 Umami helper，并使用相同的有限退避重试更新可见的累计 PV/UV 节点；支持直达文章与 Swup 切换。
 - `design/arcade` 验证：`pnpm test:umami` 通过，`pnpm build` 通过（36 个页面）；`pnpm type-check` 仅剩既存 `hast` 类型依赖缺失。
 - `design/arcade` 本地预览：`http://127.0.0.1:4321/`（若进程仍在）；本地视觉 QA 截图位于忽略目录 `artifacts/arcade/`，不进入 Git；主要验收图为 `home-desktop-v2.png`、`home-mobile-v2.png`、`friends-desktop.png`、`post-desktop-v2.png`。
 - 仓库基线仍有既存类型检查问题：缺少 `hast` 类型，以及 `src/utils/content-utils.ts` 的隐式 `any`；生产构建不受影响。

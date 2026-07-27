@@ -290,61 +290,62 @@ const jsonLd = {
     document.addEventListener('swup:contentReplaced', setupImageLoading);
 </script>
 
-<script define:vars={{ umamiConfig, postUrl: getPostUrlBySlug(entry.slug) }}>
-    // 数字动画函数
-    function animateValue(obj, start, end, duration) {
-        let startTimestamp = null;
-        const step = (timestamp) => {
-            if (!startTimestamp) startTimestamp = timestamp;
-            const progress = Math.min((timestamp - startTimestamp) / duration, 1);
-            obj.innerHTML = Math.floor(progress * (end - start) + start);
-            if (progress < 1) {
-                window.requestAnimationFrame(step);
-            } else {
-                obj.innerHTML = end;
-            }
-        };
-        window.requestAnimationFrame(step);
+<script define:vars={{ umamiConfig, postSlug: entry.slug, postUrl: getPostUrlBySlug(entry.slug) }}>
+    const wait = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
+
+    async function waitForUmamiHelper() {
+        for (let attempt = 0; attempt < 40; attempt += 1) {
+            if (typeof window.fetchUmamiStats === "function") return true;
+            await wait(100);
+        }
+        return false;
     }
 
-    async function loadPageViews() {
-        if (!umamiConfig.enable) return;
-        try {
-			// Umami share helper is exposed on window (loaded in Layout.astro)
-			if (typeof window.fetchUmamiStats !== 'function') return;
-
-			const statsData = await window.fetchUmamiStats(umamiConfig.baseUrl, umamiConfig.shareId, {
-                url: postUrl,
-                timezone: umamiConfig.timezone
-            });
-            
-            const pageviews = (statsData.pageviews && statsData.pageviews.value) || statsData.pageviews || 0;
-            const element = document.getElementById('post-pageviews');
-            
-            if (element) {
-                // 如果数据来自缓存，直接显示结果，跳过动画
-                if (statsData._fromCache) {
-                    element.innerHTML = pageviews;
-                    return;
-                }
-                
-                const startVal = parseInt(element.textContent) || 0;
-                
-                if (startVal !== pageviews) {
-                    if (startVal === 0) {
-                        animateValue(element, startVal, pageviews, 1000);
-                    } else {
-                        element.innerHTML = pageviews;
-                    }
-                }
+    async function fetchPostStats() {
+        let lastError;
+        for (let attempt = 0; attempt < 3; attempt += 1) {
+            try {
+                return await window.fetchUmamiStats(umamiConfig.baseUrl, umamiConfig.shareId, {
+                    url: decodeURIComponent(postUrl),
+                    timezone: umamiConfig.timezone,
+                });
+            } catch (error) {
+                lastError = error;
+                if (attempt < 2) await wait(attempt === 0 ? 400 : 900);
             }
+        }
+        throw lastError;
+    }
+
+    async function loadPostStats() {
+        if (!umamiConfig.enable || !(await waitForUmamiHelper())) return;
+
+        const viewsElement = document.getElementById(`page-views-${postSlug}`);
+        const visitorsElement = document.getElementById(`page-visitors-${postSlug}`);
+        if (!viewsElement || !visitorsElement) return;
+        if (viewsElement.dataset.statsLoaded === "true" || viewsElement.dataset.statsLoaded === "loading") return;
+
+        viewsElement.dataset.statsLoaded = "loading";
+        try {
+            const stats = await fetchPostStats();
+            const pageviews = stats.pageviews?.value ?? stats.pageviews ?? 0;
+            const visitors = stats.visitors?.value ?? stats.visitors ?? 0;
+            viewsElement.textContent = `${pageviews} 次`;
+            visitorsElement.textContent = `${visitors} 人`;
+            viewsElement.dataset.statsLoaded = "true";
         } catch (error) {
-            console.error('获取页面访问量失败:', error);
+            viewsElement.dataset.statsLoaded = "false";
+            console.error("Failed to load cumulative post stats", error);
         }
     }
 
-    document.addEventListener('DOMContentLoaded', loadPageViews);
-    document.addEventListener('swup:contentReplaced', loadPageViews);
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", loadPostStats, { once: true });
+    } else {
+        loadPostStats();
+    }
+    document.addEventListener("content:replace", loadPostStats);
+    document.addEventListener("swup:contentReplaced", loadPostStats);
 </script>
 
 <style is:global>
