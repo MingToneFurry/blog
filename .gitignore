@@ -17,6 +17,7 @@ pnpm-debug.log*
 
 # local visual QA artifacts
 artifacts/
+.chrome-debug-*/
 
 # environment variables
 .env

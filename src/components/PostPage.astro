@@ -1,6 +1,7 @@
 ---
 import type { CollectionEntry } from "astro:content";
 import { getPostUrlBySlug } from "@utils/url-utils";
+import { umamiConfig } from "../config";
 import PostCard from "./PostCard.astro";
 
 const { page } = Astro.props;
@@ -9,7 +10,10 @@ let delay = 0;
 const interval = 50;
 ---
 
-<div class="transition flex flex-col rounded-[var(--radius-large)] bg-transparent gap-4 mb-4">
+<div class="post-list transition flex flex-col rounded-[var(--radius-large)] bg-transparent gap-4 mb-4"
+    data-umami-base={umamiConfig.baseUrl}
+    data-umami-share={umamiConfig.shareId}
+    data-umami-timezone={umamiConfig.timezone}>
 
     {page.data.map((entry: CollectionEntry<"posts">) => (
         <PostCard
@@ -26,3 +30,79 @@ const interval = 50;
         ></PostCard>
     ))}
 </div>
+
+<script>
+    const waitForUmamiHelper = async () => {
+        for (let attempt = 0; attempt < 40; attempt += 1) {
+            if (typeof window.fetchUmamiStats === "function") return true;
+            await new Promise((resolve) => setTimeout(resolve, 100));
+        }
+        return false;
+    };
+
+    const updateStat = (element, value, suffix) => {
+        if (!element) return;
+        element.textContent = `${value} ${suffix}`;
+    };
+
+    const delay = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
+
+    async function fetchStatsWithRetry(baseUrl, shareId, timezone, path) {
+        let lastError;
+        for (let attempt = 0; attempt < 3; attempt += 1) {
+            try {
+                return await window.fetchUmamiStats(baseUrl, shareId, { timezone, url: path });
+            } catch (error) {
+                lastError = error;
+                await delay(300 * (attempt + 1));
+            }
+        }
+        throw lastError;
+    }
+
+    async function loadPostCardStats() {
+        if (!(await waitForUmamiHelper())) return;
+
+        const list = document.querySelector(".post-list[data-umami-base]");
+        if (!(list instanceof HTMLElement)) return;
+        const baseUrl = list.dataset.umamiBase;
+        const shareId = list.dataset.umamiShare;
+        const timezone = list.dataset.umamiTimezone;
+        if (!baseUrl || !shareId) return;
+
+        const cards = Array.from(document.querySelectorAll("article.post-card"));
+        for (const card of cards) {
+            if (card.dataset.statsLoaded === "true") continue;
+
+            const titleLink = card.querySelector("a.post-card-title");
+            if (!(titleLink instanceof HTMLAnchorElement)) continue;
+
+            card.dataset.statsLoaded = "loading";
+            try {
+                const path = decodeURIComponent(
+                    new URL(titleLink.href, window.location.origin).pathname,
+                );
+                const stats = await fetchStatsWithRetry(baseUrl, shareId, timezone, path);
+                const pageviews = stats.pageviews?.value ?? stats.pageviews ?? 0;
+                const visitors = stats.visitors?.value ?? stats.visitors ?? 0;
+                const viewNode = card.querySelector("[id^='page-views-']");
+                const visitorNode = card.querySelector("[id^='page-visitors-']");
+                updateStat(viewNode, pageviews, "次");
+                updateStat(visitorNode, visitors, "人");
+                card.dataset.statsLoaded = "true";
+            } catch (error) {
+                card.dataset.statsLoaded = "false";
+                console.error("Failed to load cumulative post stats", error);
+            }
+            await delay(80);
+        }
+    }
+
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", loadPostCardStats, { once: true });
+    } else {
+        loadPostCardStats();
+    }
+    document.addEventListener("content:replace", loadPostCardStats);
+    document.addEventListener("swup:contentReplaced", loadPostCardStats);
+</script>

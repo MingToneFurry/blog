@@ -705,6 +705,37 @@ html.is-animating .transition-swup-fade {
 	}
 }
 
+@media (max-width: 640px) {
+	.post-card .post-meta-hud {
+		display: grid !important;
+		grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+		width: 100%;
+		gap: 0.4rem !important;
+	}
+
+	.post-card .post-meta-hud > div {
+		min-width: 0;
+		padding: 0.35rem 0.4rem 0.35rem 0.3rem;
+	}
+
+	.post-card .post-meta-hud > div > span {
+		min-width: 0;
+		font-size: 0.675rem !important;
+		white-space: nowrap;
+	}
+
+	.post-card .post-meta-hud > div:nth-last-child(-n + 2) span::before {
+		content: none;
+	}
+
+	.post-card .meta-icon {
+		width: 1.35rem !important;
+		height: 1.35rem !important;
+		margin-right: 0.3rem !important;
+		flex: 0 0 auto;
+	}
+}
+
 @media (prefers-reduced-motion: reduce) {
 	*,
 	*::before,
