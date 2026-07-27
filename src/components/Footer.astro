@@ -27,9 +27,9 @@ try {
 
   
 <!--<div class="border-t border-[var(--primary)] mx-16 border-dashed py-8 max-w-[var(--page-width)] flex flex-col items-center justify-center px-6">-->
-<div class="transition border-t border-black/10 dark:border-white/15 my-10 border-dashed mx-4 md:mx-32"></div>
-<div class="card-base w-fit mx-auto rounded-xl mt-4 mb-4">
-    <div class="transition text-50 text-sm text-center p-6">
+<div class="footer-rule transition border-t border-black/10 dark:border-white/15 my-10 border-dashed mx-4 md:mx-32"></div>
+<footer class="footer-hud card-base w-fit mx-auto mt-4 mb-4" data-hud-label="SYSTEM // FOOTER">
+    <div class="transition text-50 text-sm text-center p-6 pt-10">
         &copy; <span id="copyright-year">2024 - {currentYear}</span> <a class="transition link text-[var(--primary)] font-medium" target="_blank" href="https://space.bilibili.com/1092335855"> {profileConfig.name} </a>，采用
         <a class="transition link text-[var(--primary)] font-medium" target="_blank" href="https://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY-NC-SA 4.0</a> 许可
         <br>
@@ -42,7 +42,21 @@ try {
         <a class="transition link text-[var(--primary)] font-medium" target="_blank" href="https://github.com/saicaca/fuwari">Fuwari</a> 强力驱动
         
     </div>
-</div>
+</footer>
+
+<style>
+    .footer-rule {
+        height: 8px;
+        border: 0;
+        background: repeating-linear-gradient(135deg, var(--ui-line) 0 7px, transparent 7px 12px);
+    }
+
+    .footer-hud {
+        max-width: min(94vw, 48rem);
+        font-family: "JetBrains Mono Variable", "Roboto", monospace;
+        letter-spacing: 0.02em;
+    }
+</style>
 
 <script>
     function updateServerInfo(server) {

@@ -50,7 +50,7 @@ const getPageUrl = (p: number) => {
 };
 ---
 
-<div class:list={[className, "flex flex-row gap-3 justify-center"]} style={style}>
+<nav class:list={[className, "pagination-hud flex flex-row gap-3 justify-center"]} style={style} aria-label="文章分页">
     <a href={page.url.prev || ""} aria-label={page.url.prev ? "Previous Page" : null}
        class:list={["btn-card overflow-hidden rounded-lg text-[var(--primary)] w-11 h-11",
            {"disabled": page.url.prev == undefined}
@@ -58,7 +58,7 @@ const getPageUrl = (p: number) => {
     >
         <Icon name="material-symbols:chevron-left-rounded" class="text-[1.75rem]"></Icon>
     </a>
-    <div class="bg-[var(--card-bg)] flex flex-row rounded-lg items-center text-neutral-700 dark:text-neutral-300 font-bold" style="backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);">
+    <div class="pagination-track bg-[var(--card-bg)] flex flex-row items-center text-neutral-700 dark:text-neutral-300 font-bold">
         {pages.map((p) => {
             if (p == HIDDEN)
                 return <Icon name="material-symbols:more-horiz" class="mx-1"/>;
@@ -80,4 +80,27 @@ const getPageUrl = (p: number) => {
     >
         <Icon name="material-symbols:chevron-right-rounded" class="text-[1.75rem]"></Icon>
     </a>
-</div>
+</nav>
+
+<style>
+    .pagination-track {
+        border: 1px solid var(--ui-line);
+        background: var(--ui-surface) !important;
+        clip-path: var(--ui-cut-card);
+        box-shadow: none;
+    }
+
+    .pagination-hud::before {
+        content: "PAGE // SELECT";
+        align-self: center;
+        color: var(--ui-fg-muted);
+        font: 700 0.625rem/1 "JetBrains Mono Variable", monospace;
+        letter-spacing: 0.08em;
+    }
+
+    @media (max-width: 640px) {
+        .pagination-hud::before {
+            display: none;
+        }
+    }
+</style>

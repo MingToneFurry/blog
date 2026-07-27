@@ -33,10 +33,11 @@ const coverWidth = "28%";
 
 const { remarkPluginFrontmatter } = await entry.render();
 ---
-<div class:list={["card-base card-hover flex flex-col w-full relative", className]} style={style}>
-    <div class:list={["pl-9 pr-2 pt-6 pb-6 relative", {"w-[calc(100%_-_52px_-_12px)]": !hasCover, "w-[calc(100%_-_var(--coverWidth)_-_12px)]": hasCover}]}>
+<article class:list={["post-card card-base card-hover flex flex-col w-full relative", className]} style={style}>
+    <div class:list={["pl-9 pr-2 pt-12 pb-6 relative", {"w-[calc(100%_-_52px_-_12px)]": !hasCover, "w-[calc(100%_-_var(--coverWidth)_-_12px)]": hasCover}]}>
+        <div class="post-card-status hud-label mb-2"><strong>{isPinned ? "PRIORITY" : "ARCHIVE"}</strong> // {formatDateToYYYYMMDD(published).replaceAll("-", ".")}</div>
         <a href={url}
-           class="transition group w-full block font-bold mb-2 md:mb-3 text-xl md:text-3xl text-90 relative
+           class="post-card-title transition group w-full block font-bold mb-2 md:mb-3 text-xl md:text-3xl text-90 relative
         hover:text-[var(--primary)] dark:hover:text-[var(--primary)]
         active:text-[var(--title-active)] dark:active:text-[var(--title-active)]
         before:w-1 before:h-5 before:rounded-md before:bg-[var(--primary)]
@@ -56,12 +57,9 @@ const { remarkPluginFrontmatter } = await entry.render();
         <PostMetadata published={published} updated={updated} hideUpdateDate={true} hidePublishedDate={true} slug={entry.slug} class="mb-2 md:mb-4"></PostMetadata>
 
         <!-- word count, read time and page views -->
-        <div class="text-sm text-black/30 dark:text-white/30 flex gap-4 transition">
-            <div>{formatDateToYYYYMMDD(published)}</div>
-            <div>|</div>
-            <div>{remarkPluginFrontmatter.words} 字</div>
-            <div>|</div>
-            <div>{remarkPluginFrontmatter.minutes} 分钟</div>
+        <div class="post-card-data text-sm text-black/30 dark:text-white/30 flex flex-wrap gap-2 transition">
+            <div class="arcade-chip">WORDS // {remarkPluginFrontmatter.words}</div>
+            <div class="arcade-chip">ETA // {remarkPluginFrontmatter.minutes} MIN</div>
         </div>
 
     </div>
@@ -93,12 +91,59 @@ const { remarkPluginFrontmatter } = await entry.render();
             </Icon>
         </a>
     }
-</div>
+</article>
 <div class="transition border-t-[1px] border-dashed mx-6 border-black/10 dark:border-white/[0.15] last:border-t-0 hidden"></div>
 
 
 
 <style define:vars={{coverWidth}}>
+    .post-card {
+        min-height: 12.5rem;
+    }
+
+    .post-card > div:first-child::after {
+        content: "READ // OPEN";
+        position: absolute;
+        right: 1rem;
+        bottom: 0.7rem;
+        color: var(--ui-fg-muted);
+        font: 700 0.6rem/1 "JetBrains Mono Variable", monospace;
+        letter-spacing: 0.1em;
+    }
+
+    .post-card-title {
+        letter-spacing: 0.035em;
+        text-transform: uppercase;
+    }
+
+    .post-card-title::before {
+        clip-path: var(--ui-cut-chip);
+        border-radius: 0 !important;
+        background: var(--ui-accent) !important;
+    }
+
+    .post-card-status {
+        width: fit-content;
+    }
+
+    @media (max-width: 640px) {
+        .post-card > div:first-child::after {
+            display: none;
+        }
+
+        .post-card > div:first-child {
+            width: 100% !important;
+            padding-right: 1.5rem;
+        }
+
+        .post-card > a[aria-label].group {
+            position: relative !important;
+            width: calc(100% - 1.5rem) !important;
+            height: 10rem;
+            margin: 0 0.75rem 0.75rem;
+            inset: auto !important;
+        }
+    }
 </style>
 
 <script>

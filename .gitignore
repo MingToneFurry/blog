@@ -12,6 +12,11 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+.preview-*.log
+.build-*.log
+
+# local visual QA artifacts
+artifacts/
 
 # environment variables
 .env

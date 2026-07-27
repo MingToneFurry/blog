@@ -45,8 +45,8 @@ const jsonLd = {
 ---
 <MainGridLayout banner={entry.data.image} title={entry.data.title} description={entry.data.description} lang={entry.data.lang} setOGTypeArticle={true} headings={headings}>
     <script is:inline slot="head" type="application/ld+json" set:html={JSON.stringify(jsonLd)}></script>
-    <div class="flex w-full rounded-[var(--radius-large)] overflow-hidden relative mb-4">
-        <div id="post-container" class:list={["card-base z-10 px-6 md:px-9 pt-6 pb-4 relative w-full",
+    <div class="flex w-full overflow-hidden relative mb-4">
+        <div id="post-container" data-hud-label="ARTICLE // READ MODE" class:list={["post-article card-base z-10 px-6 md:px-9 pt-12 pb-4 relative w-full",
             {}
         ]}>
             <!-- word count and reading time -->
@@ -75,7 +75,7 @@ const jsonLd = {
                     before:absolute before:top-[0.75rem] before:left-[-1.125rem]
                 ">
 
-                    <span>{entry.data.title}</span>
+                    <span class="post-display-title">{entry.data.title}</span>
                 </div>
             </div>
 
@@ -112,7 +112,7 @@ const jsonLd = {
             </Markdown>
 
             <!-- 文章反馈与编辑区域 -->
-            <div class="mb-4 p-4 rounded-lg bg-[var(--license-block-bg)] border border-[var(--line-divider)] onload-animation">
+            <div class="article-actions mb-4 p-4 bg-[var(--license-block-bg)] border border-[var(--line-divider)] onload-animation">
                 <!-- 反馈区域 -->
                 <div class="flex items-center justify-between mb-4">
                     <div class="flex items-center gap-3">
@@ -157,7 +157,7 @@ const jsonLd = {
                 )}
             </div>
 
-            {licenseConfig.enable && <License title={entry.data.title} slug={entry.slug} pubDate={entry.data.published} class="mb-6 rounded-xl license-container onload-animation"></License>}
+            {licenseConfig.enable && <License title={entry.data.title} slug={entry.slug} pubDate={entry.data.published} class="mb-6 license-container onload-animation"></License>}
             
 
             
@@ -205,6 +205,22 @@ const jsonLd = {
 </MainGridLayout>
 
 <style>
+    .post-display-title {
+        letter-spacing: 0.045em;
+        text-transform: uppercase;
+    }
+
+    .article-actions {
+        border-left: 3px solid var(--ui-accent) !important;
+        background: var(--ui-surface-2) !important;
+        clip-path: var(--ui-cut-tab);
+    }
+
+    .article-actions :global(a),
+    .article-actions :global(svg) {
+        color: var(--ui-accent) !important;
+    }
+
     .post-container :global(img) {
         opacity: 0;
         transition: opacity 0.5s ease-out;

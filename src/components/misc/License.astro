@@ -17,7 +17,7 @@ const profileConf = profileConfig;
 const licenseConf = licenseConfig;
 const postUrl = decodeURIComponent(Astro.url.toString());
 ---
-<div class=`relative transition overflow-hidden bg-[var(--license-block-bg)] py-5 px-6 ${className}`>
+<div class=`license-hud relative transition overflow-hidden bg-[var(--license-block-bg)] py-8 px-6 ${className}` data-hud-label="LICENSE // CREATIVE COMMONS">
     <div class="transition font-bold text-black/75 dark:text-white/75">
         {title}
     </div>
@@ -56,5 +56,26 @@ const postUrl = decodeURIComponent(Astro.url.toString());
     </div>
     <Icon name="fa6-brands:creative-commons" class="transition text-[15rem] absolute pointer-events-none right-6 top-1/2 -translate-y-1/2 text-black/5 dark:text-white/5"></Icon>
 </div>
+
+<style>
+    .license-hud {
+        border: 1px solid var(--ui-line);
+        background: var(--ui-surface-2) !important;
+        clip-path: var(--ui-cut-card);
+    }
+
+    .license-hud::before {
+        content: "LICENSE // CREATIVE COMMONS";
+        position: absolute;
+        top: 0;
+        left: 0;
+        padding: 0.4rem 0.65rem;
+        background: var(--ui-accent);
+        color: var(--ui-accent-fg);
+        clip-path: var(--ui-cut-chip);
+        font: 800 0.6rem/1 "JetBrains Mono Variable", monospace;
+        letter-spacing: 0.08em;
+    }
+</style>
 
 

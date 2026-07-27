@@ -3,79 +3,26 @@ import { AUTO_MODE, DARK_MODE, LIGHT_MODE } from "@constants/constants";
 import Icon from "@iconify/svelte";
 import {
 	getBgBlur,
-	getDefaultHue,
 	getDevMode,
 	getDevServer,
 	getHideBg,
-	getHue,
-	getRainbowMode,
-	getRainbowSpeed,
 	getStoredTheme,
 	setBgBlur,
-	setBgHueRotate,
 	setDevMode,
 	setDevServer,
 	setHideBg,
-	setHue,
-	setRainbowMode,
-	setRainbowSpeed,
 	setTheme,
 } from "@utils/setting-utils";
-import { onMount } from "svelte";
 
-let hue = getHue();
 let theme = getStoredTheme();
-let isRainbowMode = getRainbowMode();
-let rainbowSpeed = getRainbowSpeed();
 let bgBlur = getBgBlur();
 let hideBg = getHideBg();
 let isDevMode = getDevMode();
 let devServer = getDevServer();
-let animationId: number;
-let lastUpdate = 0;
-let rainbowHue = 0; // Independent hue for background rotation
-
-const defaultHue = getDefaultHue();
-
-function resetHue() {
-	hue = getDefaultHue();
-}
-
-$: if ((hue || hue === 0) && !isRainbowMode) {
-	setHue(hue);
-}
-
-$: {
-	setBgBlur(bgBlur);
-}
 
 function switchTheme(newTheme: string) {
 	theme = newTheme;
 	setTheme(newTheme);
-}
-
-function updateRainbow() {
-	if (!isRainbowMode) return;
-
-	hue = (hue + rainbowSpeed * 0.05) % 360;
-	setHue(hue, false);
-
-	animationId = requestAnimationFrame(updateRainbow);
-}
-
-function toggleRainbow() {
-	isRainbowMode = !isRainbowMode;
-	setRainbowMode(isRainbowMode);
-
-	if (isRainbowMode) {
-		lastUpdate = performance.now();
-		rainbowHue = 0; // Reset rotation start
-		animationId = requestAnimationFrame(updateRainbow);
-	} else {
-		cancelAnimationFrame(animationId);
-		// Reset background rotation to 0 when stopped
-		setBgHueRotate(0);
-	}
 }
 
 function toggleHideBg() {
@@ -83,289 +30,214 @@ function toggleHideBg() {
 	setHideBg(hideBg);
 }
 
+function updateBlur() {
+	setBgBlur(bgBlur);
+}
+
 function toggleDevMode() {
 	isDevMode = !isDevMode;
 	setDevMode(isDevMode);
 }
 
-function onDevServerChange() {
+function updateDevServer() {
 	setDevServer(devServer);
 }
-
-function onSpeedChange() {
-	setRainbowSpeed(rainbowSpeed);
-}
-
-onMount(() => {
-	if (isRainbowMode) {
-		updateRainbow();
-	}
-	return () => {
-		if (animationId) cancelAnimationFrame(animationId);
-	};
-});
 </script>
 
-<div id="display-setting" class="float-panel float-panel-closed absolute transition-all w-80 right-4 px-4 py-4">
-    <div class="flex flex-row gap-2 mb-3 items-center justify-between">
-        <div class="flex gap-2 font-bold text-lg text-neutral-900 dark:text-neutral-100 transition relative ml-3
-            before:w-1 before:h-4 before:rounded-md before:bg-[var(--primary)]
-            before:absolute before:-left-3 before:top-[0.33rem]"
-        >
-            主题模式
-        </div>
-        <div class="flex gap-1">
-            <button aria-label="Light Mode"
-                class="w-10 h-7 rounded-md transition flex items-center justify-center active:scale-90
-                {theme === LIGHT_MODE ? 'bg-[var(--primary)] text-white' : 'bg-[var(--btn-regular-bg)] text-[var(--btn-content)] hover:bg-[var(--btn-regular-bg-hover)]'}"
-                on:click={() => switchTheme(LIGHT_MODE)}
-            >
-                <Icon icon="material-symbols:wb-sunny-rounded" class="text-[1.1rem]"></Icon>
-            </button>
-            <button aria-label="Dark Mode"
-                class="w-10 h-7 rounded-md transition flex items-center justify-center active:scale-90
-                {theme === DARK_MODE ? 'bg-[var(--primary)] text-white' : 'bg-[var(--btn-regular-bg)] text-[var(--btn-content)] hover:bg-[var(--btn-regular-bg-hover)]'}"
-                on:click={() => switchTheme(DARK_MODE)}
-            >
-                <Icon icon="material-symbols:dark-mode-rounded" class="text-[1.1rem]"></Icon>
-            </button>
-            <button aria-label="Auto Mode"
-                class="w-10 h-7 rounded-md transition flex items-center justify-center active:scale-90
-                {theme === AUTO_MODE ? 'bg-[var(--primary)] text-white' : 'bg-[var(--btn-regular-bg)] text-[var(--btn-content)] hover:bg-[var(--btn-regular-bg-hover)]'}"
-                on:click={() => switchTheme(AUTO_MODE)}
-            >
-                <Icon icon="material-symbols:hdr-auto-rounded" class="text-[1.1rem]"></Icon>
-            </button>
-        </div>
-    </div>
+<div id="display-setting" class="settings-hud float-panel float-panel-closed absolute transition-all w-80 right-4 px-4 py-4" role="dialog" aria-label="显示设置">
+	<section class="setting-section">
+		<div class="setting-title"><span>01</span>显示模式</div>
+		<div class="mode-grid" aria-label="主题模式">
+			<button aria-label="浅色模式" class:active={theme === LIGHT_MODE} on:click={() => switchTheme(LIGHT_MODE)}>
+				<Icon icon="material-symbols:wb-sunny-outline" />
+				<span>LIGHT</span>
+			</button>
+			<button aria-label="深色模式" class:active={theme === DARK_MODE} on:click={() => switchTheme(DARK_MODE)}>
+				<Icon icon="material-symbols:dark-mode-outline" />
+				<span>DARK</span>
+			</button>
+			<button aria-label="跟随系统" class:active={theme === AUTO_MODE} on:click={() => switchTheme(AUTO_MODE)}>
+				<Icon icon="material-symbols:hdr-auto" />
+				<span>AUTO</span>
+			</button>
+		</div>
+	</section>
 
-    <div class="flex flex-row gap-2 mb-3 items-center justify-between">
-        <div class="flex gap-2 font-bold text-lg text-neutral-900 dark:text-neutral-100 transition relative ml-3
-            before:w-1 before:h-4 before:rounded-md before:bg-[var(--primary)]
-            before:absolute before:-left-3 before:top-[0.33rem]"
-        >
-            主题色彩
-            <button aria-label="Reset to Default" class="btn-regular w-7 h-7 rounded-md  active:scale-90"
-                    class:opacity-0={hue === defaultHue} class:pointer-events-none={hue === defaultHue} on:click={resetHue}>
-                <div class="text-[var(--btn-content)]">
-                    <Icon icon="fa6-solid:arrow-rotate-left" class="text-[0.875rem]"></Icon>
-                </div>
-            </button>
-        </div>
-        <div class="flex gap-1">
-            <input aria-label="Hue Value" id="hueValue" type="number" min="0" max="360" value={Math.round(hue)} on:input={(e) => hue = e.currentTarget.valueAsNumber} disabled={isRainbowMode}
-                   class="transition bg-[var(--btn-regular-bg)] w-12 h-7 rounded-md text-center font-bold text-sm text-[var(--btn-content)] outline-none"
-            />
-        </div>
-    </div>
-    <div class="w-full h-6 px-1 bg-[oklch(0.80_0.10_0)] dark:bg-[oklch(0.70_0.10_0)] rounded select-none mb-3">
-        <input aria-label="主题色彩" type="range" min="0" max="360" bind:value={hue} disabled={isRainbowMode}
-               class="slider" id="colorSlider" step="1" style="width: 100%">
-    </div>
+	<section class="setting-section">
+		<div class="setting-title"><span>02</span>背景图层</div>
+		<label class="setting-row">
+			<span>隐藏动态背景</span>
+			<input aria-label="隐藏动态背景" type="checkbox" class="toggle-switch" checked={hideBg} on:change={toggleHideBg} />
+		</label>
+		<label class="setting-slider">
+			<span>模糊强度 <strong>{bgBlur}px</strong></span>
+			<input aria-label="背景模糊" type="range" min="0" max="20" bind:value={bgBlur} on:input={updateBlur} style="--value-percent: {bgBlur / 20 * 100}%" />
+		</label>
+	</section>
 
-    <div class="flex flex-row gap-2 mb-3 items-center justify-between">
-        <div class="flex gap-2 font-bold text-lg text-neutral-900 dark:text-neutral-100 transition relative ml-3
-            before:w-1 before:h-4 before:rounded-md before:bg-[var(--primary)]
-            before:absolute before:-left-3 before:top-[0.33rem]"
-        >
-            禁用背景
-        </div>
-        <input type="checkbox" class="toggle-switch" checked={hideBg} on:change={toggleHideBg} />
-    </div>
+	<section class="setting-section">
+		<div class="setting-title"><span>03</span>诊断通道</div>
+		<label class="setting-row">
+			<span>开发节点</span>
+			<input aria-label="开发模式" type="checkbox" class="toggle-switch" checked={isDevMode} on:change={toggleDevMode} />
+		</label>
+		{#if isDevMode}
+			<label class="setting-input">
+				<span>SERVER_ID</span>
+				<input aria-label="访问节点" type="text" bind:value={devServer} on:input={updateDevServer} placeholder="cloudflare" />
+			</label>
+		{/if}
+	</section>
 
-    <div class="flex flex-row gap-2 mb-3 items-center justify-between">
-        <div class="flex gap-2 font-bold text-lg text-neutral-900 dark:text-neutral-100 transition relative ml-3
-            before:w-1 before:h-4 before:rounded-md before:bg-[var(--primary)]
-            before:absolute before:-left-3 before:top-[0.33rem]"
-        >
-            彩虹模式
-        </div>
-        <input type="checkbox" class="toggle-switch" checked={isRainbowMode} on:change={toggleRainbow} />
-    </div>
-
-    {#if isRainbowMode}
-    <div class="flex flex-row gap-2 mb-3 items-center justify-between transition-all" >
-        <div class="flex gap-2 font-bold text-lg text-neutral-900 dark:text-neutral-100 transition relative ml-3
-            before:w-1 before:h-4 before:rounded-md before:bg-[var(--primary)]
-            before:absolute before:-left-3 before:top-[0.33rem]"
-        >
-            变换速率
-        </div>
-        <div class="flex gap-1">
-             <div class="transition bg-[var(--btn-regular-bg)] w-10 h-7 rounded-md flex justify-center
-            font-bold text-sm items-center text-[var(--btn-content)]">
-                {rainbowSpeed}
-            </div>
-        </div>
-    </div>
-    <div class="w-full h-6 bg-[var(--btn-regular-bg)] rounded select-none overflow-hidden">
-        <input aria-label="变换速率" type="range" min="1" max="100" bind:value={rainbowSpeed} on:change={onSpeedChange}
-               class="slider" step="1" style="width: 100%; --value-percent: {(rainbowSpeed - 1) / 99 * 100}%">
-    </div>
-    {/if}
-
-    <div class="flex flex-row gap-2 mb-3 mt-3 items-center justify-between">
-        <div class="flex gap-2 font-bold text-lg text-neutral-900 dark:text-neutral-100 transition relative ml-3
-            before:w-1 before:h-4 before:rounded-md before:bg-[var(--primary)]
-            before:absolute before:-left-3 before:top-[0.33rem]"
-        >
-            背景模糊
-        </div>
-        <div class="flex gap-1">
-            <div class="transition bg-[var(--btn-regular-bg)] w-10 h-7 rounded-md flex justify-center
-            font-bold text-sm items-center text-[var(--btn-content)]">
-                {bgBlur}px
-            </div>
-        </div>
-    </div>
-    <div class="w-full h-6 bg-[var(--btn-regular-bg)] rounded select-none overflow-hidden">
-        <input aria-label="背景模糊" type="range" min="0" max="20" bind:value={bgBlur}
-               class="slider" step="1" style="width: 100%; --value-percent: {bgBlur / 20 * 100}%">
-    </div>
-
-    <div class="flex flex-row gap-2 mb-3 mt-3 items-center justify-between">
-        <div class="flex gap-2 font-bold text-lg text-neutral-900 dark:text-neutral-100 transition relative ml-3
-            before:w-1 before:h-4 before:rounded-md before:bg-[var(--primary)]
-            before:absolute before:-left-3 before:top-[0.33rem]"
-        >
-            开发模式
-        </div>
-        <input type="checkbox" class="toggle-switch" checked={isDevMode} on:change={toggleDevMode} />
-    </div>
-
-    {#if isDevMode}
-    <div class="flex flex-row gap-2 mb-3 items-center justify-between transition-all" >
-        <div class="flex gap-2 font-bold text-lg text-neutral-900 dark:text-neutral-100 transition relative ml-3
-            before:w-1 before:h-4 before:rounded-md before:bg-[var(--primary)]
-            before:absolute before:-left-3 before:top-[0.33rem]"
-        >
-            Server
-        </div>
-        <div class="flex gap-1">
-             <input aria-label="Server Value" type="text" bind:value={devServer} on:input={onDevServerChange}
-                   class="transition bg-[var(--btn-regular-bg)] w-32 h-7 rounded-md text-center font-bold text-sm text-[var(--btn-content)] outline-none"
-            />
-        </div>
-    </div>
-    {/if}
+	<p class="accent-lock">ACCENT_LOCK // ELECTRIC_YELLOW</p>
 </div>
 
+<style>
+	.settings-hud {
+		max-height: calc(100vh - 6rem);
+		overflow-y: auto;
+	}
 
-<style lang="stylus">
-    #display-setting
-      input[type="number"]
-        -moz-appearance textfield
-        &::-webkit-inner-spin-button
-        &::-webkit-outer-spin-button
-          -webkit-appearance none
-          margin 0
+	.setting-section {
+		padding: 0.8rem 0;
+		border-bottom: 1px solid var(--ui-line);
+	}
 
-      input[type="range"]
-        -webkit-appearance none
-        height 1.5rem
-        background-color transparent
-        transition background-image 0.15s ease-in-out
+	.setting-title {
+		display: flex;
+		align-items: center;
+		gap: 0.55rem;
+		margin-bottom: 0.75rem;
+		color: var(--ui-fg);
+		font-weight: 800;
+		letter-spacing: 0.05em;
+		text-transform: uppercase;
+	}
 
-        &:not(#colorSlider)
-            background-image linear-gradient(to right, var(--primary) 0%, var(--primary) var(--value-percent), transparent var(--value-percent), transparent 100%)
+	.setting-title span {
+		display: grid;
+		place-items: center;
+		width: 1.65rem;
+		height: 1.65rem;
+		background: var(--ui-accent);
+		color: var(--ui-accent-fg);
+		clip-path: var(--ui-cut-chip);
+		font: 800 0.625rem/1 "JetBrains Mono Variable", monospace;
+	}
 
-      #colorSlider
-        background-image var(--color-selection-bar)
+	.mode-grid {
+		display: grid;
+		grid-template-columns: repeat(3, 1fr);
+		gap: 0.4rem;
+	}
 
-      input[type="range"]
-        /* Input Thumb */
-        &::-webkit-slider-thumb
-          -webkit-appearance none
-          height 0
-          width 0
-          background transparent
-          box-shadow none
-          border none
+	.mode-grid button {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 0.25rem;
+		min-height: 3.5rem;
+		padding: 0.5rem;
+		background: var(--ui-surface-2);
+		color: var(--ui-fg-muted);
+		font: 700 0.6rem/1 "JetBrains Mono Variable", monospace;
+	}
 
-        &::-moz-range-thumb
-          -webkit-appearance none
-          height 0
-          width 0
-          background transparent
-          box-shadow none
-          border none
+	.mode-grid button.active {
+		background: var(--ui-accent);
+		color: var(--ui-accent-fg) !important;
+		border-color: var(--ui-accent);
+	}
 
-        &::-ms-thumb
-          -webkit-appearance none
-          height 0
-          width 0
-          background transparent
-          box-shadow none
-          border none
+	.mode-grid :global(svg) {
+		font-size: 1.2rem;
+	}
 
-      #colorSlider
-        background-image var(--color-selection-bar)
-        &::-webkit-slider-thumb
-          -webkit-appearance none
-          height 1rem
-          width 0.5rem
-          border-radius 0.125rem
-          background rgba(255, 255, 255, 0.7)
-          box-shadow none
-          margin-top 0
-          transform none
-          transition background 0.15s
-          &:hover
-            background rgba(255, 255, 255, 0.8)
-          &:active
-            background rgba(255, 255, 255, 0.6)
+	.setting-row,
+	.setting-slider,
+	.setting-input {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 0.75rem;
+		margin-top: 0.65rem;
+		color: var(--ui-fg-muted);
+		font-size: 0.8rem;
+	}
 
-        &::-moz-range-thumb
-          -webkit-appearance none
-          height 1rem
-          width 0.5rem
-          border-radius 0.125rem
-          border-width 0
-          background rgba(255, 255, 255, 0.7)
-          box-shadow none
-          transform none
-          transition background 0.15s
-          &:hover
-            background rgba(255, 255, 255, 0.8)
-          &:active
-            background rgba(255, 255, 255, 0.6)
+	.setting-slider {
+		align-items: stretch;
+		flex-direction: column;
+	}
 
-        &::-ms-thumb
-          -webkit-appearance none
-          height 1rem
-          width 0.5rem
-          border-radius 0.125rem
-          background rgba(255, 255, 255, 0.7)
-          box-shadow none
-          transform none
-          transition background 0.15s
-          &:hover
-            background rgba(255, 255, 255, 0.8)
-          &:active
-            background rgba(255, 255, 255, 0.6)
+	.setting-slider strong {
+		color: var(--ui-accent);
+		font-family: "JetBrains Mono Variable", monospace;
+	}
 
-      .toggle-switch
-        appearance none
-        width 3rem
-        height 1.5rem
-        background var(--btn-regular-bg)
-        border-radius 999px
-        position relative
-        cursor pointer
-        transition background 0.3s
-        &::after
-            content ''
-            position absolute
-            top 0.25rem
-            left 0.25rem
-            width 1rem
-            height 1rem
-            background var(--btn-content)
-            border-radius 50%
-            transition transform 0.3s
-        &:checked
-            background var(--primary)
-            &::after
-                transform translateX(1.5rem)
-                background white
+	input[type="range"] {
+		appearance: none;
+		height: 1rem;
+		background: linear-gradient(to right, var(--ui-accent) 0 var(--value-percent), var(--ui-line) var(--value-percent) 100%);
+		clip-path: var(--ui-cut-chip);
+		cursor: pointer;
+	}
+
+	input[type="range"]::-webkit-slider-thumb {
+		appearance: none;
+		width: 0.8rem;
+		height: 0.8rem;
+		background: var(--ui-accent-fg);
+		border: 2px solid var(--ui-accent);
+		transform: rotate(45deg);
+	}
+
+	.toggle-switch {
+		appearance: none;
+		width: 3rem;
+		height: 1.5rem;
+		border: 1px solid var(--ui-line-strong);
+		background: var(--ui-surface-2);
+		position: relative;
+		cursor: pointer;
+	}
+
+	.toggle-switch::after {
+		content: "";
+		position: absolute;
+		top: 0.2rem;
+		left: 0.2rem;
+		width: 0.95rem;
+		height: 0.95rem;
+		background: var(--ui-fg-muted);
+		transition: transform var(--ui-dur-base) var(--ui-ease), background-color var(--ui-dur-fast) ease;
+	}
+
+	.toggle-switch:checked {
+		background: var(--ui-accent);
+	}
+
+	.toggle-switch:checked::after {
+		transform: translateX(1.45rem);
+		background: var(--ui-accent-fg);
+	}
+
+	.setting-input {
+		align-items: stretch;
+		flex-direction: column;
+		font: 700 0.625rem/1 "JetBrains Mono Variable", monospace;
+		letter-spacing: 0.08em;
+	}
+
+	.setting-input input {
+		min-height: 2.5rem;
+		padding: 0.55rem 0.75rem;
+	}
+
+	.accent-lock {
+		margin-top: 0.85rem;
+		color: var(--ui-accent);
+		font: 700 0.6rem/1 "JetBrains Mono Variable", monospace;
+		letter-spacing: 0.08em;
+	}
 </style>

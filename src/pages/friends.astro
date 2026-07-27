@@ -13,12 +13,12 @@ const friends = Object.values(
 ---
 
 <MainGridLayout title="友链">
-    <div class="card-base p-6 md:p-8">
+    <div class="friends-console card-base p-6 md:p-8" data-hud-label="NETWORK // 004">
         <div class="flex items-center gap-2 mb-6">
-            <div class="h-8 w-8 rounded-lg bg-[var(--primary)] flex items-center justify-center text-white dark:text-black/70">
+            <div class="h-8 w-8 bg-[var(--primary)] flex items-center justify-center text-[var(--ui-accent-fg)] arcade-chip">
                 <Icon name="material-symbols:diversity-3" class="text-[1.5rem]">
             </div>
-            <h1 class="text-2xl font-bold text-black dark:text-white">友链</h1>
+            <h1 class="hud-heading text-2xl font-bold text-black dark:text-white" data-index="04">友链节点</h1>
         </div>
 
         <!-- 申请友链 -->
@@ -26,10 +26,11 @@ const friends = Object.values(
             如果您也想加入友链名单，<a target="_blank" href="https://github.com/MingToneFurry/blog/tree/main/src/data/friends" class="transition link text-[var(--primary)] font-medium underline">请点击这里提交</a>
             </p>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {friends.map((friend) => (
+            {friends.map((friend, index) => (
                 <a href={friend.url} target="_blank" class="friend-card">
+                    <div class="friend-index">NODE_{String(index + 1).padStart(3, "0")}</div>
                     <div class="flex items-center gap-2">
-                        <div class="relative w-5 h-5 rounded overflow-hidden" style={`--theme-hue: ${siteConfig.themeColor.hue}`}>
+                        <div class="friend-avatar relative w-10 h-10 overflow-hidden" style={`--theme-hue: ${siteConfig.themeColor.hue}`}>
                             <div class="loading-bar absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-32 h-1 bg-gray-200 dark:bg-gray-700 z-10 rounded-full overflow-hidden">
                                 <div class="loading-progress h-full w-8 bg-[oklch(0.70_0.14_var(--theme-hue))] animate-loading-progress rounded-full"></div>
                             </div>
@@ -48,12 +49,14 @@ const friends = Object.values(
 
 <style>
     .friend-card {
-        @apply flex flex-col gap-1 p-4 rounded-lg bg-[var(--card-bg)] border border-black/10 dark:border-white/10 hover:border-black/20 dark:hover:border-white/20 hover:bg-black/5 dark:hover:bg-white/5;
+        @apply flex flex-col gap-2 p-4 bg-[var(--card-bg)] border border-black/10 dark:border-white/10 hover:border-black/20 dark:hover:border-white/20 hover:bg-black/5 dark:hover:bg-white/5;
+        position: relative;
+        clip-path: var(--ui-cut-card);
+        border-color: var(--ui-line) !important;
+        background: var(--ui-surface-2) !important;
         transition-property: all;
-        transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-        transition-duration: 0.15s;
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
+        transition-timing-function: var(--ui-ease);
+        transition-duration: var(--ui-dur-base);
     }
     
     .friend-card:active {
@@ -62,7 +65,10 @@ const friends = Object.values(
     }
     
     .friend-card:hover {
-        background-color: var(--btn-regular-bg-hover);
+        background-color: var(--ui-surface) !important;
+        border-color: var(--ui-accent) !important;
+        box-shadow: var(--ui-shadow-md);
+        transform: translate(2px, -2px);
     }
     
     .friend-card:hover .font-bold {
@@ -95,5 +101,16 @@ const friends = Object.values(
 
     .animate-loading-progress {
         animation: loading-progress 1.5s ease-in-out infinite;
+    }
+
+    .friend-index {
+        color: var(--ui-accent);
+        font: 800 0.625rem/1 "JetBrains Mono Variable", monospace;
+        letter-spacing: 0.1em;
+    }
+
+    .friend-avatar {
+        border: 1px solid var(--ui-line-strong);
+        clip-path: var(--ui-cut-small);
     }
 </style>

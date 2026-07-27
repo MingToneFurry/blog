@@ -49,5 +49,12 @@
 
 - 仓库已克隆并跟踪 `origin/main`。
 - Umami 修复已完成本地单测、生产构建与浏览器端到端验证：全站和文章 PV/UV 均恢复显示。
-- 三份设计规范已完成清点，尚未开始设计分支实现。
+- `design/arcade` 已完成 ARCADE 全站视觉重写并独立提交，禁止在用户选定前合入 `main`：
+  - 新增统一电光黄 HUD 令牌、暗/亮模式、分级切角、硬 offset 阴影、编号标签与冲击入场；全站强制无圆角、无磨砂玻璃，并提供 `prefers-reduced-motion` 降级。
+  - 导航、资料侧栏、文章卡、文章页、累计 PV/UV 元数据、RSS 搜索、移动菜单、显示设置、友链、归档、Markdown、代码块、TOC、License、分页、Footer 与返回顶部均已统一到 ARCADE 语言。
+  - 保留 `https://api.furry.ist/furry-img` 动态背景及 `https://sni-api.furry.ist/furry-img` fallback；视觉层仅降饱和/对比，不替换图片源或加载逻辑。
+  - 显示设置保留明暗/自动主题、背景显示与模糊、开发节点；去除会破坏唯一品牌强调色的自定义 hue / 彩虹模式入口。
+  - 统计文案明确为开站以来“累计浏览 PV / 累计访客 UV”，统计 helper 仍以 `startAt=0` 获取累计范围，脚本只替换数值节点文本。
+- `design/arcade` 验证：`pnpm test:umami` 通过，`pnpm build` 通过（36 个页面）；`pnpm type-check` 仅剩既存 `hast` 类型依赖缺失。
+- `design/arcade` 本地预览：`http://127.0.0.1:4322/`（若进程仍在）；本地视觉 QA 截图位于忽略目录 `artifacts/arcade/`，不进入 Git；主要验收图为 `home-desktop-v2.png`、`home-mobile-v2.png`、`friends-desktop.png`、`post-desktop-v2.png`。
 - 仓库基线仍有既存类型检查问题：缺少 `hast` 类型，以及 `src/utils/content-utils.ts` 的隐式 `any`；生产构建不受影响。

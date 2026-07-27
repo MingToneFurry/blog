@@ -89,7 +89,7 @@ export default defineConfig({
 			},
 			styleOverrides: {
 				codeBackground: "var(--codeblock-bg)",
-				borderRadius: "0.25rem",
+				borderRadius: "0",
 				borderColor: "none",
 				codeFontSize: "0.875rem",
 				codeFontFamily:
