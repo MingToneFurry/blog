@@ -52,13 +52,13 @@
 - 仓库已克隆并跟踪 `origin/main`。
 - Umami 修复已完成本地单测、生产构建与浏览器端到端验证：全站和文章 PV/UV 均恢复显示。
 ### 第一轮 MONO 回退点
-- 所有统计请求使用 `startAt=0`，全站与文章 PV/UV 均表示 Umami 开始记录以来的累计值；接入前或已删除的历史数据无法补算。
+- 第一轮当时把所有统计请求设为 `startAt=0` 并按累计展示；后续实时复核已证明 Umami Cloud 会截断过早起点，因此该旧实现只作为 Git 回退点保留，不得再作为累计口径。当前 lifetime 实现见后文。
 - `design/mono` 已按 `iudesigns/mono.md` 完成结构化重写：导航、首页文章卡片、文章页、归档、友链、搜索、个人资料与显示设置均采用纯黑白、直角、1px 边框和排版优先的 MONO 系统。
 - MONO 显示设置仅保留明暗主题与动态背景开关；旧主题色、彩虹、背景模糊和色相旋转不会覆盖强制灰度显示。
 - MONO 保留 `https://api.furry.ist/furry-img` 动态背景及 `https://sni-api.furry.ist/furry-img` 回退，所有统计标签与数字节点分离，脚本只更新数字。
 - 首页文章统计由列表组件统一调度，最大并发 4；网络或 API 异常会以 400ms/900ms 延迟有限重试，加载期间显示 `--`，避免将未完成请求误呈现为真实 0。
 - `design/arcade` 与 `design/glass` 由各自独立工作树继续实现；所有设计分支均禁止提前合入 `main`。
-- 仓库当前基线的 `pnpm type-check` 仍因缺少 `hast` 类型失败；早先出现的 `src/utils/content-utils.ts` 隐式 `any` 已不再复现，生产构建不受影响。
+- 该第一轮回退点当时的 `pnpm type-check` 仍因缺少 `hast` 类型失败；后续 `design/rebuild-core` 已增加直接 `@types/hast` 依赖，第二轮 MONO 已恢复无错误类型检查。
 
 ## MONO 交付检查
 
@@ -66,8 +66,8 @@
 - 必测页面：首页、文章页、`/archive/`、`/friends/`。
 - 必测交互：RSS 搜索、移动菜单、明暗/自动主题、动态背景开关、Swup 页面切换、键盘焦点与减少动效。
 - 必测数据：全站“累计浏览 PV / 累计访客 UV”与文章级累计 PV/UV，文案不得被异步请求替换。
-- 交付要求：运行 `pnpm test:umami`、`pnpm build`、记录 `pnpm type-check` 基线失败，完成桌面与移动截图后再供用户选择；不得合并到 `main`。
-- 2026-07-28 验证：`pnpm test:umami` 通过；`pnpm build` 通过并生成 36 页；`pnpm type-check` 与 `main` 同样仅报 `custom-copy-button.ts` 缺少 `hast` 类型。
+- 交付要求：运行 `pnpm test:core`、`pnpm type-check`、`pnpm build`、`pnpm test:mono-contract` 与 `git diff --check`，完成桌面与移动截图后再供用户选择；不得合并到 `main`。
+- 第一轮 2026-07-28 验证：`pnpm test:umami` 通过；`pnpm build` 通过并生成 36 页；当时 `pnpm type-check` 与 `main` 同样仅报 `custom-copy-button.ts` 缺少 `hast` 类型。该历史基线已被后续 core 修复。
 - 主代理已用精确 1440x1000 与 390x844 浏览器视口验收：首页、文章页、归档、友链、搜索、移动菜单、明暗主题、背景开关均通过；移动端无横向溢出，Footer 位于文章和分页之后。
 - 累计统计连续 3 轮、每轮观察 10 秒均通过：初始占位为 `--`，全站与首页 8 篇文章的 PV/UV 最终全部完成更新，无遗留加载占位或误报 0。
 ### 架构级重构状态
@@ -110,7 +110,7 @@
 
 - `src/mono/layouts/JournalShell.astro` 是唯一页面 Shell；所有公开 HTML 路由稳定输出一个语义 `main` 与一个 `#toc`，继续满足 Swup 的容器契约。
 - `src/mono/components/` 自建 Masthead、动态刊图、站点/文章统计、RSS 搜索、显示设置、首页编辑索引、分页、Reader、License、TOC、归档、友链、Footer、图片与静态页组件。
-- `src/mono/runtime/journal.ts` 只承载 Journal 专属增强：RSS 检索、Dialog、主题/背景设置消费、导航高亮、阅读进度、返回顶部、代码复制、图片揭示与 Alt+方向键前后篇。
+- `src/mono/runtime/journal.ts` 只承载 Journal 专属增强：RSS 检索、Dialog、主题/背景设置消费、导航高亮、阅读进度、返回顶部、代码复制、图片揭示与 Alt+方向键前后篇。`49438d5` 已增加 Escape 显式关闭当前 `dialog[open]`，并通过既有 `closeDialog` 恢复触发按钮焦点。
 - `src/styles/mono/journal.css` 是独立视觉系统：黑白灰、全直角、1px 边框、无渐变、无界面模糊、无纹理、仅 Dialog 允许一层环境阴影；全部过渡不超过 320ms，并包含 `prefers-reduced-motion`。
 - 首页改为数字刊物：Masthead、卷期/RSS、动态灰度刊图、pinned/featured 刊首文章、顺序编号编辑索引、分类/系列/年份索引和编辑手记；移动端保持单线性结构。
 - 文章页改为窄正文、宽留白与边注式目录，保留日期、更新、字数、阅读时间、分类/系列/标签、Markdown 插件、图片回退、Giscus、License、GitHub 编辑链接、上一篇/下一篇与返回顶部。
@@ -121,7 +121,7 @@
 
 - 全站、首页当前页每篇文章和文章详情均使用唯一 `data-blog-stats` 协议，同时渲染累计 PV 与累计 UV；所有未完成/失败值初始并保持 `--`，真实零才显示 `0`。
 - 首页第 1—3 页各有 8 组文章统计，第 4 页有 2 组；每页另有 1 组全站统计。文章详情有 1 组全站统计和 1 组文章统计。
-- 统计底层固定 `startAt=0`，并继承 core 的最大并发 4、250ms/750ms 两次有限退避、单项失败隔离、中文 pathname 规范化和 Swup 幂等扫描。
+- 统计底层默认使用 core 的 lifetime 模式：以 `max(createdAt, resetAt)` 为有效开站起点，构造未来空窗并用单个 `compare=prev` comparison 覆盖起点至当前快照，直接取得累计 PV/UV；调用方显式提供 `startAt`/`endAt` 时仍按指定区间查询。运行时继续继承最大并发 4、250ms/750ms 两次有限退避、单项失败隔离、中文 pathname 规范化和 Swup 幂等扫描。
 - 动态刊图继承 core 的 `https://api.furry.ist/furry-img` 主源、`https://sni-api.furry.ist/furry-img` 回退与双失败纯色纸张状态机；首页用灰度刊首图，其他页面用页边图，正文始终为纯色。
 - 显示设置直接消费 `settings-core`，继续使用 `theme`、`hide-bg`、`bg-blur` 键。为同时遵守 Journal “无模糊材质”硬约束，`bg-blur` 在本风格中以刊图墨度/对比柔化表达并持久化，不使用 CSS blur 或 backdrop-filter。
 - 首屏 inline bootstrap 在绑定背景状态机前读取 `hide-bg`；关闭背景时先把 `data-background-visible=false` 同步到刊图根节点，避免 core 初始化抢先发起图片请求。
@@ -133,7 +133,10 @@
 - `833a01a`：用独立 Journal Reader 替换旧文章页，保留 Markdown、Giscus、License、GitHub 编辑与前后篇。
 - `c87790e`：迁移归档、友链、404 与三份静态 Markdown 页面，并统一外链安全属性。
 - `7753175`：增加 `pnpm test:mono-contract`，自动验证 36 页、容器、统计、外链、无障碍名称、旧视觉引用与 MONO 样式禁用项。
-- `aec8c5d`：删除已确认无引用的退役 Fuwari 视觉树和重复客户端脚本。该提交是更新本文档前的代码 HEAD。
+- `aec8c5d`：删除已确认无引用的退役 Fuwari 视觉树和重复客户端脚本。
+- `575adc0`：记录第二轮独立 Journal 交接状态并推送完整实现。
+- `9949fee`：普通 merge `design/rebuild-core@c0ab512`。其中 `210c3cf` 改用单个 comparison 取得 Cloud 免费账户未截断的累计值，`88e19b9` 将有效起点收敛为 `max(createdAt, resetAt)` 并在 comparison 缺失时显式报错；冲突解决继续保留对旧 `Profile.astro` 的删除。
+- `49438d5`：显式兼容 Escape 关闭原生 Dialog，并为 Escape、`dialog[open]` 查询和焦点恢复 helper 增加 MONO 源码契约。
 
 ### 已完成验证
 
@@ -144,11 +147,11 @@
 - `git diff --check`：通过。
 - `http://127.0.0.1:4328/` 本地预览返回 HTTP 200；该端口是当前会话的临时预览，不是部署地址。
 
-### 待主线程完成的浏览器证据
+### 浏览器验收与待补证据
 
-- 本子代理按 Browser skill 初始化后，浏览器运行时返回 `agent.browsers.list() = []`，当前没有可控制的应用浏览器，因此没有伪造或绕过该通道生成截图。
-- 主线程需在可用的应用浏览器中补做：桌面首页、精确 `390x844` 首页、桌面文章页截图；首页/分页/归档/友链/静态页/404；中文和英文文章；搜索、主题三态、背景开关、柔化持久化、Swup 前进后退、TOC、键盘、Escape、焦点返回与 reduced-motion。
-- 主线程还需补做在线状态矩阵：每套首页连续 3 轮等待全部当前页文章 PV/UV；文章详情 PV/UV；背景主源、SNI 回退、双失败纯色降级。记录和截图不得包含动态分享令牌。
+- 主线程已在可用的应用内浏览器确认：首页全站统计与当前 8 篇文章统计全部完成更新（9/9）；中文文章详情累计 PV/UV 成功；背景状态依次验证主源、SNI 回退、双失败 `error` 与恢复。截图路径由主线程补齐，本交接不编造文件名、数值或时间。
+- 主线程验收时发现原生 Dialog 的 Escape 未关闭；`49438d5` 已显式兼容并复用焦点恢复 helper。该提交之后仍需由主线程在可用浏览器复验 Escape 关闭和触发按钮焦点返回。
+- 本子代理按 Browser skill 重新连接后仍得到 `agent.browsers.list() = []`，因此没有伪造或绕过该通道生成修复后截图。其余桌面/精确 `390x844`、搜索、主题三态、柔化持久化、Swup 前进后退、TOC、键盘与 reduced-motion 截图路径同样由主线程补齐；记录和截图不得包含动态分享令牌。
 
 ### 已知非阻塞提示
 
