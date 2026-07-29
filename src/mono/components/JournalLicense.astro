@@ -1,0 +1,34 @@
+---
+import { licenseConfig, profileConfig } from "@/config";
+import { formatDateToYYYYMMDD } from "@/utils/date-utils";
+
+interface Props {
+	title: string;
+	pubDate: Date;
+}
+
+const { title, pubDate } = Astro.props;
+const canonicalUrl = decodeURIComponent(new URL(Astro.url.pathname, Astro.site).toString());
+---
+
+<section class="journal-license" aria-labelledby="journal-license-title">
+	<div class="journal-license__title">
+		<p class="journal-kicker">[REUSE NOTICE]</p>
+		<strong id="journal-license-title">{title}</strong>
+		<a href={canonicalUrl}>{canonicalUrl}</a>
+	</div>
+	<dl class="journal-license__facts">
+		<div>
+			<dt>作者</dt>
+			<dd>{profileConfig.name}</dd>
+		</div>
+		<div>
+			<dt>发布于</dt>
+			<dd>{formatDateToYYYYMMDD(pubDate)}</dd>
+		</div>
+		<div>
+			<dt>许可协议</dt>
+			<dd><a href={licenseConfig.url} target="_blank" rel="noopener noreferrer">{licenseConfig.name} ↗</a></dd>
+		</div>
+	</dl>
+</section>

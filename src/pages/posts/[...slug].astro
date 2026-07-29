@@ -1,17 +1,11 @@
 ---
-import path from "node:path";
-import License from "@components/misc/License.astro";
-import Markdown from "@components/misc/Markdown.astro";
-
-import MainGridLayout from "@layouts/MainGridLayout.astro";
-import { getSortedPosts } from "@utils/content-utils";
-import { getDir, getPostUrlBySlug } from "@utils/url-utils";
-import { Icon } from "astro-icon/components";
-import { gitHubEditConfig, licenseConfig } from "src/config";
-import PostMetadata from "../../components/PostMeta.astro";
-import ImageWrapper from "../../components/misc/ImageWrapper.astro";
-import { profileConfig, siteConfig } from "../../config";
-import { formatDateToYYYYMMDD } from "../../utils/date-utils";
+import { profileConfig, siteConfig } from "@/config";
+import JournalArticle from "@/mono/components/JournalArticle.astro";
+import JournalShell from "@/mono/layouts/JournalShell.astro";
+import { getPostNavigation } from "@/utils/content-core";
+import { getSortedPosts } from "@/utils/content-utils";
+import { formatDateToYYYYMMDD } from "@/utils/date-utils";
+import { getPostUrlBySlug } from "@/utils/url-utils";
 
 export async function getStaticPaths() {
 	const blogEntries = await getSortedPosts();
@@ -22,262 +16,48 @@ export async function getStaticPaths() {
 }
 
 const { entry } = Astro.props;
-const { Content, headings } = await entry.render();
+const allPosts = await getSortedPosts();
+const navigation = getPostNavigation(allPosts, entry.slug);
+const rendered = await entry.render();
+const { Content, headings, remarkPluginFrontmatter } = rendered;
 
-const { remarkPluginFrontmatter } = await entry.render();
-
+const articleUrl = new URL(getPostUrlBySlug(entry.slug), Astro.site);
 const jsonLd = {
 	"@context": "https://schema.org",
 	"@type": "BlogPosting",
 	headline: entry.data.title,
 	description: entry.data.description || entry.data.title,
+	url: articleUrl,
+	mainEntityOfPage: articleUrl,
 	author: {
 		"@type": "Person",
 		name: profileConfig.name,
 		url: Astro.site,
 	},
 	datePublished: formatDateToYYYYMMDD(entry.data.published),
+	dateModified: formatDateToYYYYMMDD(entry.data.updated || entry.data.published),
 	inLanguage: entry.data.lang
 		? entry.data.lang.replace("_", "-")
 		: siteConfig.lang.replace("_", "-"),
-	// TODO include cover image here
 };
 ---
-<MainGridLayout banner={entry.data.image} title={entry.data.title} description={entry.data.description} lang={entry.data.lang} setOGTypeArticle={true} headings={headings}>
-    <script is:inline slot="head" type="application/ld+json" set:html={JSON.stringify(jsonLd)}></script>
-    <div class="flex w-full rounded-[var(--radius-large)] overflow-hidden relative mb-4">
-        <div id="post-container" class:list={["card-base z-10 px-6 md:px-9 pt-6 pb-4 relative w-full",
-            {}
-        ]}>
-            <div class="post-article-data onload-animation">
-                <span>[ARTICLE]</span>
-                <span>[WORDS] {remarkPluginFrontmatter.words}</span>
-                <span>[READ] {remarkPluginFrontmatter.minutes} MIN</span>
-            </div>
 
-            <!-- title -->
-            <div class="relative onload-animation">
-                <h1
-                    data-pagefind-body data-pagefind-weight="10" data-pagefind-meta="title"
-                    class="post-article-title transition w-full font-bold mb-4
-                    text-3xl md:text-[2.25rem]/[2.75rem]
-                    text-black/90 dark:text-white/90
-                ">
-                    {entry.data.title}
-                </h1>
-            </div>
-
-            <!-- description/excerpt -->
-            {(entry.data.description || remarkPluginFrontmatter.excerpt) && (
-                <div class="onload-animation mb-4">
-                    <div class="post-article-description text-black/75 dark:text-white/75 text-sm leading-relaxed">
-                        {entry.data.description || remarkPluginFrontmatter.excerpt}
-                    </div>
-                </div>
-            )}
-
-            <!-- metadata -->
-            <div class="onload-animation">
-                <PostMetadata
-                        class="mb-5"
-                        published={entry.data.published}
-                        updated={entry.data.updated}
-                        tags={entry.data.tags}
-                        slug={entry.slug}
-                ></PostMetadata>
-                {!entry.data.image && <div class="border-[var(--line-divider)] border-dashed border-b-[1px] mb-5"></div>}
-            </div>
-
-            <!-- always show cover as long as it has one -->
-
-            {entry.data.image &&
-                <ImageWrapper id="post-cover" src={entry.data.image} basePath={path.join("content/posts/", getDir(entry.id))} class="mb-8 rounded-xl banner-container onload-animation"/>
-            }
-
-
-            <Markdown class="mb-6 markdown-content onload-animation">
-                <Content />
-            </Markdown>
-
-            <!-- 文章反馈与编辑区域 -->
-            <div class="article-action-panel mb-4 p-4 bg-[var(--license-block-bg)] border border-[var(--line-divider)] onload-animation">
-                <!-- 反馈区域 -->
-                <div class="flex items-center justify-between mb-4">
-                    <div class="flex items-center gap-3">
-                        <div class="article-action-icon h-5 w-5 bg-[var(--primary)] flex items-center justify-center">
-                            <Icon name="material-symbols:help-outline" class="text-[0.75rem] text-white dark:text-black/70"></Icon>
-                        </div>
-                        <p class="text-black/80 dark:text-white/80 text-sm">这篇文章是否对你有帮助？</p>
-                    </div>
-                    <div class="flex gap-2">
-                        <a href="/contact/" class="group flex items-center gap-1 px-3 py-1.5 rounded bg-[var(--btn-regular-bg)] hover:bg-[var(--btn-regular-bg-hover)] active:bg-[var(--btn-regular-bg-active)] text-[var(--btn-content)] text-xs font-medium transition-all active:scale-95">
-                            <Icon name="material-symbols:contact-mail-outline" class="text-[0.875rem] group-hover:scale-110 transition-transform"></Icon>
-                            联系
-                        </a>
-                    </div>
-                </div>
-                
-                {gitHubEditConfig.enable && (
-                    <>
-                        <!-- 分隔线 -->
-                        <div class="border-t border-[var(--line-divider)] my-3"></div>
-                        
-                        <!-- GitHub编辑区域 -->
-                        <div class="flex items-start gap-3">
-                            <div class="article-action-icon h-5 w-5 bg-[var(--primary)] flex items-center justify-center">
-                                <Icon name="material-symbols:edit-outline" class="text-[0.875rem] text-white dark:text-black/70"></Icon>
-                            </div>
-                            <div class="flex-1">
-                                <p class="text-black/80 dark:text-white/80 text-sm mb-1">发现错误或想要改进这篇文章？</p>
-                                <a 
-                                    href={`${gitHubEditConfig.baseUrl}/${entry.slug}.md`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    class="inline-flex items-center gap-1 text-[var(--primary)] hover:text-[var(--ui-fg-muted)] text-sm font-medium transition-colors"
-                                >
-                                    <Icon name="fa6-brands:github" class="text-[0.875rem]"></Icon>
-                                    在 GitHub 上编辑此页
-                                    <Icon name="material-symbols:open-in-new" class="text-[0.75rem]"></Icon>
-                                </a>
-                            </div>
-                        </div>
-                    </>
-                )}
-            </div>
-
-            {licenseConfig.enable && <License title={entry.data.title} slug={entry.slug} pubDate={entry.data.published} class="mb-6 rounded-xl license-container onload-animation"></License>}
-            
-
-            
-            <!-- Giscus 评论区 -->
-            <script src="https://giscus.app/client.js"
-                data-repo="MingToneFurry/blog-discuss"
-                data-repo-id="R_kgDOQytHUg"
-                data-category="Announcements"
-                data-category-id="DIC_kwDOQytHUs4C0gFg"
-                data-mapping="pathname"
-                data-strict="0"
-                data-reactions-enabled="1"
-                data-emit-metadata="0"
-                data-input-position="top"
-                data-theme="preferred_color_scheme"
-                data-lang="zh-CN"
-                data-loading="lazy"
-                crossorigin="anonymous"
-            async>
-            </script>
-    <br>
-
-    <div class="flex flex-col md:flex-row justify-between mb-4 gap-4 overflow-hidden w-full">
-        <a href={entry.data.nextSlug ? getPostUrlBySlug(entry.data.nextSlug) : "#"}
-           class:list={["w-full font-bold overflow-hidden active:scale-95", {"pointer-events-none": !entry.data.nextSlug}]}>
-            {entry.data.nextSlug && <div class="article-nav btn-card w-full h-[3.75rem] max-w-full px-4 flex items-center !justify-start gap-4" >
-                <Icon name="material-symbols:chevron-left-rounded" class="text-[2rem] text-[var(--primary)]" />
-                <div class="overflow-hidden transition overflow-ellipsis whitespace-nowrap max-w-[calc(100%_-_3rem)] text-black/75 dark:text-white/75">
-                    {entry.data.nextTitle}
-                </div>
-            </div>}
-        </a>
-
-        <a href={entry.data.prevSlug ? getPostUrlBySlug(entry.data.prevSlug) : "#"}
-           class:list={["w-full font-bold overflow-hidden active:scale-95", {"pointer-events-none": !entry.data.prevSlug}]}>
-            {entry.data.prevSlug && <div class="article-nav btn-card w-full h-[3.75rem] max-w-full px-4 flex items-center !justify-end gap-4" >
-                <div class="overflow-hidden transition overflow-ellipsis whitespace-nowrap max-w-[calc(100%_-_3rem)] text-black/75 dark:text-white/75">
-                    {entry.data.prevTitle}
-                </div>
-                <Icon name="material-symbols:chevron-right-rounded" class="text-[2rem] text-[var(--primary)]" />
-            </div>}
-        </a>
-    </div>
-
-</MainGridLayout>
-
-<style>
-    .post-container :global(img) {
-        opacity: 0;
-        transition: opacity 0.5s ease-out;
-    }
-    .post-container :global(img.loaded) {
-        opacity: 1;
-    }
-</style>
-
-<script define:vars={{ siteConfig }}>
-    // 图片加载动画处理
-    function setupImageLoading() {
-        const markdownContent = document.querySelector('.markdown-content');
-        if (!markdownContent) return;
-
-        const images = markdownContent.querySelectorAll('img');
-        
-        images.forEach(img => {
-            // 跳过已经处理过的图片
-            if (img.parentElement.classList.contains('image-loading-wrapper')) return;
-
-            // 创建包裹容器
-            const wrapper = document.createElement('div');
-            wrapper.className = 'relative image-loading-wrapper rounded-xl overflow-hidden my-4';
-            wrapper.style.setProperty('--theme-hue', siteConfig.themeColor.hue);
-            
-            // 创建加载条
-            const loadingBar = document.createElement('div');
-            loadingBar.className = 'loading-bar absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-32 h-1 bg-gray-200 dark:bg-gray-700 z-10 rounded-full overflow-hidden';
-            loadingBar.innerHTML = `<div class="loading-progress h-full w-8 bg-[var(--ui-fg-muted)] animate-loading-progress rounded-full"></div>`;
-            
-            // 插入DOM
-            img.parentNode.insertBefore(wrapper, img);
-            wrapper.appendChild(loadingBar);
-            wrapper.appendChild(img);
-
-            // 设置图片初始状态
-            img.style.opacity = '0';
-            img.style.transition = 'opacity 0.5s ease-out';
-            loadingBar.style.transition = 'opacity 0.5s ease-out';
-
-            // 处理加载完成
-            const handleLoad = () => {
-                img.style.opacity = '1';
-                loadingBar.style.opacity = '0';
-                setTimeout(() => {
-                    loadingBar.remove();
-                }, 500);
-            };
-
-            if (img.complete) {
-                handleLoad();
-            } else {
-                img.onload = handleLoad;
-                img.onerror = () => {
-                    loadingBar.remove();
-                    img.style.opacity = '1';
-                };
-            }
-        });
-    }
-
-    // 初始化
-    setupImageLoading();
-    
-    // 支持 Swup 页面切换
-    document.addEventListener('swup:contentReplaced', setupImageLoading);
-</script>
-
-<style is:global>
-    @keyframes loading-progress {
-        0% {
-            transform: translateX(-100%);
-        }
-        100% {
-            transform: translateX(400%);
-        }
-    }
-
-    .animate-loading-progress {
-        animation: loading-progress 1.5s ease-in-out infinite;
-    }
-    
-    /* 确保包裹容器继承原图的圆角等样式 */
-    .markdown-content img {
-        margin: 0 !important; /* 让wrapper来控制margin */
-    }
-</style>
+<JournalShell
+	title={entry.data.title}
+	description={entry.data.description || entry.data.title}
+	lang={entry.data.lang || siteConfig.lang}
+	setOGTypeArticle={true}
+	tocHeadings={headings}
+	tocLabel="文章目录"
+	backgroundMode="edge"
+>
+	<script is:inline slot="head" type="application/ld+json" set:html={JSON.stringify(jsonLd)}></script>
+	<JournalArticle
+		entry={entry}
+		navigation={navigation}
+		words={remarkPluginFrontmatter.words}
+		minutes={remarkPluginFrontmatter.minutes}
+	>
+		<Content />
+	</JournalArticle>
+</JournalShell>

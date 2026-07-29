@@ -1,0 +1,141 @@
+---
+import path from "node:path";
+import { gitHubEditConfig, licenseConfig } from "@/config";
+import type { PostNavigation } from "@/types/content";
+import { DEFAULT_POST_CATEGORY, DEFAULT_POST_TYPE } from "@/utils/content-core";
+import { formatDateToYYYYMMDD } from "@/utils/date-utils";
+import { getDir, getPostUrlBySlug } from "@/utils/url-utils";
+import type { CollectionEntry } from "astro:content";
+import JournalImage from "./JournalImage.astro";
+import JournalLicense from "./JournalLicense.astro";
+import JournalStats from "./JournalStats.astro";
+
+interface Props {
+	entry: CollectionEntry<"posts">;
+	navigation: PostNavigation;
+	words?: number;
+	minutes?: number;
+}
+
+const {
+	entry,
+	navigation,
+	words = 0,
+	minutes = 0,
+} = Astro.props;
+const articlePath = getPostUrlBySlug(entry.slug);
+const basePath = path.join("content/posts/", getDir(entry.id));
+---
+
+<article class="journal-reader">
+	<header class="journal-article-header">
+		<p class="journal-kicker">[ARTICLE / {entry.data.type || DEFAULT_POST_TYPE}]</p>
+		<h1 data-pagefind-body data-pagefind-weight="10" data-pagefind-meta="title">{entry.data.title}</h1>
+		{entry.data.description && <p class="journal-article-header__description">{entry.data.description}</p>}
+
+		<dl class="journal-article-meta">
+			<div>
+				<dt>发布</dt>
+				<dd><time datetime={entry.data.published.toISOString()}>{formatDateToYYYYMMDD(entry.data.published)}</time></dd>
+			</div>
+			<div>
+				<dt>更新</dt>
+				<dd>{entry.data.updated ? <time datetime={entry.data.updated.toISOString()}>{formatDateToYYYYMMDD(entry.data.updated)}</time> : "--"}</dd>
+			</div>
+			<div>
+				<dt>字数</dt>
+				<dd>{words.toLocaleString("zh-CN")}</dd>
+			</div>
+			<div>
+				<dt>阅读</dt>
+				<dd>{Math.max(1, Math.round(minutes))} MIN</dd>
+			</div>
+			<div>
+				<dt>分类</dt>
+				<dd>{entry.data.category || DEFAULT_POST_CATEGORY}</dd>
+			</div>
+			<div>
+				<dt>系列</dt>
+				<dd>{entry.data.series || "--"}</dd>
+			</div>
+			<div>
+				<dt>语言</dt>
+				<dd>{entry.data.lang || "zh-CN"}</dd>
+			</div>
+			<div>
+				<dt>编号</dt>
+				<dd>{entry.slug}</dd>
+			</div>
+		</dl>
+
+		{entry.data.tags.length > 0 && (
+			<div class="journal-tags" aria-label="文章标签">
+				{entry.data.tags.map((tag) => <span>[#{tag}]</span>)}
+			</div>
+		)}
+		<JournalStats scope="post" path={articlePath} label={`${entry.data.title}累计统计`} />
+	</header>
+
+	{entry.data.image && (
+		<figure class="journal-cover-image">
+			<JournalImage src={entry.data.image} basePath={basePath} alt={`${entry.data.title}封面`} loading="eager" />
+		</figure>
+	)}
+
+	<div class="journal-prose" data-pagefind-body>
+		<slot />
+	</div>
+
+	<div class="journal-article-actions">
+		<section class="journal-action">
+			<h2>文章反馈</h2>
+			<p>发现错误、想补充内容或只是想聊聊？</p>
+			<a href="/contact/">联系编辑 →</a>
+		</section>
+		{gitHubEditConfig.enable && (
+			<section class="journal-action">
+				<h2>修订此页</h2>
+				<p>文章源文件公开托管，可直接在 GitHub 提交建议。</p>
+				<a href={`${gitHubEditConfig.baseUrl}/${entry.slug}.md`} target="_blank" rel="noopener noreferrer">在 GitHub 编辑 ↗</a>
+			</section>
+		)}
+	</div>
+
+	{licenseConfig.enable && <JournalLicense title={entry.data.title} pubDate={entry.data.published} />}
+
+	<section class="journal-comments" aria-labelledby="journal-comments-title">
+		<h2 id="journal-comments-title">读者来信 / Comments</h2>
+		<script
+			src="https://giscus.app/client.js"
+			data-repo="MingToneFurry/blog-discuss"
+			data-repo-id="R_kgDOQytHUg"
+			data-category="Announcements"
+			data-category-id="DIC_kwDOQytHUs4C0gFg"
+			data-mapping="pathname"
+			data-strict="0"
+			data-reactions-enabled="1"
+			data-emit-metadata="0"
+			data-input-position="top"
+			data-theme="preferred_color_scheme"
+			data-lang="zh-CN"
+			data-loading="lazy"
+			crossorigin="anonymous"
+			async
+		></script>
+	</section>
+
+	<nav class="journal-article-nav" aria-label="文章前后篇">
+		{navigation.newer ? (
+			<a href={navigation.newer.url} rel="prev" data-journal-article-nav="newer">
+				<span>ALT + ← / 较新</span>
+				<strong>{navigation.newer.title}</strong>
+			</a>
+		) : <span></span>}
+		{navigation.older ? (
+			<a href={navigation.older.url} rel="next" data-journal-article-nav="older">
+				<span>较旧 / ALT + →</span>
+				<strong>{navigation.older.title}</strong>
+			</a>
+		) : <span></span>}
+	</nav>
+</article>
