@@ -88,3 +88,53 @@
 - core 没有改动旧 Fuwari 统计消费组件，也没有加入任何风格 Layout、视觉组件或 CSS；三个风格分支必须分别移除旧内联脚本并接入新 DOM 协议。
 - 验证通过：`pnpm test:core`、`pnpm type-check`、`pnpm build`（36 页）、`git diff --check`。
 - 下一步：将 `design/rebuild-core` 普通 merge 到三个现有设计分支，再分别完成独立 Shell、全路由、移动交互与视觉系统。
+
+## `design/arcade` 架构级重构交付记录
+
+### 分支与边界
+
+- 工作树：`D:\Projects\blog-arcade`；分支：`design/arcade`。
+- 本分支以普通 merge 吸收 `design/rebuild-core`，保留第一轮 ARCADE 换肤提交作为历史回退点，未 reset、rebase 或改写历史。
+- 2026-07-29 再次普通 merge core 的 Umami 安全修复：动态分享令牌仅在页面内存复用，启动时清除旧版持久缓存；令牌未写入代码、构建产物、测试输出或本文档。
+- 本分支禁止在用户选择前合入 `main`；当前交付仅供候选预览与验收。
+
+### 独立产品结构
+
+- `f6eeb8f`：建立完全独立的 `src/arcade/` 产品树与 Geist/JetBrains Mono 字体系统：
+  - `src/arcade/layouts/ArcadeShell.astro`
+  - `src/arcade/components/*`
+  - `src/arcade/runtime/arcade-runtime.ts`
+  - `src/styles/arcade/index.css`
+- `e3994a0`：将首页及 4 页分页重构为 Field Node 任务控制台：系统条、动态任务场景、Active Mission、Transmissions、模块轨、桌面左任务轨与移动底 Dock。
+- `bfa9ec2`：将文章 Reader、归档、友链、404、关于、联系方式和隐私页全部迁移到独立 Shell；保留 Markdown、代码块、图片回退、TOC、Giscus、License、GitHub 编辑、上一篇/下一篇与返回顶部。
+- `36d7240`：增加 ARCADE 结构契约与实时统计验证器，补齐外链 `noopener`、Swup 后 TOC 状态、命令面板焦点、存储受限降级、44px 触控目标和 reduced-motion 的脚本滚动降级。
+- `2290424`：使 `pnpm test:arcade` 自包含，命令会先构建再检查，不依赖工作树中预先存在的 `dist`。
+- 页面路由不再引用旧 `Layout`、`MainGridLayout`、`Navbar`、`SideBar`、`Profile`、`PostCard`、`PostMeta` 或旧移动菜单视觉组件；旧文件暂时保留在仓库中作为历史实现，但已退出路由依赖图。
+
+### 功能与交互
+
+- 所有 HTML 路由稳定输出唯一语义 `main` 和 `#toc`；Swup 继续交换这两个容器，运行时在页面替换后重新识别文章模式、TOC、Giscus、统计节点和活动导航。
+- 系统条显示全站累计 PV/UV；首页当前页每篇文章以及文章详情均同时显示累计 PV/UV，初始值严格为 `--`，唯一消费端为 `public/js/blog-stats.js`。
+- RSS 搜索集成到键盘可操作的命令面板，支持 `Ctrl/Cmd+K`、`/`、Escape、焦点进入/返回、结果跳转和可关闭错误状态。
+- 明/暗/自动主题、背景显示/隐藏与 0–24px 模糊继续使用 core 设置键；localStorage 不可用时回到安全默认值。
+- 背景只使用 `https://api.furry.ist/furry-img`，失败后切换 `https://sni-api.furry.ist/furry-img`，双失败保留纯色画布。
+- ARCADE 视觉严格使用全直角、分级切角、唯一电光黄、硬 offset 阴影、宽字距标题、编号/斜线/L 形角括号；背景之外无磨砂或柔和弥散阴影。所有主要动效不超过 520ms，`prefers-reduced-motion` 下取消 skew、overshoot、大位移和脚本平滑滚动。
+- 桌面使用固定左任务轨和文章右侧 TOC；小屏切换为底部 Dock，TOC 转为正文后的线性模块；CSS 提供 820px、640px 和 400px 断点，正文表格、代码和长链接局部滚动或换行。
+- 个人资料、Bilibili、GitHub、RSS、Sitemap、隐私、外部状态页和 Umami 统计页均保留直接入口。
+
+### 验证证据
+
+- `pnpm test:core`：通过，覆盖 Umami helper、内容纯函数、累计统计运行时、背景状态机、设置和生命周期。
+- `pnpm type-check`：通过，无类型错误。
+- `pnpm test:arcade`：通过；自包含执行生产构建后检查 36 个 HTML、26 篇文章、唯一 `main/#toc`、全部 ARCADE Shell、统计 `--` 占位、PV+UV 双节点、Giscus、License、外链安全属性、旧视觉树零引用、reduced-motion 与 390px 安全断点。
+- `pnpm build`：通过，生成 36 页；保留首页 4 页分页、26 篇文章、归档、友链、关于、联系方式、隐私、404、RSS、Sitemap 与 robots.txt。
+- `pnpm verify:arcade-stats`：三轮实时验证均为 `9/9`，每轮包含全站和首页 8 篇文章的累计 PV+UV；输出不包含动态分享令牌。
+- 背景实时只读探测：主接口与 SNI 回退均返回 `200 image/webp`；core 测试同时覆盖主成功、主失败转回退、双失败、禁用与重复初始化。
+- `git diff --check`：通过。
+- 本地静态预览：`http://127.0.0.1:4326/`（仅当对应预览进程仍在运行）。
+
+### 尚待主线程补验
+
+- 当前子代理的浏览器控制层返回空浏览器列表，因此无法在本代理内生成桌面、精确 `390x844` 和文章页截图，也无法以真实浏览器完成点击式 Swup/命令面板/主题/背景持久化矩阵。
+- 这不是实现或构建阻塞；主线程应在浏览器绑定可用时使用上述预览地址补做视觉、键盘、前进后退、无横向溢出和截图终验，再决定是否存在需要回到本分支修正的问题。
+- 已知非阻塞警告：`src/content/assets` 数据集合为空、Browserslist 数据较旧、pnpm 10 提示旧 `pnpm.patchedDependencies` 字段位置；均未影响当前构建与运行时契约。
