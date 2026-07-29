@@ -57,7 +57,7 @@
   - 导航、资料侧栏、文章卡、文章页、累计 PV/UV 元数据、RSS 搜索、移动菜单、显示设置、友链、归档、Markdown、代码块、TOC、License、分页、Footer 与返回顶部均已统一到 ARCADE 语言。
   - 保留 `https://api.furry.ist/furry-img` 动态背景及 `https://sni-api.furry.ist/furry-img` fallback；视觉层仅降饱和/对比，不替换图片源或加载逻辑。
   - 显示设置保留明暗/自动主题、背景显示与模糊、开发节点；去除会破坏唯一品牌强调色的自定义 hue / 彩虹模式入口。
-  - 统计文案明确为开站以来“累计浏览 PV / 累计访客 UV”，统计 helper 仍以 `startAt=0` 获取累计范围，脚本只替换数值节点文本。
+  - 第一轮当时以 `startAt=0` 解释累计范围；该实现已在架构级重构收尾时被 single full-history comparison window 方案替代，避免 Umami Cloud 免费窗口截断。
   - 首页文章统计使用并发上限为 4 的集中式可重入队列；每篇最多重试 2 次，分别退避 400ms / 900ms，在弱网下兼顾完成速度与限流保护；Swup 替换后会重新扫描尚未完成的卡片。
   - 文章详情页会等待 Umami helper，并使用相同的有限退避重试更新可见的累计 PV/UV 节点；支持直达文章与 Swup 切换。
 - `design/arcade` 验证：`pnpm test:umami` 通过，`pnpm build` 通过（36 个页面）；`pnpm type-check` 仅剩既存 `hast` 类型依赖缺失。
@@ -97,6 +97,7 @@
 - 工作树：`D:\Projects\blog-arcade`；分支：`design/arcade`。
 - 本分支以普通 merge 吸收 `design/rebuild-core`，保留第一轮 ARCADE 换肤提交作为历史回退点，未 reset、rebase 或改写历史。
 - 2026-07-29 再次普通 merge core 的 Umami 安全修复：动态分享令牌仅在页面内存复用，启动时清除旧版持久缓存；令牌未写入代码、构建产物、测试输出或本文档。
+- `247dbf0` 普通 merge `design/rebuild-core@c0ab512`，同步精确 lifetime 统计：以 `max(createdAt, resetAt)` 为起点，通过未来空窗与单个 `prev` comparison 取得完整有效历史，缺失 comparison 时保持 UI `--` 而不误报 0。
 - 本分支禁止在用户选择前合入 `main`；当前交付仅供候选预览与验收。
 
 ### 独立产品结构
@@ -110,7 +111,8 @@
 - `bfa9ec2`：将文章 Reader、归档、友链、404、关于、联系方式和隐私页全部迁移到独立 Shell；保留 Markdown、代码块、图片回退、TOC、Giscus、License、GitHub 编辑、上一篇/下一篇与返回顶部。
 - `36d7240`：增加 ARCADE 结构契约与实时统计验证器，补齐外链 `noopener`、Swup 后 TOC 状态、命令面板焦点、存储受限降级、44px 触控目标和 reduced-motion 的脚本滚动降级。
 - `2290424`：使 `pnpm test:arcade` 自包含，命令会先构建再检查，不依赖工作树中预先存在的 `dist`。
-- 页面路由不再引用旧 `Layout`、`MainGridLayout`、`Navbar`、`SideBar`、`Profile`、`PostCard`、`PostMeta` 或旧移动菜单视觉组件；旧文件暂时保留在仓库中作为历史实现，但已退出路由依赖图。
+- 页面路由不再引用旧 `Layout`、`MainGridLayout`、`Navbar`、`SideBar`、`Profile`、`PostCard`、`PostMeta` 或旧移动菜单视觉组件；收尾阶段已进一步物理删除 `src/components/**`、`src/layouts/**`、第一轮 ARCADE/旧 Fuwari 样式和仅旧 UI 使用的 `setting-utils`，历史实现仍可从既有 Git 提交恢复。
+- ARCADE 契约现在同时锁定源树与构建产物：`dist` 不得再引用或产出旧 `Layout`、`Search`、`DisplaySettings`、`setting-utils` bundle，也不得包含 Fancybox 或 OverlayScrollbars UI；清理后 Vite 客户端模块数由 188 降至 124。
 
 ### 功能与交互
 
@@ -127,10 +129,11 @@
 
 - `pnpm test:core`：通过，覆盖 Umami helper、内容纯函数、累计统计运行时、背景状态机、设置和生命周期。
 - `pnpm type-check`：通过，无类型错误。
-- `pnpm test:arcade`：通过；自包含执行生产构建后检查 36 个 HTML、26 篇文章、唯一 `main/#toc`、全部 ARCADE Shell、统计 `--` 占位、PV+UV 双节点、Giscus、License、外链安全属性、旧视觉树零引用、reduced-motion 与 390px 安全断点。
+- `pnpm test:arcade`：通过；自包含执行生产构建后检查 36 个 HTML、26 篇文章、唯一 `main/#toc`、全部 ARCADE Shell、统计 `--` 占位、PV+UV 双节点、Giscus、License、外链安全属性、旧视觉源树和构建资产均为零、reduced-motion 与 390px 安全断点。
 - `pnpm build`：通过，生成 36 页；保留首页 4 页分页、26 篇文章、归档、友链、关于、联系方式、隐私、404、RSS、Sitemap 与 robots.txt。
 - `pnpm verify:arcade-stats`：三轮实时验证均为 `9/9`，每轮包含全站和首页 8 篇文章的累计 PV+UV；输出不包含动态分享令牌。
 - 背景实时只读探测：主接口与 SNI 回退均返回 `200 image/webp`；core 测试同时覆盖主成功、主失败转回退、双失败、禁用与重复初始化。
+- 本地 HTTP 冒烟：`http://127.0.0.1:4326/` 与 `/posts/start/` 均返回 200、均输出 `data-product="arcade-field-node"`，且不引用任何退役资产。
 - `git diff --check`：通过。
 - 本地静态预览：`http://127.0.0.1:4326/`（仅当对应预览进程仍在运行）。
 

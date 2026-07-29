@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readdir, readFile } from "node:fs/promises";
+import { access, readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { parse } from "node-html-parser";
 
@@ -14,8 +14,35 @@ async function collectFiles(directory, predicate) {
 	return files;
 }
 
+async function assertDirectoryHasNoFiles(directory) {
+	try {
+		const files = await collectFiles(directory, () => true);
+		assert.equal(files.length, 0, `${directory} must not contain retired source files`);
+	} catch (error) {
+		if (error?.code !== "ENOENT") throw error;
+	}
+}
+
 const htmlFiles = await collectFiles("dist", (file) => file.endsWith(".html"));
 assert.equal(htmlFiles.length, 36, "ARCADE build must keep the 36-page HTML baseline");
+
+for (const retiredDirectory of ["src/components", "src/layouts"]) {
+	await assertDirectoryHasNoFiles(retiredDirectory);
+}
+
+for (const retiredFile of [
+	"src/styles/arcade.css",
+	"src/styles/expressive-code.css",
+	"src/styles/main.css",
+	"src/styles/markdown-extend.styl",
+	"src/styles/markdown.css",
+	"src/styles/scrollbar.css",
+	"src/styles/transition.css",
+	"src/styles/variables.styl",
+	"src/utils/setting-utils.ts",
+]) {
+	await assert.rejects(access(retiredFile), `${retiredFile} must remain retired`);
+}
 
 for (const file of htmlFiles) {
 	const source = await readFile(file, "utf8");
@@ -28,6 +55,11 @@ for (const file of htmlFiles) {
 	assert.equal(document.querySelectorAll('script[src="/js/blog-stats.js"]').length, 1, `${file} must load one stats runtime`);
 	assert.equal(document.querySelectorAll('script[src="/js/blog-background.js"]').length, 1, `${file} must load one background runtime`);
 	assert.doesNotMatch(source, /fetchPostStats|loadPostCardStats|statsLoaded|post-pageviews/, `${file} contains a legacy stats consumer`);
+	assert.doesNotMatch(
+		source,
+		/\/_astro\/(?:Layout\.|Search\.|DisplaySettings\.|setting-utils\.)/,
+		`${file} still references a retired Fuwari asset`,
+	);
 
 	for (const statsRoot of document.querySelectorAll("[data-blog-stats]")) {
 		assert.equal(statsRoot.getAttribute("data-stats-state"), "idle", `${file} stats root must start idle`);
@@ -50,6 +82,20 @@ for (const file of htmlFiles) {
 		assert.ok(accessibleName, `${file} contains an unnamed button`);
 	}
 }
+
+const emittedAssets = await collectFiles(path.join("dist", "_astro"), (file) => /\.(?:css|js)$/.test(file));
+const emittedAssetNames = emittedAssets.map((file) => path.basename(file)).join("\n");
+assert.doesNotMatch(
+	emittedAssetNames,
+	/^(?:Layout\.|Search\.|DisplaySettings\.|setting-utils\.)/m,
+	"ARCADE must not emit retired Fuwari bundles",
+);
+const emittedAssetText = (await Promise.all(emittedAssets.map((file) => readFile(file, "utf8")))).join("\n");
+assert.doesNotMatch(
+	emittedAssetText,
+	/fancybox__|OverlayScrollbars|data-overlayscrollbars/,
+	"ARCADE output must not contain retired Fancybox or OverlayScrollbars UI",
+);
 
 const homeDocument = parse(await readFile(path.join("dist", "index.html"), "utf8"));
 assert.equal(homeDocument.querySelectorAll('[data-stats-scope="post"]').length, 8, "homepage must expose PV+UV roots for all 8 posts");
