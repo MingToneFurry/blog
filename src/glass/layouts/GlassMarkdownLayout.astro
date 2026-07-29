@@ -1,0 +1,28 @@
+---
+import GlassShell from "./GlassShell.astro";
+
+interface Props {
+	frontmatter?: {
+		title?: string;
+		description?: string;
+	};
+	title?: string;
+	description?: string;
+}
+
+const { frontmatter, title, description } = Astro.props;
+const pageTitle = frontmatter?.title || title || "观测记录";
+const pageDescription = frontmatter?.description || description;
+---
+
+<GlassShell title={pageTitle} description={pageDescription}>
+	<article class="glass-document" data-pagefind-body>
+		<header class="glass-document-head">
+			<p class="glass-kicker">OBSERVATORY DOCUMENT</p>
+			<h1>{pageTitle}</h1>
+		</header>
+		<div class="glass-prose custom-md">
+			<slot />
+		</div>
+	</article>
+</GlassShell>

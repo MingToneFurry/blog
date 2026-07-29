@@ -1,0 +1,21 @@
+---
+import { profileConfig, siteConfig } from "@/config";
+import { Icon } from "astro-icon/components";
+
+const year = new Date().getFullYear();
+---
+
+<footer class="glass-footer">
+	<div>
+		<strong>{siteConfig.title}</strong>
+		<span>© {year} {profileConfig.name}</span>
+	</div>
+	<nav aria-label="页脚导航">
+		<a href="/rss.xml"><Icon name="fa6-solid:rss" /> RSS</a>
+		<a href="/privacy/">隐私</a>
+		<a href="https://github.com/MingToneFurry/blog" target="_blank" rel="noopener noreferrer">
+			<Icon name="fa6-brands:github" /> Source
+		</a>
+	</nav>
+	<p>Built with Astro · Observatory candidate branch</p>
+</footer>

@@ -1,0 +1,28 @@
+---
+interface Props {
+	label?: string;
+}
+
+const { label = "LIVE SCENE / FURRY.IST" } = Astro.props;
+---
+
+<section
+	class="glass-observation-window"
+	data-blog-background
+	data-background-visible="true"
+	data-background-state="idle"
+	aria-label="动态背景观景窗"
+>
+	<div class="glass-observation-media" aria-hidden="true">
+		<img data-background-image alt="" decoding="async" />
+	</div>
+	<div class="glass-observation-grid" aria-hidden="true"></div>
+	<div class="glass-observation-head">
+		<span class="glass-live-dot" aria-hidden="true"></span>
+		<span>{label}</span>
+	</div>
+	<p class="glass-observation-fallback">
+		<span data-background-ready>远端观测场景</span>
+		<span data-background-error>场景离线，已切换为本地画布</span>
+	</p>
+</section>

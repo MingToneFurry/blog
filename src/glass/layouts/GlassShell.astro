@@ -1,0 +1,137 @@
+---
+import "@fontsource/roboto/400.css";
+import "@fontsource/roboto/500.css";
+import "@fontsource/roboto/700.css";
+import "@fontsource-variable/jetbrains-mono";
+import "katex/dist/katex.css";
+import "@/styles/glass/tokens.css";
+import "@/styles/glass/shell.css";
+import "@/styles/glass/content.css";
+
+import { profileConfig, siteConfig, umamiConfig } from "@/config";
+import { defaultFavicons } from "@/constants/icon";
+import { url } from "@/utils/url-utils";
+import { Icon } from "astro-icon/components";
+import CompactBar from "../components/CompactBar.astro";
+import GlassFooter from "../components/GlassFooter.astro";
+import ObservatoryWindow from "../components/ObservatoryWindow.astro";
+
+interface Props {
+	title?: string;
+	description?: string;
+	lang?: string;
+	article?: boolean;
+}
+
+const {
+	title,
+	description = siteConfig.description,
+	lang = siteConfig.lang,
+	article = false,
+} = Astro.props;
+
+const pageTitle = title ? `${title} · ${siteConfig.title}` : `${siteConfig.title} · ${siteConfig.subtitle}`;
+const favicons = siteConfig.favicon.length > 0 ? siteConfig.favicon : defaultFavicons;
+const siteLang = lang.replace("_", "-");
+---
+
+<!doctype html>
+<html
+	lang={siteLang}
+	data-theme-preference="auto"
+	data-color-scheme="light"
+	data-background-visible="true"
+	data-background-blur="4"
+	data-stats-base-url={umamiConfig.baseUrl}
+	data-stats-share-id={umamiConfig.shareId}
+	data-stats-timezone={umamiConfig.timezone}
+>
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+		<meta name="generator" content={Astro.generator} />
+		<meta name="description" content={description || pageTitle} />
+		<meta name="author" content={profileConfig.name} />
+		<meta name="theme-color" content="#f8f8fc" media="(prefers-color-scheme: light)" />
+		<meta name="theme-color" content="#0a0a0a" media="(prefers-color-scheme: dark)" />
+		<title>{pageTitle}</title>
+
+		<meta property="og:site_name" content={siteConfig.title} />
+		<meta property="og:url" content={Astro.url} />
+		<meta property="og:title" content={pageTitle} />
+		<meta property="og:description" content={description || pageTitle} />
+		<meta property="og:type" content={article ? "article" : "website"} />
+		<meta name="twitter:card" content="summary_large_image" />
+		<meta name="twitter:title" content={pageTitle} />
+		<meta name="twitter:description" content={description || pageTitle} />
+
+		{favicons.map((favicon) => (
+			<link
+				rel="icon"
+				href={favicon.src.startsWith("/") ? url(favicon.src) : favicon.src}
+				sizes={favicon.sizes}
+				media={favicon.theme ? `(prefers-color-scheme: ${favicon.theme})` : undefined}
+			/>
+		))}
+		<link rel="alternate" type="application/rss+xml" title={siteConfig.title} href={url("/rss.xml")} />
+		<slot name="head" />
+
+		<script is:inline>
+			(() => {
+				const root = document.documentElement;
+				let theme = "auto";
+				let hidden = false;
+				let blur = 4;
+				try {
+					theme = ["light", "dark", "auto"].includes(localStorage.getItem("theme"))
+						? localStorage.getItem("theme")
+						: "auto";
+					hidden = localStorage.getItem("hide-bg") === "true";
+					const savedBlur = Number.parseFloat(localStorage.getItem("bg-blur"));
+					if (Number.isFinite(savedBlur)) blur = Math.min(24, Math.max(0, savedBlur));
+				} catch {}
+				const dark = theme === "dark" || (theme === "auto" && matchMedia("(prefers-color-scheme: dark)").matches);
+				root.dataset.themePreference = theme;
+				root.dataset.colorScheme = dark ? "dark" : "light";
+				root.dataset.backgroundVisible = String(!hidden);
+				root.dataset.backgroundBlur = String(blur);
+				root.classList.toggle("dark", dark);
+				root.style.setProperty("--glass-background-blur", `${blur}px`);
+			})();
+		</script>
+		<script defer src="/js/umami-share.js"></script>
+		<script defer src="/js/blog-stats.js"></script>
+		<script defer src="/js/blog-background.js"></script>
+		<script
+			defer
+			src="https://cloud.umami.is/script.js"
+			data-website-id="360509f2-5a9e-466f-9944-25af72447192"
+		></script>
+	</head>
+	<body class="glass-app">
+		<a class="glass-skip-link" href="#glass-main">跳到主要内容</a>
+		<CompactBar />
+		<div class="glass-scene-wrap">
+			<ObservatoryWindow />
+		</div>
+
+		<div class="glass-frame">
+			<main id="glass-main" tabindex="-1">
+				<slot />
+			</main>
+			<aside id="toc" aria-label="页面上下文">
+				<slot name="context" />
+			</aside>
+		</div>
+
+		<GlassFooter />
+		<button class="glass-back-to-top" type="button" data-glass-backtop aria-label="返回顶部" title="返回顶部">
+			<Icon name="material-symbols:arrow-upward-rounded" />
+		</button>
+
+		<script>
+			import { startObservatory } from "@/glass/runtime/observatory";
+			startObservatory();
+		</script>
+	</body>
+</html>

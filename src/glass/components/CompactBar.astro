@@ -1,0 +1,199 @@
+---
+import { navBarConfig, siteConfig } from "@/config";
+import { LinkPreset } from "@/types/config";
+import { Icon } from "astro-icon/components";
+
+type ObservatoryLink = {
+	name: string;
+	url: string;
+	external?: boolean;
+};
+
+const presetLinks: Record<number, ObservatoryLink> = {
+	[LinkPreset.Home]: { name: "首页", url: "/" },
+	[LinkPreset.Archive]: { name: "归档", url: "/archive/" },
+};
+
+const configuredLinks = navBarConfig.links.map((link) =>
+	typeof link === "number" ? presetLinks[link] : link,
+);
+
+const findLink = (name: string) =>
+	configuredLinks.find((link) => link?.name === name);
+
+const groups: { name: string; links: ObservatoryLink[] }[] = [
+	{
+		name: "Writing",
+		links: [
+			presetLinks[LinkPreset.Home],
+			presetLinks[LinkPreset.Archive],
+			{ name: "RSS", url: "/rss.xml", external: true },
+		],
+	},
+	{
+		name: "Identity",
+		links: [findLink("关于"), findLink("联系方式")].filter(
+			(link): link is ObservatoryLink => Boolean(link),
+		),
+	},
+	{
+		name: "Network",
+		links: [findLink("友链")].filter(
+			(link): link is ObservatoryLink => Boolean(link),
+		),
+	},
+	{
+		name: "System",
+		links: [findLink("状态"), findLink("统计"), findLink("隐私")].filter(
+			(link): link is ObservatoryLink => Boolean(link),
+		),
+	},
+];
+---
+
+<header class="glass-compact-bar">
+	<div class="glass-bar-inner">
+		<a class="glass-site-mark" href="/" aria-label={`${siteConfig.title} 首页`}>
+			<span class="glass-mark-symbol" aria-hidden="true">M</span>
+			<span class="glass-site-copy">
+				<strong>{siteConfig.title}</strong>
+				<small>PERSONAL OBSERVATORY</small>
+			</span>
+		</a>
+
+		<nav class="glass-desktop-nav" aria-label="主导航">
+			{groups.map((group) => (
+				<details class="glass-nav-group" data-glass-popover>
+					<summary>{group.name}</summary>
+					<div class="glass-nav-panel">
+						{group.links.map((link) => (
+							<a
+								href={link.url}
+								target={link.external ? "_blank" : undefined}
+								rel={link.external ? "noopener noreferrer" : undefined}
+							>
+								<span>{link.name}</span>
+								{link.external && (
+									<Icon name="material-symbols:arrow-outward-rounded" />
+								)}
+							</a>
+						))}
+					</div>
+				</details>
+			))}
+		</nav>
+
+		<div class="glass-bar-actions">
+			<button
+				class="glass-icon-button"
+				type="button"
+				data-glass-dialog-open="glass-search-dialog"
+				aria-label="搜索文章"
+				title="搜索文章"
+			>
+				<Icon name="material-symbols:search-rounded" />
+			</button>
+			<button
+				class="glass-icon-button"
+				type="button"
+				data-glass-dialog-open="glass-settings-dialog"
+				aria-label="显示设置"
+				title="显示设置"
+			>
+				<Icon name="material-symbols:tune-rounded" />
+			</button>
+
+			<details class="glass-mobile-menu" data-glass-drawer>
+				<summary class="glass-icon-button" aria-label="打开导航" title="打开导航">
+					<Icon name="material-symbols:menu-rounded" />
+				</summary>
+				<div class="glass-mobile-drawer" role="dialog" aria-modal="true" aria-label="站点导航">
+					<div class="glass-drawer-head">
+						<div>
+							<small>OBSERVATORY MAP</small>
+							<strong>站点导航</strong>
+						</div>
+						<button class="glass-icon-button" type="button" data-glass-drawer-close aria-label="关闭导航">
+							<Icon name="material-symbols:close-rounded" />
+						</button>
+					</div>
+					{groups.map((group) => (
+						<section class="glass-drawer-group">
+							<h2>{group.name}</h2>
+							<div>
+								{group.links.map((link) => (
+									<a
+										href={link.url}
+										target={link.external ? "_blank" : undefined}
+										rel={link.external ? "noopener noreferrer" : undefined}
+									>
+										{link.name}
+										{link.external && <Icon name="material-symbols:arrow-outward-rounded" />}
+									</a>
+								))}
+							</div>
+						</section>
+					))}
+				</div>
+			</details>
+		</div>
+	</div>
+</header>
+
+<dialog id="glass-search-dialog" class="glass-dialog" aria-labelledby="glass-search-title">
+	<div class="glass-dialog-head">
+		<div>
+			<small>RSS INDEX</small>
+			<h2 id="glass-search-title">搜索观测记录</h2>
+		</div>
+		<button class="glass-icon-button" type="button" data-glass-dialog-close aria-label="关闭搜索">
+			<Icon name="material-symbols:close-rounded" />
+		</button>
+	</div>
+	<label class="glass-search-field">
+		<span class="sr-only">搜索文章标题、摘要或正文</span>
+		<Icon name="material-symbols:search-rounded" aria-hidden="true" />
+		<input id="glass-search-input" type="search" autocomplete="off" placeholder="输入标题、内容或文章路径" />
+	</label>
+	<p id="glass-search-status" class="glass-dialog-status" aria-live="polite">打开后载入 RSS 索引</p>
+	<div id="glass-search-results" class="glass-search-results" aria-label="搜索结果"></div>
+</dialog>
+
+<dialog id="glass-settings-dialog" class="glass-dialog glass-settings-dialog" aria-labelledby="glass-settings-title">
+	<div class="glass-dialog-head">
+		<div>
+			<small>DISPLAY CONTROL</small>
+			<h2 id="glass-settings-title">显示设置</h2>
+		</div>
+		<button class="glass-icon-button" type="button" data-glass-dialog-close aria-label="关闭设置">
+			<Icon name="material-symbols:close-rounded" />
+		</button>
+	</div>
+	<section class="glass-setting-section" aria-labelledby="glass-theme-label">
+		<div class="glass-setting-copy">
+			<strong id="glass-theme-label">外观模式</strong>
+			<span>浅色、深色或跟随系统</span>
+		</div>
+		<div class="glass-segmented" role="group" aria-label="外观模式">
+			<button type="button" data-glass-theme="light">浅色</button>
+			<button type="button" data-glass-theme="dark">深色</button>
+			<button type="button" data-glass-theme="auto">自动</button>
+		</div>
+	</section>
+	<section class="glass-setting-section">
+		<label class="glass-setting-row" for="glass-background-visible">
+			<span class="glass-setting-copy">
+				<strong>动态观景窗</strong>
+				<span>来自 api.furry.ist，失败时自动切换 SNI</span>
+			</span>
+			<input id="glass-background-visible" type="checkbox" data-glass-background-visible />
+		</label>
+	</section>
+	<section class="glass-setting-section">
+		<label class="glass-setting-copy" for="glass-background-blur">
+			<strong>场景模糊</strong>
+			<span><output id="glass-background-blur-value">4</output> px</span>
+		</label>
+		<input id="glass-background-blur" type="range" min="0" max="24" step="1" data-glass-background-blur />
+	</section>
+</dialog>

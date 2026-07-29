@@ -1,0 +1,47 @@
+:root {
+	color-scheme: light;
+	--glass-canvas: #f8f8fc;
+	--glass-surface: #ffffff;
+	--glass-surface-2: #f1f2f6;
+	--glass-ink: #0a0a0a;
+	--glass-muted: #616775;
+	--glass-subtle: #858b98;
+	--glass-line: rgba(10, 10, 10, 0.12);
+	--glass-line-soft: rgba(10, 10, 10, 0.07);
+	--glass-dot: rgba(10, 10, 10, 0.08);
+	--glass-accent: #087cf0;
+	--glass-accent-hover: #0868c5;
+	--glass-accent-soft: rgba(8, 124, 240, 0.11);
+	--glass-danger: #c73535;
+	--glass-danger-soft: rgba(199, 53, 53, 0.1);
+	--glass-radius-xs: 4px;
+	--glass-radius-sm: 6px;
+	--glass-radius-md: 10px;
+	--glass-radius-lg: 16px;
+	--glass-focus: 0 0 0 3px rgba(8, 124, 240, 0.2);
+	--glass-dialog-shadow: 0 28px 72px -28px rgba(5, 18, 34, 0.48), 0 0 72px -28px rgba(8, 124, 240, 0.48);
+	--glass-background-blur: 4px;
+	--glass-reading-progress: 0%;
+	--glass-width: 1180px;
+	--glass-ease: cubic-bezier(0.2, 0, 0, 1);
+}
+
+:root[data-color-scheme="dark"] {
+	color-scheme: dark;
+	--glass-canvas: #0a0a0a;
+	--glass-surface: #161616;
+	--glass-surface-2: #202020;
+	--glass-ink: #fafafa;
+	--glass-muted: #a1a1aa;
+	--glass-subtle: #7b7b85;
+	--glass-line: rgba(255, 255, 255, 0.14);
+	--glass-line-soft: rgba(255, 255, 255, 0.08);
+	--glass-dot: rgba(255, 255, 255, 0.06);
+	--glass-accent: #3b82f6;
+	--glass-accent-hover: #5b96f6;
+	--glass-accent-soft: rgba(59, 130, 246, 0.15);
+	--glass-danger: #f06c6c;
+	--glass-danger-soft: rgba(240, 108, 108, 0.12);
+	--glass-focus: 0 0 0 3px rgba(59, 130, 246, 0.24);
+	--glass-dialog-shadow: 0 32px 80px -30px rgba(0, 0, 0, 0.86), 0 0 80px -34px rgba(59, 130, 246, 0.55);
+}
