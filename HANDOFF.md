@@ -120,12 +120,16 @@
 - 移动 drawer 统一暴露 `data-glass-drawer-panel`：打开后聚焦面板内关闭按钮，Tab/Shift+Tab 只在 modal panel 内闭环，遮罩、关闭按钮或 Escape 关闭后均将焦点还给原 summary。
 - 最终规格审计逐项对齐 `iudesigns/glass.md`：明暗色、surface、发丝线、accent/hover、Dialog 舞台阴影、250ms 入场与 400ms 进度均使用规范值；Badge/状态点、圆形 Avatar、分段控件和 42×24 显式 Switch 使用唯一语义 pill token，普通卡片继续无投影、无全站磨砂，并提供键盘焦点与 `prefers-reduced-motion` 降级。
 
-### 验证与待补验
+### 验证与最终验收
 
 - 自动门禁：`pnpm test:core`、`pnpm type-check`、`pnpm build`（36 页）、`pnpm test:glass-contracts`、`git diff --check`。
 - GLASS 契约覆盖 36 个 HTML、首页 1 个站点统计根和 8 个文章统计根、文章功能矩阵、真实 open context rail、具名 `complementary` 可访问结构、显式 dialog Escape、ArcTower token/动效/Switch 结构、旧 UI 源树与最终 dist 零残留；不依赖 `CONTEXT RAIL` 等纯装饰字样。
 - 2026-07-29 最终实时只读 Umami 验证未输出分享令牌：全站累计 `335875 PV / 140105 UV / 318615 visits`；`/posts/start/` 为 `10 PV / 5 UV / 5 visits`。数值会随访问增长。
 - 2026-07-29 两条背景源均返回 `200 image/webp`；本地预览 `http://127.0.0.1:4332/` 返回 `200 text/html`。
 - 主线程已在 4332 桌面预览中确认右侧头像、分类与外部坐标 rail 可见，DOM 快照出现 `complementary "页面上下文"` 与 `complementary "观测站概览"`；截图暂存于主线程 QA 工作树。
-- 主线程 IAB 已验证 `390x844` 首页背景、Hero、累计统计与无横向溢出，移动导航打开/关闭，搜索 `Cloudflare` 返回 5 条，文章 Swup 入口后位于顶部且文章 PV/UV 正常；文章工具打开聚焦关闭按钮、Tab 环、伪遮罩、Escape 与焦点返回均通过，移动主导航也聚焦关闭按钮并保留 `role=dialog` / `aria-modal=true`。当前子代理的 Browser skill 仍返回空浏览器列表；主线程继续补菜单完整焦点环、Dialog/Switch 和 Swup/history 最终矩阵。
+- 主线程 IAB 已完成 `390x844` 最终矩阵：首页无横向溢出且累计统计进入 ready；移动导航打开后焦点落在关闭按钮，Shift+Tab 到末项、Tab 回关闭按钮形成闭环，Escape 关闭并将焦点还给 summary。文章 context drawer 同样通过焦点闭环；伪遮罩为 `fixed`、`pointer-events: auto`、`z-index: 110`，点击遮罩可关闭并恢复触发器焦点。
+- 搜索 Dialog 打开后聚焦输入框，搜索 `Cloudflare` 返回 5 条，Escape 关闭并恢复触发器焦点。背景显示 Switch 初始为 true，切换后 checkbox、`html` 与背景根节点均为 false，轨道尺寸为 `42x24`；文章导航及浏览器 back/forward 后继续保持 false，重开设置仍为 false，验收结束前已恢复 true。
+- Swup 从首页进入文章后 `scrollY=0`，`#glass-main`、`#toc`、`.glass-compact-bar` 各仅 1 个且统计 ready；back 回首页、forward 回文章后容器仍唯一。Browser evaluate 安全沙箱禁止写入 `window` 或 DOM expando，因此未执行 sentinel 注入；实际 history 往返、`html.swup-enabled`、容器唯一性与设置跨导航持久化均通过。
+- 最终截图位于 `C:\Users\MingTone\.codex\visualizations\2026\07\27\019fa50e-1c97-71e2-a08c-fab02dbda466\blog-rebuild-qa`：`glass-final-home-desktop.png`（1280x720）、`glass-final-home-mobile.png`（390x844）、`glass-final-article-desktop.png`（1280x720），三张截图中的统计均为 ready。
+- 当前子代理的 Browser skill 返回空浏览器列表，以上交互与截图证据由主线程在同一 `4332` 预览完成。
 - 非阻塞警告：空 `src/content/assets`、Browserslist 数据较旧、pnpm 10 提示旧 `pnpm.patchedDependencies` 字段位置。
