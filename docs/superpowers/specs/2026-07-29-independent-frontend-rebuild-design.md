@@ -8,7 +8,7 @@
 
 ## 1. 背景
 
-仓库当前为 Astro 静态博客，内容来自 Astro Content Collections，页面与组件主要沿用 Fuwari 的布局和组件树。Umami 分享 API helper 已经修复并合入 `main`，所有 helper 请求均使用 `startAt=0`，表示 Umami 开始记录以来的累计值；但现有 Fuwari 组件仍有重复内联统计脚本、`0` 初始占位和局部仅渲染 PV 等历史实现，三套完全重构必须统一迁移这些 DOM 消费端，而不是只复用 helper 即视为完成。
+仓库当前为 Astro 静态博客，内容来自 Astro Content Collections，页面与组件主要沿用 Fuwari 的布局和组件树。Umami 分享 API helper 已经修复并合入 `main`；由于 Umami Cloud 免费分享查询会截断过早的起点，helper 会以站点 `max(createdAt, resetAt)` 为统计起点，构造未来空窗并用 `compare=prev` 让单个 comparison 窗口覆盖该起点至当前快照，得到 Umami 可访问历史中的累计值。现有 Fuwari 组件仍有重复内联统计脚本、`0` 初始占位和局部仅渲染 PV 等历史实现，三套完全重构必须统一迁移这些 DOM 消费端，而不是只复用 helper 即视为完成。
 
 仓库包含三份受 Git 跟踪的设计规范：
 
@@ -278,7 +278,8 @@
 
 ### 11.1 统计口径
 
-- 全站与单篇文章均固定使用 `startAt=0`。
+- 全站与单篇文章均使用统一 lifetime 模式；不得把会被 Cloud 截断的 `startAt=0` 直接解释为累计。
+- lifetime 模式以站点 `max(createdAt, resetAt)` 为起点，通过未来空窗与 `compare=prev` 取得一个覆盖完整有效历史的 comparison 窗口，避免跨窗口相加导致 UV 重复，也避免在静态站点另存易漂移的基线计数。
 - UI 明确写“累计浏览 PV / 累计访客 UV”或等价语义。
 - 接入 Umami 前或已删除的数据无法补算，不得声称为域名诞生以来的绝对总数。
 

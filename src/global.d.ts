@@ -37,12 +37,17 @@ declare global {
 		getUmamiShareData?: (
 			baseUrl: string,
 			shareId: string,
-		) => Promise<{ websiteId: string; token: string; apiBase: string }>;
+		) => Promise<{
+			websiteId: string;
+			token: string;
+			apiBase: string;
+			lifetimeStartAt: number;
+		}>;
 		clearUmamiShareCache?: (baseUrl?: string, shareId?: string) => void;
 		fetchUmamiStats?: (
 			baseUrl: string,
 			shareId: string,
-			queryParams?: Record<string, string | number>,
+			queryParams?: Record<string, string | number | boolean>,
 		) => Promise<UmamiStats>;
 		blogStats?: BlogStatsRuntime;
 		blogBackground?: BlogBackgroundRuntime;
