@@ -99,8 +99,50 @@ assert.ok(postFiles.some((file) => read(file).includes("data-glass-toc")), "arti
 const glassStyles = globSync("src/styles/glass/*.css").map(read).join("\n");
 assert.match(glassStyles, /prefers-reduced-motion:\s*reduce/, "GLASS styles must include reduced-motion behavior");
 assert.equal(/transition:\s*all\b/.test(glassStyles), false, "GLASS styles must not use transition: all");
-assert.equal(/border-radius:\s*(?:999px|50%)/.test(glassStyles), false, "GLASS styles must use only the approved radius scale");
+assert.equal(/border-radius:\s*50%/.test(glassStyles), false, "GLASS styles must use the named radius scale");
 assert.equal(/backdrop-filter/.test(glassStyles), false, "GLASS surfaces must not become a site-wide frosted stack");
+
+const glassTokens = read("src/styles/glass/tokens.css");
+for (const requiredToken of [
+	"--glass-canvas: #f8f8fc",
+	"--glass-surface: #ffffff",
+	"--glass-ink: #0a0a0a",
+	"--glass-muted: #6b7280",
+	"--glass-accent: #0080ff",
+	"--glass-accent-hover: #3a7bc8",
+	"--glass-canvas: #0a0a0a",
+	"--glass-surface: #161616",
+	"--glass-ink: #fafafa",
+	"--glass-accent: #3b82f6",
+	"--glass-accent-hover: #2563eb",
+	"--glass-success: #22c55e",
+	"--glass-warning: #f59e0b",
+	"--glass-danger: #ef4444",
+	"--glass-radius-xs: 4px",
+	"--glass-radius-sm: 6px",
+	"--glass-radius-md: 10px",
+	"--glass-radius-lg: 16px",
+	"--glass-radius-pill: 999px",
+	"--glass-progress: linear-gradient(to right, #6ba3e8, #8fbcf0)",
+]) {
+	assert.ok(glassTokens.includes(requiredToken), `GLASS token drifted from ArcTower: ${requiredToken}`);
+}
+assert.equal(
+	count(glassStyles, "999px"),
+	1,
+	"the raw pill radius must be declared once as a semantic token and consumed by name",
+);
+assert.match(glassStyles, /animation:\s*glass-dialog-in 250ms/, "dialog entry must use the specified 250ms timing");
+assert.match(glassStyles, /transition:\s*width 400ms var\(--glass-ease\)/, "progress motion must use the specified 400ms easing");
+assert.match(glassStyles, /letter-spacing:\s*-0\.04em/, "display headings must retain ArcTower compact tracking");
+assert.match(glassStyles, /letter-spacing:\s*0\.2em/, "metadata labels must retain ArcTower expanded tracking");
+assert.equal(/background(?:-color)?:\s*#000(?:000)?\b/i.test(glassStyles), false, "GLASS must not use a pure-black surface");
+assert.match(glassStyles, /\.glass-switch-track::after/, "background visibility must use an explicit ArcTower switch thumb");
+assert.match(glassStyles, /\.glass-switch input:checked \+ \.glass-switch-track::after/, "the custom switch must expose a checked thumb state");
+assert.match(glassStyles, /\.glass-switch input:focus-visible \+ \.glass-switch-track/, "the custom switch must expose a visible keyboard focus state");
+const compactBar = read("src/glass/components/CompactBar.astro");
+assert.match(compactBar, /class="glass-switch-track"/, "the settings UI must render a portable explicit switch track");
+assert.match(home, /class="glass-switch-track"/, "the final home document must retain the explicit switch track");
 
 const shell = read("src/glass/layouts/GlassShell.astro");
 for (const runtime of ["/js/umami-share.js", "/js/blog-stats.js", "/js/blog-background.js"]) {

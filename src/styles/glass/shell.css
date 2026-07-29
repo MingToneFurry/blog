@@ -125,8 +125,9 @@ a {
 .glass-drawer-head small,
 .glass-kicker {
 	color: var(--glass-subtle);
-	font: 600 10px/1.3 "JetBrains Mono Variable", monospace;
-	letter-spacing: 0;
+	font: 600 11px/1.3 "JetBrains Mono Variable", monospace;
+	letter-spacing: 0.2em;
+	text-transform: uppercase;
 }
 
 .glass-desktop-nav {
@@ -294,18 +295,19 @@ details > summary::-webkit-details-marker {
 	gap: 8px;
 	min-height: 30px;
 	padding: 0 10px;
-	border: 1px solid var(--glass-line);
-	border-radius: var(--glass-radius-sm);
+	border: 1px solid var(--glass-accent-line);
+	border-radius: var(--glass-radius-pill);
 	background: var(--glass-surface);
-	color: var(--glass-muted);
-	font: 600 10px/1 "JetBrains Mono Variable", monospace;
+	color: var(--glass-accent);
+	font: 600 11px/1 "JetBrains Mono Variable", monospace;
+	letter-spacing: 0.2em;
 }
 
 .glass-live-dot {
 	width: 7px;
 	height: 7px;
 	border: 1px solid var(--glass-accent);
-	border-radius: var(--glass-radius-xs);
+	border-radius: var(--glass-radius-pill);
 	background: var(--glass-accent-soft);
 }
 
@@ -441,7 +443,7 @@ details > summary::-webkit-details-marker {
 }
 
 .glass-dialog[open] {
-	animation: glass-dialog-in 220ms var(--glass-ease);
+	animation: glass-dialog-in 250ms var(--glass-ease);
 }
 
 @keyframes glass-dialog-in {
@@ -464,7 +466,7 @@ details > summary::-webkit-details-marker {
 	margin: 3px 0 0;
 	font-size: 18px;
 	line-height: 1.3;
-	letter-spacing: 0;
+	letter-spacing: -0.02em;
 }
 
 .glass-search-field {
@@ -579,17 +581,18 @@ mark {
 	gap: 3px;
 	margin-top: 12px;
 	padding: 3px;
-	border-radius: var(--glass-radius-sm);
+	border-radius: var(--glass-radius-pill);
 	background: var(--glass-surface-2);
 }
 
 .glass-segmented button {
 	min-height: 40px;
 	border: 1px solid transparent;
-	border-radius: var(--glass-radius-xs);
+	border-radius: var(--glass-radius-pill);
 	background: transparent;
 	color: var(--glass-muted);
 	cursor: pointer;
+	transition: color 180ms ease, background-color 180ms ease, transform 180ms ease;
 }
 
 .glass-segmented button[aria-pressed="true"] {
@@ -598,10 +601,60 @@ mark {
 	color: #fff;
 }
 
-input[type="checkbox"] {
+.glass-switch {
+	position: relative;
+	display: inline-block;
+	flex: 0 0 42px;
 	width: 42px;
 	height: 24px;
-	accent-color: var(--glass-accent);
+}
+
+.glass-switch input {
+	position: absolute;
+	inset: 0;
+	z-index: 1;
+	width: 100%;
+	height: 100%;
+	margin: 0;
+	opacity: 0;
+	cursor: pointer;
+}
+
+.glass-switch-track {
+	position: absolute;
+	inset: 0;
+	border: 1px solid var(--glass-line);
+	border-radius: var(--glass-radius-pill);
+	background: var(--glass-surface-2);
+	transition: border-color 180ms ease, background-color 180ms ease;
+}
+
+.glass-switch-track::after {
+	content: "";
+	position: absolute;
+	top: 2px;
+	left: 2px;
+	width: 18px;
+	height: 18px;
+	border: 1px solid rgba(0, 0, 0, 0.12);
+	border-radius: var(--glass-radius-pill);
+	background: #fff;
+	box-shadow: 0 1px 2px rgba(0, 0, 0, 0.16);
+	transition: transform 180ms ease;
+}
+
+.glass-switch input:checked + .glass-switch-track {
+	border-color: var(--glass-accent);
+	background: var(--glass-accent);
+}
+
+.glass-switch input:checked + .glass-switch-track::after {
+	transform: translateX(18px);
+}
+
+.glass-switch input:focus-visible + .glass-switch-track {
+	border-color: var(--glass-accent);
+	box-shadow: var(--glass-focus);
 }
 
 input[type="range"] {

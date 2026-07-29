@@ -186,7 +186,10 @@ const groups: { name: string; links: ObservatoryLink[] }[] = [
 				<strong>动态观景窗</strong>
 				<span>来自 api.furry.ist，失败时自动切换 SNI</span>
 			</span>
-			<input id="glass-background-visible" type="checkbox" data-glass-background-visible />
+			<span class="glass-switch">
+				<input id="glass-background-visible" type="checkbox" data-glass-background-visible />
+				<span class="glass-switch-track" aria-hidden="true"></span>
+			</span>
 		</label>
 	</section>
 	<section class="glass-setting-section">
