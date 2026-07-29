@@ -54,6 +54,19 @@
 		return headers;
 	}
 
+	function parseTimestamp(value) {
+		if (typeof value === "number" && Number.isFinite(value)) return value;
+		const timestamp = Date.parse(String(value || ""));
+		return Number.isFinite(timestamp) ? timestamp : 0;
+	}
+
+	function selectLifetimeStats(data) {
+		if (!data || typeof data !== "object" || !data.comparison) {
+			throw new Error("Umami stats API 未返回 lifetime comparison");
+		}
+		return { ...data, ...data.comparison, comparison: data.comparison };
+	}
+
 	/**
 	 * Build candidate API bases for Umami Cloud / self-hosted.
 	 * Umami Cloud serves the UI from cloud.umami.is and the API from a
@@ -127,7 +140,7 @@
 		return { websiteId, token };
 	}
 
-	async function verifyWebsiteAccess(apiBase, websiteId, token) {
+	async function fetchWebsiteMetadata(apiBase, websiteId, token) {
 		// A lightweight probe to ensure the region is correct for this website.
 		// Umami Cloud Share pages call this endpoint too.
 		const res = await fetch(`${apiBase}/api/websites/${websiteId}`, {
@@ -135,7 +148,12 @@
 			headers: getRequestHeaders(token),
 			credentials: "omit",
 		});
-		return res.ok;
+		if (!res.ok) return null;
+		try {
+			return await res.json();
+		} catch {
+			return {};
+		}
 	}
 
 	async function fetchShareData(baseUrl, shareId) {
@@ -145,14 +163,22 @@
 		for (const apiBase of candidates) {
 			try {
 				const { websiteId, token } = await fetchShareFrom(apiBase, shareId);
-				const ok = await verifyWebsiteAccess(apiBase, websiteId, token);
-				if (!ok) {
+				const website = await fetchWebsiteMetadata(apiBase, websiteId, token);
+				if (!website) {
 					throw new Error(
 						`Umami 区域探测失败：${apiBase} 无法访问 websiteId=${websiteId}`,
 					);
 				}
 
-				return { websiteId, token, apiBase };
+				return {
+					websiteId,
+					token,
+					apiBase,
+					lifetimeStartAt: Math.max(
+						parseTimestamp(website.createdAt),
+						parseTimestamp(website.resetAt),
+					),
+				};
 			} catch (err) {
 				lastErr = err;
 				// continue trying other candidates
@@ -207,6 +233,9 @@
 
 		function normalizeQueryParams(qp) {
 			const out = { ...qp };
+			const hasExplicitRange = out.startAt != null || out.endAt != null;
+			const lifetime = !hasExplicitRange && out.lifetime !== false && out.lifetime !== "false";
+			delete out.lifetime;
 			// Umami Cloud stats API uses `path=eq.{url}` format for URL filtering.
 			// Convert convenience `url` param to `path` with the required `eq.` prefix.
 			if (out.url && !out.path) {
@@ -217,20 +246,41 @@
 			if (out.path && !String(out.path).startsWith('eq.')) {
 				out.path = 'eq.' + out.path;
 			}
-			return out;
+			return { lifetime, params: out };
 		}
 
 		async function doFetch(isRetry = false) {
-			const { websiteId, token, apiBase } = await global.getUmamiShareData(
+			const { websiteId, token, apiBase, lifetimeStartAt } =
+				await global.getUmamiShareData(
 				baseUrl,
 				shareId,
 			);
 
 			const now = Date.now();
-			const normalizedQP = normalizeQueryParams(queryParams);
+			const { lifetime, params: normalizedQP } = normalizeQueryParams(queryParams);
+			let startAt = normalizedQP.startAt ?? 0;
+			let endAt = normalizedQP.endAt ?? now;
+
+			if (lifetime && lifetimeStartAt > 0) {
+				const minute = 60_000;
+				const snapshotAt = Math.ceil(now / minute) * minute;
+				const durationMinutes = Math.max(
+					1,
+					Math.ceil((snapshotAt - lifetimeStartAt) / minute),
+				);
+
+				// Query a future-only current window. Umami's built-in `prev` comparison
+				// then becomes one single window from just before website.createdAt to the
+				// snapshot. Selecting that comparison preserves exact lifetime UV instead
+				// of adding distinct-visitor counts from separate periods.
+				startAt = snapshotAt;
+				endAt = snapshotAt + durationMinutes * minute;
+				normalizedQP.compare = "prev";
+			}
+
 			const params = new URLSearchParams({
-				startAt: 0,
-				endAt: now,
+				startAt,
+				endAt,
 				timezone: normalizedQP.timezone || "Asia/Shanghai",
 				...normalizedQP,
 			});
@@ -253,8 +303,9 @@
 			}
 
 			const data = await res.json();
-			dataCache.set(cacheKey, data);
-			return data;
+			const result = lifetime ? selectLifetimeStats(data) : data;
+			dataCache.set(cacheKey, result);
+			return result;
 		}
 
 		return doFetch(false);
