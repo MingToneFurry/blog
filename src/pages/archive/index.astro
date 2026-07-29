@@ -1,10 +1,42 @@
 ---
-import ArchivePanel from "@components/ArchivePanel.astro";
+import PageHeader from "@/arcade/components/PageHeader.astro";
+import ArcadeShell from "@/arcade/layouts/ArcadeShell.astro";
+import { toPostSummary } from "@/utils/content-core";
+import { getSortedPosts } from "@/utils/content-utils";
+import { formatDateToYYYYMMDD } from "@/utils/date-utils";
 
-import MainGridLayout from "@layouts/MainGridLayout.astro";
+const posts = await getSortedPosts();
+const groups = new Map<number, typeof posts>();
+for (const post of posts) {
+	const year = post.data.published.getFullYear();
+	groups.set(year, [...(groups.get(year) || []), post]);
+}
+const years = [...groups.entries()].sort(([left], [right]) => right - left);
 ---
 
-<MainGridLayout title="归档">
-    <ArchivePanel></ArchivePanel>
-</MainGridLayout>
-
+<ArcadeShell title="归档" description="按年份浏览全部任务传输。">
+	<section class="arcade-module-page">
+		<PageHeader kicker="SYSTEM MODULE / 001" title="任务归档" description={`按时间回溯全部 ${posts.length} 条传输记录。`} code="001" />
+		<div class="arcade-archive-list">
+			{years.map(([year, yearPosts]) => (
+				<section class="arcade-archive-year" aria-labelledby={`archive-${year}`}>
+					<h2 id={`archive-${year}`}>{year}</h2>
+					<ol>
+						{yearPosts.map((post) => {
+							const summary = toPostSummary(post);
+							return (
+								<li>
+									<a href={summary.url}>
+										<span class="arcade-archive-date">{formatDateToYYYYMMDD(post.data.published).slice(5)}</span>
+										<strong class="arcade-archive-title">{post.data.title}</strong>
+										<span class="arcade-archive-type">{summary.type} / {summary.category}</span>
+									</a>
+								</li>
+							);
+						})}
+					</ol>
+				</section>
+			))}
+		</div>
+	</section>
+</ArcadeShell>

@@ -1,0 +1,44 @@
+---
+import path from "node:path";
+import { Image } from "astro:assets";
+import { imageFallbackConfig } from "@/config";
+import { url } from "@/utils/url-utils";
+
+interface Props {
+	src: string;
+	basePath?: string;
+	alt: string;
+}
+
+const { src, basePath = "/", alt } = Astro.props;
+const isLocal = !(src.startsWith("/") || src.startsWith("http") || src.startsWith("data:"));
+const isPublic = src.startsWith("/");
+let image: ImageMetadata | undefined;
+
+if (isLocal) {
+	const files = import.meta.glob<ImageMetadata>("../../**", { import: "default" });
+	const normalizedPath = path.normalize(path.join("../../", basePath, src)).replace(/\\/g, "/");
+	const loader = files[normalizedPath];
+	if (loader) image = await loader();
+	else console.error(`[arcade] cover image not found: ${normalizedPath}`);
+}
+
+const publicSource = isPublic ? url(src) : src;
+const fallbackSource = imageFallbackConfig.enable && publicSource.includes(imageFallbackConfig.originalDomain)
+	? publicSource.replace(imageFallbackConfig.originalDomain, imageFallbackConfig.fallbackDomain)
+	: "";
+---
+
+<figure class="arcade-cover cut-card">
+	{isLocal && image && <Image src={image} alt={alt} loading="eager" />}
+	{!isLocal && (
+		<img
+			src={publicSource}
+			alt={alt}
+			loading="eager"
+			decoding="async"
+			onerror={fallbackSource ? `this.onerror=null;this.src='${fallbackSource}'` : undefined}
+		/>
+	)}
+	<figcaption>MISSION VISUAL / SOURCE ATTACHED</figcaption>
+</figure>

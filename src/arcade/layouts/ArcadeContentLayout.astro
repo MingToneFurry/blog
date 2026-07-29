@@ -1,0 +1,29 @@
+---
+import ArcadeShell from "./ArcadeShell.astro";
+import PageHeader from "../components/PageHeader.astro";
+
+const { frontmatter } = Astro.props;
+const title = frontmatter?.title || "系统模块";
+const descriptions: Record<string, string> = {
+	"关于我": "维护者身份、项目轨迹与个人信号档案。",
+	"联系方式": "选择可用频道，与节点维护者建立联系。",
+	"隐私政策": "读取统计、评论与数据处理的操作边界。",
+};
+const codes: Record<string, string> = { "关于我": "002", "联系方式": "003", "隐私政策": "006" };
+---
+
+<ArcadeShell title={title} description={descriptions[title] || title}>
+	<section class="arcade-module-page">
+		<PageHeader
+			kicker={`SYSTEM MODULE / ${codes[title] || "000"}`}
+			title={title}
+			description={descriptions[title] || "读取当前系统模块内容。"}
+			code={codes[title] || "000"}
+		/>
+		<article class="arcade-static-frame" data-frame-label={`MODULE // ${codes[title] || "000"}`}>
+			<div class="arcade-prose">
+				<slot />
+			</div>
+		</article>
+	</section>
+</ArcadeShell>

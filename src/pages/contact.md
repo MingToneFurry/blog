@@ -1,10 +1,7 @@
 ---
 title: "联系方式"
-layout: "../layouts/MainGridLayout.astro"
+layout: "../arcade/layouts/ArcadeContentLayout.astro"
 ---
-
-<div class="card-base p-6 md:p-8">
-<div class="prose dark:prose-invert prose-base !max-w-none custom-md">
 
 # 📬 联系方式
 
@@ -26,5 +23,3 @@ layout: "../layouts/MainGridLayout.astro"
 
 期待和你交流！
 
-</div>
-</div>

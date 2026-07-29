@@ -1,0 +1,30 @@
+---
+import type { MarkdownHeading } from "astro";
+import { siteConfig } from "@/config";
+
+interface Props {
+	headings: MarkdownHeading[];
+}
+
+const { headings = [] } = Astro.props;
+const minDepth = headings.length > 0 ? Math.min(...headings.map((heading) => heading.depth)) : 1;
+const visibleHeadings = headings.filter((heading) => heading.depth < minDepth + siteConfig.toc.depth);
+const cleanHeading = (text: string) => text.endsWith("#") ? text.slice(0, -1) : text;
+---
+
+<nav class="arcade-toc" aria-label="任务段落">
+	<header>
+		<span>MISSION INDEX</span>
+		<span>{String(visibleHeadings.length).padStart(2, "0")}</span>
+	</header>
+	<ol>
+		{visibleHeadings.map((heading, index) => (
+			<li data-depth={heading.depth}>
+				<a href={`#${heading.slug}`} data-toc-link aria-current="false">
+					<span>{String(index + 1).padStart(2, "0")}</span>
+					<span>{cleanHeading(heading.text)}</span>
+				</a>
+			</li>
+		))}
+	</ol>
+</nav>
