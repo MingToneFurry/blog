@@ -7,12 +7,17 @@ const helperSource = fs.readFileSync(
 	"utf8",
 );
 
-function createStorage() {
-	const values = new Map();
+function createStorage(initialValues = {}) {
+	const values = new Map(Object.entries(initialValues));
 	return {
+		get length() {
+			return values.size;
+		},
+		key: (index) => [...values.keys()][index] ?? null,
 		getItem: (key) => values.get(key) ?? null,
 		setItem: (key, value) => values.set(key, value),
 		removeItem: (key) => values.delete(key),
+		entries: () => [...values.entries()],
 	};
 }
 
@@ -45,10 +50,15 @@ const fetch = async (input, options = {}) => {
 };
 
 const window = {};
+const storage = createStorage({
+	"umami-share-cache:v3:legacy": JSON.stringify({
+		value: { token: "persisted-share-token" },
+	}),
+});
 vm.runInNewContext(helperSource, {
 	window,
 	fetch,
-	localStorage: createStorage(),
+	localStorage: storage,
 	URL,
 	URLSearchParams,
 	Date,
@@ -58,6 +68,8 @@ vm.runInNewContext(helperSource, {
 	String,
 	Error,
 });
+
+assert.deepEqual(storage.entries(), []);
 
 const stats = await window.fetchUmamiStats(
 	"https://cloud.umami.is/analytics/us",
@@ -80,5 +92,6 @@ const statsUrl = new URL(statsRequest.url);
 assert.equal(statsUrl.searchParams.get("startAt"), "0");
 assert.equal(statsUrl.searchParams.get("path"), "eq./posts/example/");
 assert.equal(statsUrl.searchParams.get("timezone"), "Asia/Shanghai");
+assert.deepEqual(storage.entries(), []);
 
 console.log("Umami share helper tests passed");
