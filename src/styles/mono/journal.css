@@ -510,7 +510,7 @@ time,
 	overflow: auto;
 	border: 1px solid var(--ui-line-strong);
 	background: var(--ui-bg);
-	box-shadow: 0 18px 60px rgb(0 0 0 / 0.48);
+	box-shadow: 0 18px 60px rgb(10 10 10 / 0.48);
 	color: var(--ui-fg);
 }
 
@@ -703,7 +703,7 @@ time,
 
 .journal-settings input[type="range"] {
 	width: 100%;
-	height: 24px;
+	height: 44px;
 	appearance: none;
 	background: transparent;
 }
@@ -781,7 +781,7 @@ time,
 
 .journal-footer__links a {
 	width: fit-content;
-	min-height: 36px;
+	min-height: 44px;
 	color: var(--ui-fg-muted);
 	font-size: 0.8rem;
 }
@@ -1101,7 +1101,7 @@ html.is-animating .transition-swup-journal {
 }
 
 .journal-editor-note__links a {
-	min-height: 36px;
+	min-height: 44px;
 	color: var(--ui-fg-muted);
 	font-size: 0.78rem;
 }
