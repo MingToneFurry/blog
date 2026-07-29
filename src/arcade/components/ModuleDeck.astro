@@ -1,0 +1,23 @@
+---
+const modules = [
+	{ code: "MOD_01", title: "Archive", description: "按时间回溯全部任务传输。", href: "/archive/" },
+	{ code: "MOD_02", title: "Identity", description: "读取节点维护者与站点档案。", href: "/about/" },
+	{ code: "MOD_03", title: "Network", description: "访问已连接的友链节点。", href: "/friends/" },
+	{ code: "MOD_04", title: "Status", description: "检查外部服务运行状态。", href: "https://stats.uptimerobot.com/6zqrufirxf", external: true },
+];
+---
+
+<div class="arcade-module-grid">
+	{modules.map((module) => (
+		<a
+			class="arcade-module-link"
+			href={module.href}
+			target={module.external ? "_blank" : undefined}
+			rel={module.external ? "noopener noreferrer" : undefined}
+		>
+			<span>{module.code}</span>
+			<strong>{module.title}</strong>
+			<small>{module.description}</small>
+		</a>
+	))}
+</div>

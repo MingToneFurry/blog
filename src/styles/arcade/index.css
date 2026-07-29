@@ -892,6 +892,15 @@ input:not(:disabled) {
 	transition: width var(--ui-dur-base) var(--ui-ease);
 }
 
+.arcade-transmission-card > a {
+	position: relative;
+	z-index: 1;
+	min-height: 100%;
+	display: flex;
+	flex: 1;
+	flex-direction: column;
+}
+
 .arcade-transmission-card:hover {
 	transform: translate(2px, -2px);
 	border-color: var(--ui-accent);
@@ -957,6 +966,10 @@ input:not(:disabled) {
 	color: var(--ui-accent);
 	font: 800 0.66rem/1 var(--font-mono);
 	letter-spacing: 0.08em;
+}
+
+.arcade-transmission-card footer .arcade-inline-stats {
+	margin-top: 0;
 }
 
 .arcade-module-grid {

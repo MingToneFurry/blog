@@ -1,0 +1,19 @@
+---
+interface Props {
+	kicker: string;
+	title: string;
+	description: string;
+	code: string;
+}
+
+const { kicker, title, description, code } = Astro.props;
+---
+
+<header class="arcade-page-header">
+	<div>
+		<span class="hud-kicker">{kicker}</span>
+		<h1>{title}</h1>
+		<p>{description}</p>
+	</div>
+	<span class="arcade-page-code" aria-hidden="true">{code}</span>
+</header>

@@ -1,0 +1,39 @@
+---
+import type { CollectionEntry } from "astro:content";
+import { formatDateToYYYYMMDD } from "@/utils/date-utils";
+import { getPostUrlBySlug } from "@/utils/url-utils";
+import { toPostSummary } from "@/utils/content-core";
+import PostStats from "./PostStats.astro";
+
+interface Props {
+	entry: CollectionEntry<"posts">;
+	index: number;
+}
+
+const { entry, index } = Astro.props;
+const summary = toPostSummary(entry);
+const { remarkPluginFrontmatter } = await entry.render();
+const path = getPostUrlBySlug(entry.slug);
+const description = entry.data.description || remarkPluginFrontmatter.excerpt || "该传输尚未附加摘要，打开读取完整内容。";
+const indexLabel = String(index).padStart(3, "0");
+---
+
+<article class="arcade-transmission-card" data-index={indexLabel}>
+	<a href={path} aria-label={`读取：${entry.data.title}`}>
+		<header>
+			<span class="arcade-type-chip">{summary.type}</span>
+			{entry.data.pinned && <span class="arcade-post-tag">PRIORITY</span>}
+		</header>
+		<h3>{entry.data.title}</h3>
+		<p>{description}</p>
+		<div class="arcade-transmission-meta">
+			<span>{formatDateToYYYYMMDD(entry.data.published)}</span>
+			<span>{summary.category}</span>
+			<span>{remarkPluginFrontmatter.words} 字 / {remarkPluginFrontmatter.minutes} 分钟</span>
+		</div>
+		<footer>
+			<PostStats path={path} label={`${entry.data.title} 累计统计`} />
+			<span>OPEN ↗</span>
+		</footer>
+	</a>
+</article>
