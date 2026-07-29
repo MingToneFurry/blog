@@ -211,7 +211,7 @@
 	min-height: 34px;
 	padding: 0 11px;
 	border: 1px solid var(--glass-line);
-	border-radius: 999px;
+	border-radius: var(--glass-radius-sm);
 	background: transparent;
 	color: var(--glass-muted);
 	font-size: 12px;
@@ -264,7 +264,7 @@
 .glass-writing-labels span {
 	padding: 2px 7px;
 	border: 1px solid var(--glass-line);
-	border-radius: 999px;
+	border-radius: var(--glass-radius-xs);
 	background: var(--glass-surface-2);
 	color: var(--glass-muted);
 	font: 600 10px/1.5 "JetBrains Mono Variable", monospace;
@@ -449,7 +449,7 @@
 	width: 54px;
 	height: 54px;
 	border: 1px solid var(--glass-accent);
-	border-radius: 50%;
+	border-radius: var(--glass-radius-md);
 	object-fit: cover;
 }
 
@@ -532,7 +532,7 @@
 	width: 6px;
 	height: 6px;
 	border: 1px solid currentColor;
-	border-radius: 50%;
+	border-radius: var(--glass-radius-xs);
 	flex: 0 0 auto;
 }
 
@@ -678,7 +678,7 @@
 	width: 48px;
 	height: 48px;
 	border: 1px solid var(--glass-line);
-	border-radius: 50%;
+	border-radius: var(--glass-radius-md);
 	object-fit: cover;
 }
 
@@ -746,7 +746,7 @@
 .glass-article-labels span {
 	padding: 3px 8px;
 	border: 1px solid var(--glass-line);
-	border-radius: 999px;
+	border-radius: var(--glass-radius-xs);
 	background: var(--glass-surface-2);
 	color: var(--glass-muted);
 	font: 600 10px/1.5 "JetBrains Mono Variable", monospace;

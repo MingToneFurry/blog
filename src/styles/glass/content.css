@@ -149,6 +149,108 @@
 	box-shadow: none !important;
 }
 
+.glass-prose .admonition {
+	position: relative;
+	padding: 18px 18px 14px;
+	border: 1px solid var(--glass-line);
+	border-left: 3px solid var(--glass-accent);
+	background: var(--glass-surface-2);
+	color: var(--glass-ink);
+}
+
+.glass-prose .bdm-title {
+	display: block;
+	margin-bottom: 8px;
+	color: var(--glass-accent);
+	font: 650 11px/1.5 "JetBrains Mono Variable", monospace;
+}
+
+.glass-prose :where(.card-url, .card-github) {
+	display: block;
+	margin: 1.4em 0;
+	overflow: hidden;
+	border: 1px solid var(--glass-line);
+	border-radius: var(--glass-radius-sm);
+	background: var(--glass-surface);
+	color: var(--glass-ink);
+	text-decoration: none;
+	box-shadow: none;
+}
+
+.glass-prose :where(.card-url, .card-github):hover {
+	border-color: var(--glass-accent);
+}
+
+.glass-prose .uc-container {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) minmax(120px, 30%);
+	min-height: 132px;
+}
+
+.glass-prose .uc-content,
+.glass-prose .card-github {
+	padding: 16px;
+}
+
+.glass-prose .uc-image {
+	min-height: 132px;
+	border-left: 1px solid var(--glass-line);
+	background-color: var(--glass-surface-2);
+	background-position: center;
+	background-size: cover;
+}
+
+.glass-prose .uc-titlebar,
+.glass-prose .gc-titlebar,
+.glass-prose .gc-owner,
+.glass-prose .gc-titlebar-left,
+.glass-prose .gc-infobar {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.glass-prose :where(.uc-domain, .gc-user, .gc-divider, .gc-infobar) {
+	color: var(--glass-subtle);
+	font: 500 10px/1.5 "JetBrains Mono Variable", monospace;
+}
+
+.glass-prose :where(.uc-title-text, .gc-repo) {
+	margin-top: 9px;
+	font-weight: 700;
+}
+
+.glass-prose :where(.uc-description, .gc-description) {
+	margin-top: 5px;
+	color: var(--glass-muted);
+	font-size: 13px;
+}
+
+.glass-prose .gc-infobar {
+	flex-wrap: wrap;
+	margin-top: 14px;
+	padding-top: 10px;
+	border-top: 1px solid var(--glass-line-soft);
+}
+
+.glass-prose :where(.uc-favicon, .gc-avatar) {
+	width: 22px;
+	height: 22px;
+	border: 1px solid var(--glass-line);
+	border-radius: var(--glass-radius-xs);
+	background-color: var(--glass-accent-soft);
+	background-position: center;
+	background-size: cover;
+}
+
+.glass-prose .fetch-waiting {
+	opacity: 0.72;
+}
+
+.glass-prose .fetch-error {
+	border-color: var(--glass-danger);
+}
+
 .expressive-code .copy-btn {
 	border: 1px solid rgba(255, 255, 255, 0.18) !important;
 	border-radius: var(--glass-radius-xs) !important;
@@ -166,5 +268,15 @@
 	.glass-prose {
 		font-size: 15px;
 		line-height: 1.8;
+	}
+
+	.glass-prose .uc-container {
+		grid-template-columns: 1fr;
+	}
+
+	.glass-prose .uc-image {
+		min-height: 150px;
+		border-top: 1px solid var(--glass-line);
+		border-left: 0;
 	}
 }

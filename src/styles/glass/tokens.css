@@ -24,6 +24,9 @@
 	--glass-reading-progress: 0%;
 	--glass-width: 1180px;
 	--glass-ease: cubic-bezier(0.2, 0, 0, 1);
+	--primary: var(--glass-accent);
+	--codeblock-bg: #11151c;
+	--codeblock-topbar-bg: #171c25;
 }
 
 :root[data-color-scheme="dark"] {
@@ -44,4 +47,6 @@
 	--glass-danger-soft: rgba(240, 108, 108, 0.12);
 	--glass-focus: 0 0 0 3px rgba(59, 130, 246, 0.24);
 	--glass-dialog-shadow: 0 32px 80px -30px rgba(0, 0, 0, 0.86), 0 0 80px -34px rgba(59, 130, 246, 0.55);
+	--codeblock-bg: #0e1117;
+	--codeblock-topbar-bg: #151922;
 }
