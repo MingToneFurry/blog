@@ -306,6 +306,14 @@ document.addEventListener("change", (event) => {
 });
 
 document.addEventListener("keydown", (event) => {
+	if (event.key === "Escape") {
+		const dialog = document.querySelector<HTMLDialogElement>("dialog[open]");
+		if (!dialog) return;
+		event.preventDefault();
+		closeDialog(dialog);
+		return;
+	}
+
 	if (!event.altKey || (event.key !== "ArrowLeft" && event.key !== "ArrowRight")) return;
 	if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement || event.target instanceof HTMLSelectElement) return;
 	const direction = event.key === "ArrowLeft" ? "newer" : "older";

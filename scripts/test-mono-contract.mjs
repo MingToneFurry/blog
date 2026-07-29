@@ -7,6 +7,8 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const dist = path.join(root, "dist");
 const journalCssPath = path.join(root, "src/styles/mono/journal.css");
 const journalCss = fs.readFileSync(journalCssPath, "utf8");
+const journalRuntimePath = path.join(root, "src/mono/runtime/journal.ts");
+const journalRuntime = fs.readFileSync(journalRuntimePath, "utf8");
 
 function assert(condition, message) {
 	if (!condition) throw new Error(message);
@@ -76,6 +78,9 @@ assert(radii.every((value) => /^0(?:px)?(?:\s*!important)?$/i.test(value)), "Jou
 assert(!/border(?:-width)?\s*:\s*[2-9]px/i.test(journalCss), "Journal CSS borders must stay at 1px");
 assert(journalCss.includes("@media (prefers-reduced-motion: reduce)"), "Journal CSS must include reduced-motion rules");
 assert(journalCss.includes("@media (max-width: 39rem)"), "Journal CSS must include the 390px mobile breakpoint");
+assert(journalRuntime.includes('event.key === "Escape"'), "Journal runtime must handle the Escape key explicitly");
+assert(journalRuntime.includes('querySelector<HTMLDialogElement>("dialog[open]")'), "Journal runtime must find the open dialog on Escape");
+assert(journalRuntime.includes("closeDialog(dialog)"), "Journal runtime must close dialogs through the focus-restoring helper");
 
 const nonNoneShadows = [...journalCss.matchAll(/box-shadow\s*:\s*([^;]+);/gi)]
 	.map((match) => match[1].trim())
