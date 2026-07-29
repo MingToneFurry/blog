@@ -95,3 +95,61 @@
 - core 没有改动旧 Fuwari 统计消费组件，也没有加入任何风格 Layout、视觉组件或 CSS；三个风格分支必须分别移除旧内联脚本并接入新 DOM 协议。
 - 验证通过：`pnpm test:core`、`pnpm type-check`、`pnpm build`（36 页）、`git diff --check`。
 - 下一步：将 `design/rebuild-core` 普通 merge 到三个现有设计分支，再分别完成独立 Shell、全路由、移动交互与视觉系统。
+
+## MONO / Journal 第二轮独立产品交付（2026-07-29）
+
+### 授权环境与操作边界
+
+- 本节记录的全部代码、构建、接口契约验证与本地预览均位于用户明确授权的开发和安全测试环境；不包含对无关第三方系统的写操作。
+- 操作范围严格限定为 `D:\Projects\blog-mono` 的 `design/mono` 分支。没有修改其他设计工作树，没有 reset、rebase 或改写第一轮 MONO 提交，也没有将任何设计实现合入 `main`。
+- Umami 动态分享令牌仍只在浏览器内动态获取并以内存复用；源码、构建产物、截图和本交接文档均未写入动态令牌。
+- 当前交付只供用户在 ARCADE、GLASS、MONO 三个候选之间选择。用户选择前禁止把本分支合入 `main`。
+
+### 产品与代码结构
+
+- `src/mono/layouts/JournalShell.astro` 是唯一页面 Shell；所有公开 HTML 路由稳定输出一个语义 `main` 与一个 `#toc`，继续满足 Swup 的容器契约。
+- `src/mono/components/` 自建 Masthead、动态刊图、站点/文章统计、RSS 搜索、显示设置、首页编辑索引、分页、Reader、License、TOC、归档、友链、Footer、图片与静态页组件。
+- `src/mono/runtime/journal.ts` 只承载 Journal 专属增强：RSS 检索、Dialog、主题/背景设置消费、导航高亮、阅读进度、返回顶部、代码复制、图片揭示与 Alt+方向键前后篇。
+- `src/styles/mono/journal.css` 是独立视觉系统：黑白灰、全直角、1px 边框、无渐变、无界面模糊、无纹理、仅 Dialog 允许一层环境阴影；全部过渡不超过 320ms，并包含 `prefers-reduced-motion`。
+- 首页改为数字刊物：Masthead、卷期/RSS、动态灰度刊图、pinned/featured 刊首文章、顺序编号编辑索引、分类/系列/年份索引和编辑手记；移动端保持单线性结构。
+- 文章页改为窄正文、宽留白与边注式目录，保留日期、更新、字数、阅读时间、分类/系列/标签、Markdown 插件、图片回退、Giscus、License、GitHub 编辑链接、上一篇/下一篇与返回顶部。
+- 归档、友链、404、关于、联系方式和隐私全部迁移到 Journal 组件树；首页 4 页分页、26 篇文章、中文 slug、RSS、Sitemap 和 robots 保持不变。
+- 在确认无任何公开路由引用后，已删除旧 `src/components`、`src/layouts`、第一轮视觉 CSS 和旧 `setting-utils.ts`，因此本轮不再保留旧 Fuwari 内联统计或视觉消费路径。第一轮实现仍完整保存在 Git 历史回退点。
+
+### 统计、背景与设置契约
+
+- 全站、首页当前页每篇文章和文章详情均使用唯一 `data-blog-stats` 协议，同时渲染累计 PV 与累计 UV；所有未完成/失败值初始并保持 `--`，真实零才显示 `0`。
+- 首页第 1—3 页各有 8 组文章统计，第 4 页有 2 组；每页另有 1 组全站统计。文章详情有 1 组全站统计和 1 组文章统计。
+- 统计底层固定 `startAt=0`，并继承 core 的最大并发 4、250ms/750ms 两次有限退避、单项失败隔离、中文 pathname 规范化和 Swup 幂等扫描。
+- 动态刊图继承 core 的 `https://api.furry.ist/furry-img` 主源、`https://sni-api.furry.ist/furry-img` 回退与双失败纯色纸张状态机；首页用灰度刊首图，其他页面用页边图，正文始终为纯色。
+- 显示设置直接消费 `settings-core`，继续使用 `theme`、`hide-bg`、`bg-blur` 键。为同时遵守 Journal “无模糊材质”硬约束，`bg-blur` 在本风格中以刊图墨度/对比柔化表达并持久化，不使用 CSS blur 或 backdrop-filter。
+- 首屏 inline bootstrap 在绑定背景状态机前读取 `hide-bg`；关闭背景时先把 `data-background-visible=false` 同步到刊图根节点，避免 core 初始化抢先发起图片请求。
+
+### 提交记录
+
+- `935edf4`：普通 merge 最新 `design/rebuild-core`，包含动态分享令牌仅内存复用与旧持久缓存清理；保留双方历史和交接记录。
+- `9b1e183`：建立独立 Journal Shell、刊头、首页、搜索、设置、统计、动态刊图、Footer、运行时和完整视觉系统。
+- `833a01a`：用独立 Journal Reader 替换旧文章页，保留 Markdown、Giscus、License、GitHub 编辑与前后篇。
+- `c87790e`：迁移归档、友链、404 与三份静态 Markdown 页面，并统一外链安全属性。
+- `7753175`：增加 `pnpm test:mono-contract`，自动验证 36 页、容器、统计、外链、无障碍名称、旧视觉引用与 MONO 样式禁用项。
+- `aec8c5d`：删除已确认无引用的退役 Fuwari 视觉树和重复客户端脚本。该提交是更新本文档前的代码 HEAD。
+
+### 已完成验证
+
+- `pnpm test:core`：通过；Umami、内容排序、统计运行时、背景、设置和生命周期全部契约测试通过。
+- `pnpm type-check`：通过，无新增或遗留 TypeScript 错误。
+- `pnpm build`：通过，生成 36 个静态页面；首页 4 页、26 篇文章、归档、友链、静态页、404、RSS、Sitemap 和 robots 均生成。
+- `pnpm test:mono-contract`：通过；36 个 HTML 页各有且仅有一个 `main` 与一个 `#toc`，无旧 Fuwari DOM，统计均以 `--` 起始，所有 `target=_blank` 链接含 `noopener noreferrer`，按钮有可访问名称，Journal CSS 禁用项检查通过。
+- `git diff --check`：通过。
+- `http://127.0.0.1:4328/` 本地预览返回 HTTP 200；该端口是当前会话的临时预览，不是部署地址。
+
+### 待主线程完成的浏览器证据
+
+- 本子代理按 Browser skill 初始化后，浏览器运行时返回 `agent.browsers.list() = []`，当前没有可控制的应用浏览器，因此没有伪造或绕过该通道生成截图。
+- 主线程需在可用的应用浏览器中补做：桌面首页、精确 `390x844` 首页、桌面文章页截图；首页/分页/归档/友链/静态页/404；中文和英文文章；搜索、主题三态、背景开关、柔化持久化、Swup 前进后退、TOC、键盘、Escape、焦点返回与 reduced-motion。
+- 主线程还需补做在线状态矩阵：每套首页连续 3 轮等待全部当前页文章 PV/UV；文章详情 PV/UV；背景主源、SNI 回退、双失败纯色降级。记录和截图不得包含动态分享令牌。
+
+### 已知非阻塞提示
+
+- 构建仍报告 `src/content/assets` 没有匹配 JSON/YAML 的 glob-loader 提示；这是既有空数据集合提示，不影响 36 页输出。
+- pnpm 会提示旧版 `package.json` 中的 `pnpm.patchedDependencies` 字段在当前 pnpm 版本不再读取；本轮未修改该部署基线，Astro 生产构建仍通过。
