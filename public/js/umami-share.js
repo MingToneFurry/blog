@@ -1,7 +1,5 @@
 ((global) => {
-	// Invalidate cached Cloud API locations whenever Umami changes its gateway.
-	const SHARE_CACHE_PREFIX = "umami-share-cache:v3:";
-	const SHARE_CACHE_TTL = 3600_000; // 1h
+	const LEGACY_SHARE_CACHE_PREFIX = "umami-share-cache:";
 	const UMAMI_SHARE_CONTEXT = "1";
 
 	// In-memory caches (per page load)
@@ -14,33 +12,22 @@
 		return String(baseUrl).replace(/\/+$/, "");
 	}
 
-	function getShareCacheKey(baseUrl, shareId) {
-		return `${SHARE_CACHE_PREFIX}${normalizeBaseUrl(baseUrl)}|${shareId}`;
-	}
-
-	function safeGetItem(key) {
+	function purgePersistedShareCaches() {
 		try {
-			return localStorage.getItem(key);
+			const keys = [];
+			for (let index = 0; index < localStorage.length; index += 1) {
+				const key = localStorage.key(index);
+				if (key?.startsWith(LEGACY_SHARE_CACHE_PREFIX)) keys.push(key);
+			}
+			for (const key of keys) localStorage.removeItem(key);
 		} catch {
-			return null;
+			// Storage can be unavailable in private or restricted browsing contexts.
 		}
 	}
 
-	function safeSetItem(key, value) {
-		try {
-			localStorage.setItem(key, value);
-		} catch {
-			// Ignore (e.g. iOS Safari private mode)
-		}
-	}
-
-	function safeRemoveItem(key) {
-		try {
-			localStorage.removeItem(key);
-		} catch {
-			// Ignore
-		}
-	}
+	// Older helper versions persisted the dynamic share token for one hour.
+	// Remove those entries once and keep all current share data in memory only.
+	purgePersistedShareCaches();
 
 	function uniq(arr) {
 		const seen = new Set();
@@ -152,21 +139,6 @@
 	}
 
 	async function fetchShareData(baseUrl, shareId) {
-		const shareCacheKey = getShareCacheKey(baseUrl, shareId);
-
-		// LocalStorage cache (TTL)
-		const cached = safeGetItem(shareCacheKey);
-		if (cached) {
-			try {
-				const parsed = JSON.parse(cached);
-				if (Date.now() - parsed.timestamp < SHARE_CACHE_TTL) {
-					return parsed.value;
-				}
-			} catch {
-				safeRemoveItem(shareCacheKey);
-			}
-		}
-
 		const candidates = buildBaseCandidates(baseUrl);
 		let lastErr;
 
@@ -180,12 +152,7 @@
 					);
 				}
 
-				const value = { websiteId, token, apiBase };
-				safeSetItem(
-					shareCacheKey,
-					JSON.stringify({ timestamp: Date.now(), value }),
-				);
-				return value;
+				return { websiteId, token, apiBase };
 			} catch (err) {
 				lastErr = err;
 				// continue trying other candidates
@@ -213,12 +180,13 @@
 
 	/**
 	 * Clear Umami share cache.
-	 * - If baseUrl/shareId provided: clear only that entry
-	 * - Else: clear all in-memory promises (and keep localStorage untouched)
+	 * - If baseUrl/shareId provided: clear only that in-memory entry
+	 * - Else: clear all in-memory promises
+	 * Legacy persistent entries are purged defensively in either case.
 	 */
 	global.clearUmamiShareCache = (baseUrl, shareId) => {
+		purgePersistedShareCaches();
 		if (baseUrl && shareId) {
-			safeRemoveItem(getShareCacheKey(baseUrl, shareId));
 			sharePromises.delete(`${normalizeBaseUrl(baseUrl)}|${shareId}`);
 			return;
 		}
