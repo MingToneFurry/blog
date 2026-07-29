@@ -67,4 +67,3 @@ layout: "../arcade/layouts/ArcadeContentLayout.astro"
 ⣾⣿⣿⣿⣿⣿⣿⡀⠻⠟⠃<br>
 ⠙⠛⠻⢿⣿⣿⣿⡇<br>
 ⠀⠀⠀ ⠈⠙⠋⠁<br>
-

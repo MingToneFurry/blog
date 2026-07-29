@@ -16,6 +16,8 @@
 		"test:settings-core": "node scripts/test-settings-core.mjs",
 		"test:lifecycle-core": "node scripts/test-lifecycle-core.mjs",
 		"test:core": "pnpm test:umami && pnpm test:content-core && pnpm test:stats-runtime && pnpm test:background-core && pnpm test:settings-core && pnpm test:lifecycle-core",
+		"test:arcade": "node scripts/test-arcade-contract.mjs",
+		"verify:arcade-stats": "node scripts/verify-arcade-live-stats.mjs",
 		"new-post": "node scripts/new-post.js",
 		"clean": "node scripts/clean-unused-images.js",
 		"format": "biome format --write ./src",

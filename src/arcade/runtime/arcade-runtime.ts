@@ -26,6 +26,14 @@ let settings: AppearanceSettings;
 let searchIndexPromise: Promise<SearchRecord[]> | null = null;
 let commandReturnFocus: HTMLElement | null = null;
 
+function getStorage(): Storage | null {
+	try {
+		return window.localStorage;
+	} catch {
+		return null;
+	}
+}
+
 function normalizedPath(path: string): string {
 	try {
 		const parsed = new URL(path, window.location.origin).pathname;
@@ -40,7 +48,7 @@ function getMediaQuery(): MediaQueryList {
 }
 
 function applySettings(next: AppearanceSettings, persist = false): void {
-	settings = persist ? writeAppearanceSettings(window.localStorage, next) : next;
+	settings = persist ? writeAppearanceSettings(getStorage(), next) : next;
 	const root = document.documentElement;
 	applyAppearanceAttributes(root, settings, getMediaQuery().matches);
 	root.style.colorScheme = resolveTheme(settings.theme, getMediaQuery().matches);
@@ -199,6 +207,8 @@ function updateRouteState(): void {
 	}
 	const article = Boolean(document.querySelector("[data-article-body]"));
 	document.documentElement.dataset.routeKind = article ? "article" : "module";
+	const toc = document.getElementById("toc");
+	toc?.classList.toggle("has-toc", Boolean(toc.querySelector(".arcade-toc")));
 	updateReadingProgress();
 	initGiscus();
 }
@@ -377,7 +387,7 @@ export function startArcadeRuntime(): void {
 		return;
 	}
 	global.__arcadeRuntimeStarted = true;
-	settings = readAppearanceSettings(window.localStorage);
+	settings = readAppearanceSettings(getStorage());
 	applySettings(settings);
 	document.addEventListener("click", handleDocumentClick);
 	document.addEventListener("input", handleDocumentInput);
