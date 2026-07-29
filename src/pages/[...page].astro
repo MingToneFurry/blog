@@ -1,9 +1,9 @@
 ---
 import type { GetStaticPaths } from "astro";
-import PostPage from "../components/PostPage.astro";
-import Pagination from "../components/control/Pagination.astro";
+import type { MarkdownHeading } from "astro";
 import { PAGE_SIZE } from "../constants/constants";
-import MainGridLayout from "../layouts/MainGridLayout.astro";
+import JournalHome from "../mono/components/JournalHome.astro";
+import JournalShell from "../mono/layouts/JournalShell.astro";
 import { getSortedPosts } from "../utils/content-utils";
 
 export const getStaticPaths = (async ({ paginate }) => {
@@ -13,11 +13,18 @@ export const getStaticPaths = (async ({ paginate }) => {
 // https://github.com/withastro/astro/issues/6507#issuecomment-1489916992
 
 const { page } = Astro.props;
-
-const len = page.data.length;
+const homeHeadings: MarkdownHeading[] = [
+	{ depth: 2, slug: "lead", text: page.currentPage === 1 ? "刊首文章" : `第 ${page.currentPage} 页` },
+	{ depth: 2, slug: "entries", text: "编辑索引" },
+	{ depth: 2, slug: "publication-index", text: "出版物索引" },
+];
 ---
 
-<MainGridLayout title={page.currentPage === 1 ? undefined : `第 ${page.currentPage} 页`}>
-    <PostPage page={page}></PostPage>
-    <Pagination class="mx-auto onload-animation" page={page} style=`animation-delay: calc(var(--content-delay) + ${(len)*50}ms)`></Pagination>
-</MainGridLayout>
+<JournalShell
+	title={page.currentPage === 1 ? undefined : `第 ${page.currentPage} 页`}
+	tocHeadings={homeHeadings}
+	tocLabel="本期目录"
+	backgroundMode="cover"
+>
+	<JournalHome page={page} />
+</JournalShell>

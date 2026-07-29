@@ -1,0 +1,24 @@
+---
+interface Props {
+	mode?: "cover" | "edge";
+}
+
+const { mode = "edge" } = Astro.props;
+---
+
+<figure
+	class:list={["journal-background", `journal-background--${mode}`]}
+	data-blog-background
+	data-background-state="idle"
+	data-background-visible="true"
+	aria-hidden="true"
+>
+	<div class="journal-background__frame">
+		<img data-background-image alt="" decoding="async" />
+		<span class="journal-background__fallback">FURRY.IST / EDITION IMAGE</span>
+	</div>
+	<figcaption>
+		<span>动态刊图</span>
+		<span>PRIMARY → SNI → PAPER</span>
+	</figcaption>
+</figure>

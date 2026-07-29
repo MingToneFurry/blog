@@ -1,0 +1,149 @@
+---
+import "@fontsource-variable/geist";
+import "@fontsource-variable/jetbrains-mono";
+import "@fontsource-variable/jetbrains-mono/wght-italic.css";
+import "katex/dist/katex.css";
+import "../../styles/mono/journal.css";
+
+import { profileConfig, siteConfig, umamiConfig } from "@/config";
+import { defaultFavicons } from "@/constants/icon";
+import type { Favicon } from "@/types/config";
+import type { MarkdownHeading } from "astro";
+import JournalBackground from "../components/JournalBackground.astro";
+import JournalFooter from "../components/JournalFooter.astro";
+import JournalMasthead from "../components/JournalMasthead.astro";
+import JournalSearch from "../components/JournalSearch.astro";
+import JournalSettings from "../components/JournalSettings.astro";
+import JournalToc from "../components/JournalToc.astro";
+
+interface Props {
+	title?: string;
+	description?: string;
+	lang?: string;
+	setOGTypeArticle?: boolean;
+	tocHeadings?: MarkdownHeading[];
+	tocLabel?: string;
+	backgroundMode?: "cover" | "edge";
+}
+
+const {
+	title,
+	description = siteConfig.description,
+	lang = siteConfig.lang,
+	setOGTypeArticle = false,
+	tocHeadings = [],
+	tocLabel,
+	backgroundMode = "edge",
+} = Astro.props;
+
+const pageTitle = title ? `${title} — ${siteConfig.title}` : `${siteConfig.title} — ${siteConfig.subtitle}`;
+const siteLang = lang.replace("_", "-");
+const favicons: Favicon[] = siteConfig.favicon.length > 0 ? siteConfig.favicon : defaultFavicons;
+const canonicalUrl = new URL(Astro.url.pathname, Astro.site);
+---
+
+<!doctype html>
+<html lang={siteLang} data-design="journal" data-color-scheme="dark" data-theme-preference="auto" data-background-visible="true" data-background-blur="4">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="generator" content={Astro.generator} />
+		<meta name="description" content={description} />
+		<meta name="author" content={profileConfig.name} />
+		{siteConfig.keywords && <meta name="keywords" content={siteConfig.keywords.join(", ")} />}
+		<meta name="theme-color" content="#0a0a0a" media="(prefers-color-scheme: dark)" />
+		<meta name="theme-color" content="#fcfcfc" media="(prefers-color-scheme: light)" />
+		<title>{pageTitle}</title>
+		<link rel="canonical" href={canonicalUrl} />
+
+		<meta property="og:site_name" content={siteConfig.title} />
+		<meta property="og:url" content={canonicalUrl} />
+		<meta property="og:title" content={pageTitle} />
+		<meta property="og:description" content={description} />
+		<meta property="og:type" content={setOGTypeArticle ? "article" : "website"} />
+		<meta name="twitter:card" content="summary" />
+		<meta name="twitter:title" content={pageTitle} />
+		<meta name="twitter:description" content={description} />
+
+		{favicons.map((favicon) => (
+			<link
+				rel="icon"
+				href={favicon.src}
+				sizes={favicon.sizes}
+				media={favicon.theme ? `(prefers-color-scheme: ${favicon.theme})` : undefined}
+			/>
+		))}
+		<link rel="alternate" type="application/rss+xml" title={siteConfig.title} href={new URL("rss.xml", Astro.site)} />
+
+		<script is:inline>
+			(() => {
+				const root = document.documentElement;
+				let theme = "auto";
+				let backgroundVisible = true;
+				let backgroundBlur = 4;
+				try {
+					theme = ["light", "dark", "auto"].includes(localStorage.getItem("theme"))
+						? localStorage.getItem("theme")
+						: "auto";
+					backgroundVisible = localStorage.getItem("hide-bg") !== "true";
+					const parsedBlur = Number.parseFloat(localStorage.getItem("bg-blur") || "4");
+					backgroundBlur = Number.isFinite(parsedBlur) ? Math.min(24, Math.max(0, parsedBlur)) : 4;
+				} catch {}
+				const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+				const colorScheme = theme === "auto" ? (prefersDark ? "dark" : "light") : theme;
+				root.dataset.themePreference = theme;
+				root.dataset.colorScheme = colorScheme;
+				root.dataset.backgroundVisible = String(backgroundVisible);
+				root.dataset.backgroundBlur = String(backgroundBlur);
+				root.classList.toggle("dark", colorScheme === "dark");
+				root.style.colorScheme = colorScheme;
+			})();
+		</script>
+
+		<slot name="head" />
+		<script defer src="https://cloud.umami.is/script.js" data-website-id="360509f2-5a9e-466f-9944-25af72447192"></script>
+	</head>
+
+	<body>
+		<a class="journal-skip-link" href="#journal-main">跳到正文</a>
+		<div class="journal-reading-progress" aria-hidden="true"></div>
+		<div class="journal-page">
+			<JournalMasthead currentPath={Astro.url.pathname} />
+			<div class="journal-stage">
+				<main id="journal-main" class="transition-swup-journal" tabindex="-1">
+					<JournalBackground mode={backgroundMode} />
+					<slot />
+				</main>
+				<aside id="toc" class="journal-toc transition-swup-journal" aria-label={tocLabel || "本页索引"}>
+					<JournalToc headings={tocHeadings} label={tocLabel} />
+				</aside>
+			</div>
+			<JournalFooter />
+		</div>
+
+		<JournalSearch />
+		<JournalSettings />
+		<button class="journal-back-to-top" type="button" data-journal-back-to-top aria-label="返回页面顶部">↑ TOP</button>
+
+		<script is:inline src="/js/umami-share.js"></script>
+		<script is:inline src="/js/blog-stats.js"></script>
+		<script is:inline src="/js/blog-background.js"></script>
+		<script is:inline define:vars={{ statsBaseUrl: umamiConfig.baseUrl, statsShareId: umamiConfig.shareId, statsTimezone: umamiConfig.timezone }}>
+			window.blogStats?.configure({
+				baseUrl: statsBaseUrl,
+				shareId: statsShareId,
+				timezone: statsTimezone,
+				concurrency: 4,
+				retryDelays: [250, 750],
+			});
+			window.blogStats?.bindLifecycle(document);
+			for (const background of document.querySelectorAll("[data-blog-background]")) {
+				background.dataset.backgroundVisible = document.documentElement.dataset.backgroundVisible || "true";
+			}
+			window.blogBackground?.bindLifecycle(document);
+		</script>
+		<script>
+			import "../runtime/journal";
+		</script>
+	</body>
+</html>

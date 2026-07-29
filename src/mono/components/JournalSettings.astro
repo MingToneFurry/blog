@@ -1,0 +1,44 @@
+<dialog id="journal-settings" class="journal-dialog journal-settings" aria-labelledby="journal-settings-title">
+	<div class="journal-dialog__header">
+		<div>
+			<span class="journal-kicker">[DISPLAY SETTINGS]</span>
+			<h2 id="journal-settings-title">显示设置</h2>
+		</div>
+		<form method="dialog">
+			<button class="journal-icon-button" type="submit" aria-label="关闭显示设置">关闭</button>
+		</form>
+	</div>
+
+	<div class="journal-settings__group">
+		<label for="journal-theme">主题</label>
+		<select id="journal-theme" data-journal-theme>
+			<option value="dark">暗色</option>
+			<option value="light">亮色</option>
+			<option value="auto">跟随系统</option>
+		</select>
+	</div>
+
+	<label class="journal-settings__toggle" for="journal-background-visible">
+		<span>
+			<strong>动态刊图</strong>
+			<small>使用 api.furry.ist，失败时切换 SNI，再回到纯色纸张。</small>
+		</span>
+		<input id="journal-background-visible" type="checkbox" data-journal-background-visible />
+	</label>
+
+	<div class="journal-settings__group">
+		<div class="journal-settings__range-label">
+			<label for="journal-background-blur">刊图柔化</label>
+			<output for="journal-background-blur" data-journal-background-blur-value>4</output>
+		</div>
+		<input
+			id="journal-background-blur"
+			type="range"
+			min="0"
+			max="24"
+			step="1"
+			data-journal-background-blur
+		/>
+		<p class="journal-settings__note">兼容现有 bg-blur 设置；Journal 以灰度与墨度变化表达柔化，不引入界面模糊材质。</p>
+	</div>
+</dialog>

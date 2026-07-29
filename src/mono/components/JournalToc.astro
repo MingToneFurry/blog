@@ -1,0 +1,35 @@
+---
+import type { MarkdownHeading } from "astro";
+
+interface Props {
+	headings?: MarkdownHeading[];
+	label?: string;
+}
+
+const { headings = [], label = "本页索引" } = Astro.props;
+const visibleHeadings = headings.filter((heading) => heading.depth >= 2 && heading.depth <= 3);
+---
+
+<div class="journal-toc__inner">
+	<p class="journal-kicker">[PAGE INDEX]</p>
+	<h2>{label}</h2>
+	{visibleHeadings.length > 0 ? (
+		<nav aria-label={label}>
+			<ol>
+				{visibleHeadings.map((heading, index) => (
+					<li class:list={[`journal-toc__depth-${heading.depth}`]}>
+						<a href={`#${heading.slug}`}>
+							<span>{String(index + 1).padStart(2, "0")}</span>
+							{heading.text}
+						</a>
+					</li>
+				))}
+			</ol>
+		</nav>
+	) : (
+		<div class="journal-toc__fallback">
+			<a href="/archive/">完整归档</a>
+			<a href="/rss.xml">RSS 订阅</a>
+		</div>
+	)}
+</div>

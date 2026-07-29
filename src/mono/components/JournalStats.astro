@@ -1,0 +1,35 @@
+---
+interface Props {
+	scope: "site" | "post";
+	path?: string;
+	label?: string;
+	class?: string;
+}
+
+const {
+	scope,
+	path,
+	label = scope === "site" ? "全站累计" : "文章累计",
+} = Astro.props;
+const className = Astro.props.class;
+---
+
+<dl
+	class:list={["journal-stats", className]}
+	data-blog-stats
+	data-stats-scope={scope}
+	data-stats-path={scope === "post" ? path : undefined}
+	data-stats-state="idle"
+	aria-label={label}
+	aria-live="polite"
+	aria-busy="false"
+>
+	<div class="journal-stat">
+		<dt>累计浏览 PV</dt>
+		<dd data-stats-value="pageviews" data-stats-state="idle">--</dd>
+	</div>
+	<div class="journal-stat">
+		<dt>累计访客 UV</dt>
+		<dd data-stats-value="visitors" data-stats-state="idle">--</dd>
+	</div>
+</dl>

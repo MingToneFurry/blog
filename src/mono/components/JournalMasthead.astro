@@ -1,0 +1,78 @@
+---
+import { navBarConfig, profileConfig, siteConfig } from "@/config";
+import { LinkPreset } from "@/types/config";
+import { normalizePathname } from "@/utils/url-utils";
+import JournalStats from "./JournalStats.astro";
+
+interface Props {
+	currentPath: string;
+}
+
+const { currentPath } = Astro.props;
+const now = new Date();
+const issue = `${now.getFullYear()}.${String(now.getMonth() + 1).padStart(2, "0")}`;
+
+const links = navBarConfig.links.map((link) => {
+	if (link === LinkPreset.Home) return { name: "首页", url: "/", external: false };
+	if (link === LinkPreset.Archive)
+		return { name: "归档", url: "/archive/", external: false };
+	return link;
+});
+
+const normalizedCurrentPath = normalizePathname(currentPath);
+---
+
+<header class="journal-masthead">
+	<div class="journal-masthead__edition journal-mono">
+		<span>DIGITAL JOURNAL / {issue}</span>
+		<span>NOTHING BUT SIGNAL.</span>
+	</div>
+
+	<div class="journal-masthead__identity">
+		<div class="journal-masthead__title-block">
+			<a class="journal-wordmark" href="/" aria-label={`${siteConfig.title}首页`}>
+				{siteConfig.title}
+			</a>
+			<p>{siteConfig.subtitle}</p>
+		</div>
+		<JournalStats scope="site" label="全站累计访问统计" class="journal-masthead__stats" />
+	</div>
+
+	<div class="journal-masthead__index">
+		<nav aria-label="主索引">
+			<ol>
+				{links.map((link, index) => {
+					const current = !link.external && normalizePathname(link.url) === normalizedCurrentPath;
+					return (
+						<li>
+							<a
+								href={link.url}
+								target={link.external ? "_blank" : undefined}
+								rel={link.external ? "noopener noreferrer" : undefined}
+								aria-current={current ? "page" : undefined}
+								data-journal-nav-link={!link.external ? "true" : undefined}
+							>
+								<span class="journal-nav-number">{String(index + 1).padStart(2, "0")}</span>
+								{link.name}{link.external ? " ↗" : ""}
+							</a>
+						</li>
+					);
+				})}
+			</ol>
+		</nav>
+
+		<div class="journal-masthead__tools" aria-label="刊物工具">
+			<button type="button" data-journal-search-open aria-haspopup="dialog" aria-controls="journal-search">
+				搜索
+			</button>
+			<button type="button" data-journal-settings-open aria-haspopup="dialog" aria-controls="journal-settings">
+				显示
+			</button>
+			<a href="/rss.xml" target="_blank" rel="noopener noreferrer">RSS ↗</a>
+		</div>
+	</div>
+
+	<p class="journal-masthead__byline journal-mono">
+		编辑 / {profileConfig.name} · {profileConfig.bio || "PERSONAL NOTES"}
+	</p>
+</header>

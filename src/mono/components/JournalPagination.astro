@@ -1,0 +1,40 @@
+---
+interface Props {
+	page: {
+		currentPage: number;
+		lastPage: number;
+		url: {
+			prev?: string;
+			next?: string;
+		};
+	};
+}
+
+const { page } = Astro.props;
+const pages = Array.from({ length: page.lastPage }, (_, index) => index + 1);
+const pageUrl = (pageNumber: number) => (pageNumber === 1 ? "/" : `/${pageNumber}/`);
+---
+
+<nav class="journal-pagination" aria-label="文章分页">
+	{page.url.prev ? (
+		<a href={page.url.prev} rel="prev">← 上一页</a>
+	) : (
+		<span class="journal-pagination__disabled">← 上一页</span>
+	)}
+
+	<div class="journal-pagination__pages">
+		{pages.map((pageNumber) =>
+			pageNumber === page.currentPage ? (
+				<span aria-current="page" aria-label={`第 ${pageNumber} 页`}>{String(pageNumber).padStart(2, "0")}</span>
+			) : (
+				<a href={pageUrl(pageNumber)} aria-label={`前往第 ${pageNumber} 页`}>{String(pageNumber).padStart(2, "0")}</a>
+			),
+		)}
+	</div>
+
+	{page.url.next ? (
+		<a href={page.url.next} rel="next">下一页 →</a>
+	) : (
+		<span class="journal-pagination__disabled">下一页 →</span>
+	)}
+</nav>
