@@ -42,10 +42,14 @@ const fetch = async (input, options = {}) => {
 		return jsonResponse({
 			id: "website-id",
 			createdAt: "2025-07-06T04:54:09.999Z",
+			resetAt: "2025-08-01T00:00:00.000Z",
 		});
 	}
 
 	if (url.startsWith("https://gateway-us.umami.is/api/websites/website-id/stats?")) {
+		if (new URL(url).searchParams.get("path") === "eq./posts/no-comparison/") {
+			return jsonResponse({ pageviews: 1, visitors: 1 });
+		}
 		return jsonResponse({
 			pageviews: 42,
 			visitors: 7,
@@ -105,7 +109,7 @@ for (const { options } of authenticatedRequests) {
 const statsRequest = requests.find(({ url }) => url.includes("/stats?"));
 assert.ok(statsRequest);
 const statsUrl = new URL(statsRequest.url);
-const openedAt = Date.parse("2025-07-06T04:54:09.999Z");
+const openedAt = Date.parse("2025-08-01T00:00:00.000Z");
 const snapshotAt = Math.ceil(fixedNow / 60_000) * 60_000;
 const durationMinutes = Math.ceil((snapshotAt - openedAt) / 60_000);
 assert.equal(statsUrl.searchParams.get("startAt"), String(snapshotAt));
@@ -117,6 +121,14 @@ assert.equal(statsUrl.searchParams.get("compare"), "prev");
 assert.equal(statsUrl.searchParams.get("path"), "eq./posts/example/");
 assert.equal(statsUrl.searchParams.get("timezone"), "Asia/Shanghai");
 assert.equal(statsUrl.searchParams.has("lifetime"), false);
+await assert.rejects(
+	window.fetchUmamiStats(
+		"https://cloud.umami.is/analytics/us",
+		"share-id",
+		{ url: "/posts/no-comparison/", timezone: "Asia/Shanghai" },
+	),
+	/未返回 lifetime comparison/,
+);
 assert.deepEqual(storage.entries(), []);
 
 console.log("Umami share helper tests passed");

@@ -61,7 +61,9 @@
 	}
 
 	function selectLifetimeStats(data) {
-		if (!data || typeof data !== "object" || !data.comparison) return data;
+		if (!data || typeof data !== "object" || !data.comparison) {
+			throw new Error("Umami stats API 未返回 lifetime comparison");
+		}
 		return { ...data, ...data.comparison, comparison: data.comparison };
 	}
 
@@ -172,7 +174,10 @@
 					websiteId,
 					token,
 					apiBase,
-					lifetimeStartAt: parseTimestamp(website.createdAt),
+					lifetimeStartAt: Math.max(
+						parseTimestamp(website.createdAt),
+						parseTimestamp(website.resetAt),
+					),
 				};
 			} catch (err) {
 				lastErr = err;
