@@ -39,3 +39,6 @@ ori
 
 # EdgeOne
 .edgeone
+
+# Local brainstorming companion artifacts
+.superpowers/
