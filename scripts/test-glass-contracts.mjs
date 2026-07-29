@@ -142,6 +142,11 @@ assert.match(glassStyles, /\.glass-switch input:checked \+ \.glass-switch-track:
 assert.match(glassStyles, /\.glass-switch input:focus-visible \+ \.glass-switch-track/, "the custom switch must expose a visible keyboard focus state");
 const compactBar = read("src/glass/components/CompactBar.astro");
 assert.match(compactBar, /class="glass-switch-track"/, "the settings UI must render a portable explicit switch track");
+assert.match(
+	compactBar,
+	/class="glass-mobile-drawer"[\s\S]*?data-glass-drawer-panel/,
+	"the mobile navigation dialog must expose the shared focus-trap panel contract",
+);
 assert.match(home, /class="glass-switch-track"/, "the final home document must retain the explicit switch track");
 
 const shell = read("src/glass/layouts/GlassShell.astro");
@@ -154,6 +159,16 @@ assert.match(
 	observatoryRuntime,
 	/if \(event\.key === "Escape"\) \{\s*const dialog = document\.querySelector<HTMLDialogElement>\("dialog\[open\]"\);\s*if \(dialog\) \{\s*event\.preventDefault\(\);\s*closeDialog\(dialog\);\s*return;/,
 	"Escape must explicitly close an open native dialog before handling drawers and popovers",
+);
+assert.match(
+	observatoryRuntime,
+	/const panel = openDrawer\.querySelector<HTMLElement>\("\[data-glass-drawer-panel\]"\);[\s\S]*?focusableWithin\(panel\)/,
+	"mobile Tab trapping must remain inside the modal drawer panel rather than its external summary trigger",
+);
+assert.match(
+	observatoryRuntime,
+	/querySelector<HTMLElement>\("\[data-glass-drawer-panel\] \[data-glass-drawer-close\]"\)[\s\S]*?\.focus\(\)/,
+	"opening a mobile drawer must move focus to its in-panel close control",
 );
 
 console.log(`GLASS contracts passed: ${htmlFiles.length} HTML documents, 8 home post stats roots, article feature matrix intact.`);

@@ -117,6 +117,7 @@
 - 背景只使用 `https://api.furry.ist/furry-img`，失败后切换 `https://sni-api.furry.ist/furry-img`；双失败时保留本地画布。
 - `f2e3252` 修复搜索跳转前关闭 dialog、导航 popover 互斥/外部关闭、移动遮罩、Escape、焦点返回和断点语义同步。桌面 context rail 现在是 HTML 中真实 `open` 的 `<details>`，进入可访问树；移动首屏立即关闭，断点切换只初始化一次，不会在移动端重复初始化时关掉用户刚打开的抽屉。
 - 最终收尾为原生 `<dialog>` 增加显式 Escape 路径：先匹配 `dialog[open]`，调用统一 `closeDialog()` 并由既有 `close` 监听器恢复触发按钮焦点；该顺序已加入交付契约，避免依赖浏览器默认 cancel 行为。
+- 移动 drawer 统一暴露 `data-glass-drawer-panel`：打开后聚焦面板内关闭按钮，Tab/Shift+Tab 只在 modal panel 内闭环，遮罩、关闭按钮或 Escape 关闭后均将焦点还给原 summary。
 - 最终规格审计逐项对齐 `iudesigns/glass.md`：明暗色、surface、发丝线、accent/hover、Dialog 舞台阴影、250ms 入场与 400ms 进度均使用规范值；Badge/状态点、圆形 Avatar、分段控件和 42×24 显式 Switch 使用唯一语义 pill token，普通卡片继续无投影、无全站磨砂，并提供键盘焦点与 `prefers-reduced-motion` 降级。
 
 ### 验证与待补验
@@ -125,5 +126,6 @@
 - GLASS 契约覆盖 36 个 HTML、首页 1 个站点统计根和 8 个文章统计根、文章功能矩阵、真实 open context rail、具名 `complementary` 可访问结构、显式 dialog Escape、ArcTower token/动效/Switch 结构、旧 UI 源树与最终 dist 零残留；不依赖 `CONTEXT RAIL` 等纯装饰字样。
 - 2026-07-29 最终实时只读 Umami 验证未输出分享令牌：全站累计 `335875 PV / 140105 UV / 318615 visits`；`/posts/start/` 为 `10 PV / 5 UV / 5 visits`。数值会随访问增长。
 - 2026-07-29 两条背景源均返回 `200 image/webp`；本地预览 `http://127.0.0.1:4332/` 返回 `200 text/html`。
-- 主线程已在 4332 桌面预览中确认右侧头像、分类与外部坐标 rail 可见，DOM 快照出现 `complementary "页面上下文"` 与 `complementary "观测站概览"`；截图暂存于主线程 QA 工作树。当前子代理的 Browser skill 仍返回空浏览器列表，精确 `390x844` 移动默认关闭/打开/遮罩/Escape/焦点返回、搜索 dialog 交互和 Swup 仍需主线程补验。
+- 主线程已在 4332 桌面预览中确认右侧头像、分类与外部坐标 rail 可见，DOM 快照出现 `complementary "页面上下文"` 与 `complementary "观测站概览"`；截图暂存于主线程 QA 工作树。
+- 主线程 IAB 已验证 `390x844` 首页背景、Hero、累计统计与无横向溢出，移动导航打开/关闭，搜索 `Cloudflare` 返回 5 条，文章 Swup 入口后位于顶部且文章 PV/UV 正常；文章工具打开聚焦关闭按钮、Tab 环、伪遮罩、Escape 与焦点返回均通过，移动主导航也聚焦关闭按钮并保留 `role=dialog` / `aria-modal=true`。当前子代理的 Browser skill 仍返回空浏览器列表；主线程继续补菜单完整焦点环、Dialog/Switch 和 Swup/history 最终矩阵。
 - 非阻塞警告：空 `src/content/assets`、Browserslist 数据较旧、pnpm 10 提示旧 `pnpm.patchedDependencies` 字段位置。

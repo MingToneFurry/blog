@@ -237,7 +237,9 @@ function handleKeydown(event: KeyboardEvent): void {
 	if (event.key === "Tab") {
 		const openDrawer = document.querySelector<HTMLDetailsElement>("[data-glass-drawer][open]");
 		if (!openDrawer || window.matchMedia("(min-width: 901px)").matches) return;
-		const focusable = focusableWithin(openDrawer);
+		const panel = openDrawer.querySelector<HTMLElement>("[data-glass-drawer-panel]");
+		if (!panel) return;
+		const focusable = focusableWithin(panel);
 		if (focusable.length === 0) return;
 		const first = focusable[0];
 		const last = focusable[focusable.length - 1];
@@ -396,6 +398,15 @@ export function startObservatory(): void {
 				window.setTimeout(() => {
 					for (const drawer of document.querySelectorAll<HTMLDetailsElement>("[data-glass-drawer][open]")) {
 						if (drawer !== current) drawer.open = false;
+					}
+					if (
+						current instanceof HTMLDetailsElement &&
+						current.open &&
+						window.matchMedia("(max-width: 900px)").matches
+					) {
+						current
+							.querySelector<HTMLElement>("[data-glass-drawer-panel] [data-glass-drawer-close]")
+							?.focus();
 					}
 				}, 0);
 				return;
