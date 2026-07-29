@@ -127,6 +127,7 @@ const arcadeCss = await readFile(path.join("src", "styles", "arcade", "index.css
 assert.match(arcadeCss, /border-radius:\s*0\s*!important/, "ARCADE must globally enforce square corners");
 assert.match(arcadeCss, /@media \(prefers-reduced-motion: reduce\)/, "ARCADE must include reduced-motion fallbacks");
 assert.match(arcadeCss, /@media \(max-width: 400px\)/, "ARCADE must include a 390px-safe breakpoint");
+assert.match(arcadeCss, /\.arcade-command-layer\[hidden\]\s*\{[^}]*display:\s*none/, "ARCADE hidden command layer must not intercept the page");
 const mobileTelemetryBlock = arcadeCss.match(/@media \(max-width: 980px\) \{([\s\S]*?)@media \(max-width: 820px\)/)?.[1] ?? "";
 assert.match(mobileTelemetryBlock, /\.arcade-site-telemetry\s*\{[\s\S]*?position:\s*absolute/, "ARCADE must keep lifetime telemetry visible below the compact system bar");
 assert.doesNotMatch(arcadeCss, /\.arcade-site-telemetry\s*\{[^}]*display:\s*none/, "ARCADE must not hide lifetime telemetry at any responsive breakpoint");

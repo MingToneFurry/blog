@@ -1966,6 +1966,10 @@ input:not(:disabled) {
 	transition: opacity 160ms ease-out;
 }
 
+.arcade-command-layer[hidden] {
+	display: none;
+}
+
 .arcade-command-layer[data-open="true"] { opacity: 1; }
 
 .arcade-command-scrim {
