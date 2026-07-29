@@ -11,8 +11,12 @@ const postsCollection = defineCollection({
 		tags: z.array(z.string()).optional().default([]),
 		lang: z.string().optional().default(""),
 		pinned: z.boolean().optional().default(false),
+		category: z.string().optional(),
+		series: z.string().optional(),
+		type: z.string().optional(),
+		featured: z.union([z.boolean(), z.number()]).optional(),
 
-		/* For internal use */
+		/* Transitional compatibility for the legacy article page. */
 		prevTitle: z.string().default(""),
 		prevSlug: z.string().default(""),
 		nextTitle: z.string().default(""),
