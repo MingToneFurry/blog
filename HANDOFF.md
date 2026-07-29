@@ -123,13 +123,14 @@
 - 背景只使用 `https://api.furry.ist/furry-img`，失败后切换 `https://sni-api.furry.ist/furry-img`，双失败保留纯色画布。
 - ARCADE 视觉严格使用全直角、分级切角、唯一电光黄、硬 offset 阴影、宽字距标题、编号/斜线/L 形角括号；背景之外无磨砂或柔和弥散阴影。所有主要动效不超过 520ms，`prefers-reduced-motion` 下取消 skew、overshoot、大位移和脚本平滑滚动。
 - 桌面使用固定左任务轨和文章右侧 TOC；小屏切换为底部 Dock，TOC 转为正文后的线性模块；CSS 提供 820px、640px 和 400px 断点，正文表格、代码和长链接局部滚动或换行。
+- 响应式收尾已修复小屏全站统计被隐藏的问题：980px 以下累计 PV/UV 作为 28px 紧凑遥测条固定显示在系统条下方，场景、任务轨和正文同步下移；390px 断点进一步收紧间距但不删除统计。结构测试会阻止以后重新使用 `display: none` 隐藏该遥测条。
 - 个人资料、Bilibili、GitHub、RSS、Sitemap、隐私、外部状态页和 Umami 统计页均保留直接入口。
 
 ### 验证证据
 
 - `pnpm test:core`：通过，覆盖 Umami helper、内容纯函数、累计统计运行时、背景状态机、设置和生命周期。
 - `pnpm type-check`：通过，无类型错误。
-- `pnpm test:arcade`：通过；自包含执行生产构建后检查 36 个 HTML、26 篇文章、唯一 `main/#toc`、全部 ARCADE Shell、统计 `--` 占位、PV+UV 双节点、Giscus、License、外链安全属性、旧视觉源树和构建资产均为零、reduced-motion 与 390px 安全断点。
+- `pnpm test:arcade`：通过；自包含执行生产构建后检查 36 个 HTML、26 篇文章、唯一 `main/#toc`、全部 ARCADE Shell、统计 `--` 占位、PV+UV 双节点、Giscus、License、外链安全属性、旧视觉源树和构建资产均为零、reduced-motion、390px 安全断点，以及移动端累计遥测条不可隐藏契约。
 - `pnpm build`：通过，生成 36 页；保留首页 4 页分页、26 篇文章、归档、友链、关于、联系方式、隐私、404、RSS、Sitemap 与 robots.txt。
 - `pnpm verify:arcade-stats`：三轮实时验证均为 `9/9`，每轮包含全站和首页 8 篇文章的累计 PV+UV；输出不包含动态分享令牌。
 - 背景实时只读探测：主接口与 SNI 回退均返回 `200 image/webp`；core 测试同时覆盖主成功、主失败转回退、双失败、禁用与重复初始化。
@@ -139,6 +140,6 @@
 
 ### 尚待主线程补验
 
-- 当前子代理的浏览器控制层返回空浏览器列表，因此无法在本代理内生成桌面、精确 `390x844` 和文章页截图，也无法以真实浏览器完成点击式 Swup/命令面板/主题/背景持久化矩阵。
+- 当前子代理已按 Browser skill 的恢复流程确认浏览器列表为空，因此无法在本代理内生成更新后的精确 `390x844` 与文章页截图，也无法以真实浏览器完成点击式 Swup/命令面板/主题/背景持久化矩阵。
 - 这不是实现或构建阻塞；主线程应在浏览器绑定可用时使用上述预览地址补做视觉、键盘、前进后退、无横向溢出和截图终验，再决定是否存在需要回到本分支修正的问题。
 - 已知非阻塞警告：`src/content/assets` 数据集合为空、Browserslist 数据较旧、pnpm 10 提示旧 `pnpm.patchedDependencies` 字段位置；均未影响当前构建与运行时契约。
