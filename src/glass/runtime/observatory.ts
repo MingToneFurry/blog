@@ -215,6 +215,13 @@ function focusableWithin(root: HTMLElement): HTMLElement[] {
 
 function handleKeydown(event: KeyboardEvent): void {
 	if (event.key === "Escape") {
+		const dialog = document.querySelector<HTMLDialogElement>("dialog[open]");
+		if (dialog) {
+			event.preventDefault();
+			closeDialog(dialog);
+			return;
+		}
+
 		const openDrawer = document.querySelector<HTMLDetailsElement>("[data-glass-drawer][open]");
 		if (openDrawer && window.matchMedia("(max-width: 900px)").matches) {
 			event.preventDefault();

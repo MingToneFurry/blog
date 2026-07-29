@@ -92,3 +92,38 @@
 - core 没有改动旧 Fuwari 统计消费组件，也没有加入任何风格 Layout、视觉组件或 CSS；三个风格分支必须分别移除旧内联脚本并接入新 DOM 协议。
 - 验证通过：`pnpm test:core`、`pnpm type-check`、`pnpm build`（36 页）、`git diff --check`。
 - 下一步：将 `design/rebuild-core` 普通 merge 到三个现有设计分支，再分别完成独立 Shell、全路由、移动交互与视觉系统。
+
+## `design/glass` 架构级重构交付记录
+
+### 分支与边界
+
+- 工作树：`D:\Projects\blog-glass`；分支：`design/glass`；用户选定前禁止合入 `main`。
+- 本分支保留第一轮 ArcTower 换肤提交作为历史回退点，以普通 merge 吸收 `design/rebuild-core`，未 reset、rebase 或改写历史。
+- `3b362c0` 已普通 merge 最新 core，其中包含 `main` 的 `210c3cf` 与 `88e19b9`：精确 lifetime 单 comparison 窗口、`max(createdAt, resetAt)` 起点、comparison 缺失失败语义，以及仅内存分享令牌边界。
+
+### 独立产品结构
+
+- `d1b3175` 建立独立 `src/glass/` Observatory Shell、compact bar、观景窗、RSS 搜索、显示设置和运行时。
+- `277cc24` 将首页、文章 Reader、归档、友链、404、关于、联系方式和隐私等全部 HTML 路由迁移到 GLASS 产品树。
+- `f6f5d44` 删除已退出依赖图的旧 Fuwari `src/components`、旧 Layout 与仅旧 UI 使用的视觉样式；旧稿仍可由 Git 历史回退。
+- `5630bba` 增加 36 页结构、统计、Reader、外链安全和视觉约束契约；最终契约进一步锁定 `dist/_astro` 不得携带旧 `Layout`、`Search`、`DisplaySettings`、OverlayScrollbars、Fancybox、`card-base` 或 `btn-regular` UI 标记。
+
+### 功能与交互
+
+- 首页为个人数字观测站：受限动态观景窗、站点累计 PV/UV、最新写作、分类筛选、Writing / Identity / Network 模块和四页分页。
+- 首页当前八篇文章及文章详情均输出 `--` 初始值和累计 PV+UV，唯一消费端为 `public/js/blog-stats.js`；紧凑列表关闭逐项 live region，避免批量统计结果反复播报。
+- Reader 保留 Markdown、代码块、图片、阅读进度、TOC、License、GitHub 编辑、Giscus、上一篇/下一篇与返回顶部。
+- 保留 RSS 搜索、明/暗/自动主题、背景显示与 0–24px 模糊、移动导航、友链、状态、统计、RSS、Sitemap 与隐私入口。
+- 背景只使用 `https://api.furry.ist/furry-img`，失败后切换 `https://sni-api.furry.ist/furry-img`；双失败时保留本地画布。
+- `f2e3252` 修复搜索跳转前关闭 dialog、导航 popover 互斥/外部关闭、移动遮罩、Escape、焦点返回和断点语义同步。桌面 context rail 现在是 HTML 中真实 `open` 的 `<details>`，进入可访问树；移动首屏立即关闭，断点切换只初始化一次，不会在移动端重复初始化时关掉用户刚打开的抽屉。
+- 最终收尾为原生 `<dialog>` 增加显式 Escape 路径：先匹配 `dialog[open]`，调用统一 `closeDialog()` 并由既有 `close` 监听器恢复触发按钮焦点；该顺序已加入交付契约，避免依赖浏览器默认 cancel 行为。
+- 视觉继续遵循单一蓝强调、4/6/10/16 圆角、发丝描边、无普通卡片投影、无全站磨砂，并提供键盘焦点与 `prefers-reduced-motion` 降级。
+
+### 验证与待补验
+
+- 自动门禁：`pnpm test:core`、`pnpm type-check`、`pnpm build`（36 页）、`pnpm test:glass-contracts`、`git diff --check`。
+- GLASS 契约覆盖 36 个 HTML、首页 1 个站点统计根和 8 个文章统计根、文章功能矩阵、真实 open context rail、具名 `complementary` 可访问结构、显式 dialog Escape、旧 UI 源树与最终 dist 零残留；不依赖 `CONTEXT RAIL` 等纯装饰字样。
+- 2026-07-29 实时只读 Umami 验证未输出分享令牌：全站累计 `335870 PV / 140105 UV / 318615 visits`；`/posts/start/` 为 `10 PV / 5 UV / 5 visits`。数值会随访问增长。
+- 2026-07-29 两条背景源均返回 `200 image/webp`；本地预览 `http://127.0.0.1:4332/` 返回 `200 text/html`。
+- 主线程已在 4332 桌面预览中确认右侧头像、分类与外部坐标 rail 可见，DOM 快照出现 `complementary "页面上下文"` 与 `complementary "观测站概览"`；截图暂存于主线程 QA 工作树。当前子代理的 Browser skill 仍返回空浏览器列表，精确 `390x844` 移动默认关闭/打开/遮罩/Escape/焦点返回、搜索 dialog 交互和 Swup 仍需主线程补验。
+- 非阻塞警告：空 `src/content/assets`、Browserslist 数据较旧、pnpm 10 提示旧 `pnpm.patchedDependencies` 字段位置。

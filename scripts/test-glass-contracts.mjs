@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
+import { basename } from "node:path";
 import { globSync } from "glob";
 
 const read = (file) => readFileSync(file, "utf8");
@@ -19,6 +20,32 @@ for (const legacyMarker of ["MainGridLayout", "PostCard", "PostMeta", "Profile.a
 
 const htmlFiles = globSync("dist/**/*.html");
 assert.equal(htmlFiles.length, 36, "GLASS build should retain the 36-page HTML baseline");
+
+const builtAssets = globSync("dist/_astro/*.{js,css}", { nodir: true });
+const builtAssetNames = builtAssets.map((file) => basename(file));
+for (const legacyAsset of [
+	/^Layout\./,
+	/^Search\./,
+	/^DisplaySettings\./,
+	/^setting-utils\./,
+	/overlayscrollbars/i,
+	/fancybox/i,
+]) {
+	assert.equal(
+		builtAssetNames.some((name) => legacyAsset.test(name)),
+		false,
+		`GLASS dist still contains a legacy UI asset matching ${legacyAsset}`,
+	);
+}
+
+const builtAssetSource = builtAssets.map(read).join("\n");
+for (const legacyBundleMarker of ["OverlayScrollbars", "Fancybox", "card-base", "btn-regular"]) {
+	assert.equal(
+		builtAssetSource.includes(legacyBundleMarker),
+		false,
+		`GLASS dist still embeds the legacy UI marker ${legacyBundleMarker}`,
+	);
+}
 
 for (const file of htmlFiles) {
 	const html = read(file);
@@ -47,6 +74,12 @@ assert.match(
 	/<details[^>]*class="glass-context-drawer"[^>]*\sopen(?:\s|>)/,
 	"desktop context rail must render as a genuinely open details element",
 );
+assert.match(home, /<aside[^>]*aria-label="页面上下文"/, "context rail must expose its outer complementary landmark");
+assert.match(
+	home,
+	/<div[^>]*class="glass-context-panel"[^>]*role="complementary"[^>]*aria-modal="false"[^>]*aria-label="观测站概览"/,
+	"desktop context panel must expose the named complementary landmark seen by assistive technology",
+);
 assert.match(home, /data-glass-theme="dark"/, "home must expose dark theme selection");
 assert.match(home, /data-glass-theme="auto"/, "home must expose automatic theme selection");
 
@@ -73,5 +106,12 @@ const shell = read("src/glass/layouts/GlassShell.astro");
 for (const runtime of ["/js/umami-share.js", "/js/blog-stats.js", "/js/blog-background.js"]) {
 	assert.match(shell, new RegExp(runtime.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")), `shell must load ${runtime}`);
 }
+
+const observatoryRuntime = read("src/glass/runtime/observatory.ts");
+assert.match(
+	observatoryRuntime,
+	/if \(event\.key === "Escape"\) \{\s*const dialog = document\.querySelector<HTMLDialogElement>\("dialog\[open\]"\);\s*if \(dialog\) \{\s*event\.preventDefault\(\);\s*closeDialog\(dialog\);\s*return;/,
+	"Escape must explicitly close an open native dialog before handling drawers and popovers",
+);
 
 console.log(`GLASS contracts passed: ${htmlFiles.length} HTML documents, 8 home post stats roots, article feature matrix intact.`);
