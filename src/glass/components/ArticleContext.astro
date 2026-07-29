@@ -1,0 +1,61 @@
+---
+import type { MarkdownHeading } from "astro";
+import type { PostNavigation, PostSummary } from "@/types/content";
+import { Icon } from "astro-icon/components";
+import ContextDrawer from "./ContextDrawer.astro";
+import SiteStats from "./SiteStats.astro";
+
+interface Props {
+	headings: MarkdownHeading[];
+	summary: PostSummary;
+	navigation: PostNavigation;
+	words: string | number;
+	minutes: string | number;
+}
+
+const { headings, summary, navigation, words, minutes } = Astro.props;
+const minDepth = headings.length > 0 ? Math.min(...headings.map((heading) => heading.depth)) : 1;
+const visibleHeadings = headings.filter((heading) => heading.depth <= minDepth + 1);
+const cleanHeading = (text: string) => text.endsWith("#") ? text.slice(0, -1) : text;
+---
+
+<ContextDrawer title="文章工具">
+	<section class="glass-context-section">
+		<p class="glass-kicker">OVERVIEW</p>
+		<h2>内容概览</h2>
+		<dl class="glass-context-facts">
+			<div><dt>分类</dt><dd>{summary.category}</dd></div>
+			{summary.series && <div><dt>系列</dt><dd>{summary.series}</dd></div>}
+			<div><dt>字数</dt><dd>{words}</dd></div>
+			<div><dt>阅读</dt><dd>{minutes} 分钟</dd></div>
+		</dl>
+	</section>
+
+	<section class="glass-context-section">
+		<SiteStats scope="post" path={summary.url} />
+	</section>
+
+	<section class="glass-context-section">
+		<h2>目录</h2>
+		{visibleHeadings.length > 0 ? (
+			<nav class="glass-toc" data-glass-toc aria-label="文章目录">
+				{visibleHeadings.map((heading) => (
+					<a href={`#${heading.slug}`} data-depth={heading.depth - minDepth}>
+						<span aria-hidden="true"></span>{cleanHeading(heading.text)}
+					</a>
+				))}
+			</nav>
+		) : (
+			<p class="glass-context-empty">本文没有可用目录。</p>
+		)}
+	</section>
+
+	<section class="glass-context-section">
+		<h2>继续观测</h2>
+		<div class="glass-context-links">
+			{navigation.newer && <a href={navigation.newer.url}><Icon name="material-symbols:arrow-back-rounded" /> {navigation.newer.title}</a>}
+			{navigation.older && <a href={navigation.older.url}>{navigation.older.title} <Icon name="material-symbols:arrow-forward-rounded" /></a>}
+			<a href="/archive/"><Icon name="material-symbols:inventory-2-outline-rounded" /> 返回归档</a>
+		</div>
+	</section>
+</ContextDrawer>

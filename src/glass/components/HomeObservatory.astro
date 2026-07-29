@@ -1,0 +1,118 @@
+---
+import path from "node:path";
+import { profileConfig, siteConfig } from "@/config";
+import type { PostEntry } from "@/types/content";
+import { toPostSummary } from "@/utils/content-core";
+import { formatDateToYYYYMMDD } from "@/utils/date-utils";
+import { getDir } from "@/utils/url-utils";
+import { Icon } from "astro-icon/components";
+import GlassImage from "./GlassImage.astro";
+import SiteStats from "./SiteStats.astro";
+
+interface Props {
+	posts: PostEntry[];
+	pageNumber: number;
+	lastPage: number;
+}
+
+const { posts, pageNumber, lastPage } = Astro.props;
+const preparedPosts = await Promise.all(
+	posts.map(async (entry) => {
+		const { remarkPluginFrontmatter } = await entry.render();
+		return {
+			entry,
+			summary: toPostSummary(entry),
+			words: remarkPluginFrontmatter.words,
+			minutes: remarkPluginFrontmatter.minutes,
+			excerpt: remarkPluginFrontmatter.excerpt,
+		};
+	}),
+);
+const categories = [...new Set(preparedPosts.map(({ summary }) => summary.category))];
+---
+
+<div class="glass-home">
+	<section class="glass-home-intro" aria-labelledby="glass-home-title">
+		<div class="glass-intro-copy">
+			<p class="glass-kicker">OBSERVATORY / {String(pageNumber).padStart(2, "0")}</p>
+			<h1 id="glass-home-title">在生活与技术之间，持续记录微小但真实的信号。</h1>
+			<p>{siteConfig.description}</p>
+			<div class="glass-intro-links">
+				<a class="glass-primary-action" href="#latest-writing">浏览最新写作</a>
+				<a class="glass-border-action" href="/about/">认识 {profileConfig.name}</a>
+			</div>
+		</div>
+		<SiteStats scope="site" />
+	</section>
+
+	<section class="glass-section" id="latest-writing" aria-labelledby="latest-writing-title">
+		<header class="glass-section-head">
+			<div>
+				<p class="glass-kicker">WRITING STREAM</p>
+				<h2 id="latest-writing-title">最新写作</h2>
+			</div>
+			<p><span data-glass-filter-count>{String(posts.length).padStart(2, "0")}</span> / PAGE {pageNumber} OF {lastPage}</p>
+		</header>
+
+		<div class="glass-category-filter" role="group" aria-label="按分类筛选本页文章">
+			<button type="button" data-glass-filter="all" aria-pressed="true">全部</button>
+			{categories.map((category) => (
+				<button type="button" data-glass-filter={category} aria-pressed="false">{category}</button>
+			))}
+		</div>
+
+		<div class="glass-writing-list">
+			{preparedPosts.map(({ entry, summary, words, minutes, excerpt }, index) => (
+				<article class="glass-writing-row" data-glass-post-category={summary.category}>
+					<div class="glass-writing-index" aria-hidden="true">{String(index + 1).padStart(2, "0")}</div>
+					<div class="glass-writing-copy">
+						<div class="glass-writing-labels">
+							{summary.pinned && <span>PINNED</span>}
+							<span>{summary.category}</span>
+							{summary.series && <span>{summary.series}</span>}
+						</div>
+						<h3><a href={summary.url}>{summary.title}</a></h3>
+						<p>{summary.description || excerpt || "打开记录查看完整内容。"}</p>
+						<div class="glass-writing-meta">
+							<time datetime={summary.published.toISOString()}>{formatDateToYYYYMMDD(summary.published)}</time>
+							<span>{words} 字</span>
+							<span>{minutes} 分钟</span>
+						</div>
+						<SiteStats scope="post" path={summary.url} compact />
+					</div>
+					{summary.image ? (
+						<a class="glass-writing-cover" href={summary.url} aria-label={`阅读 ${summary.title}`}>
+							<GlassImage
+								src={summary.image}
+								alt=""
+								basePath={path.join("content/posts", getDir(entry.id))}
+							/>
+						</a>
+					) : (
+						<a class="glass-writing-enter" href={summary.url} aria-label={`阅读 ${summary.title}`} title="阅读文章">
+							<Icon name="material-symbols:arrow-forward-rounded" />
+						</a>
+					)}
+				</article>
+			))}
+		</div>
+	</section>
+
+	<section class="glass-module-grid" aria-label="观测站模块">
+		<a href="/archive/">
+			<Icon name="material-symbols:inventory-2-outline-rounded" />
+			<span><small>WRITING</small><strong>完整归档</strong></span>
+			<p>按年份追溯全部记录。</p>
+		</a>
+		<a href="/friends/">
+			<Icon name="material-symbols:hub-outline" />
+			<span><small>NETWORK</small><strong>友链网络</strong></span>
+			<p>连接仍在写作和创造的人。</p>
+		</a>
+		<a href="/contact/">
+			<Icon name="material-symbols:alternate-email-rounded" />
+			<span><small>IDENTITY</small><strong>联系方式</strong></span>
+			<p>找到可用的沟通入口。</p>
+		</a>
+	</section>
+</div>

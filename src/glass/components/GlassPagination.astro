@@ -1,0 +1,36 @@
+---
+import type { Page } from "astro";
+import { Icon } from "astro-icon/components";
+
+interface Props {
+	page: Page;
+}
+
+const { page } = Astro.props;
+const pages = Array.from({ length: page.lastPage }, (_, index) => index + 1);
+const pageUrl = (pageNumber: number) => (pageNumber === 1 ? "/" : `/${pageNumber}/`);
+---
+
+<nav class="glass-pagination" aria-label="文章分页">
+	{page.url.prev ? (
+		<a href={page.url.prev} aria-label="上一页"><Icon name="material-symbols:arrow-back-rounded" /></a>
+	) : (
+		<span aria-hidden="true"><Icon name="material-symbols:arrow-back-rounded" /></span>
+	)}
+	<div>
+		{pages.map((pageNumber) => (
+			<a
+				href={pageUrl(pageNumber)}
+				aria-current={pageNumber === page.currentPage ? "page" : undefined}
+				aria-label={`第 ${pageNumber} 页`}
+			>
+				{String(pageNumber).padStart(2, "0")}
+			</a>
+		))}
+	</div>
+	{page.url.next ? (
+		<a href={page.url.next} aria-label="下一页"><Icon name="material-symbols:arrow-forward-rounded" /></a>
+	) : (
+		<span aria-hidden="true"><Icon name="material-symbols:arrow-forward-rounded" /></span>
+	)}
+</nav>

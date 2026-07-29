@@ -1,0 +1,36 @@
+---
+import type { Friend } from "@/types/data";
+import { Icon } from "astro-icon/components";
+
+interface Props {
+	friends: Friend[];
+}
+
+const { friends } = Astro.props;
+---
+
+<section class="glass-network" aria-labelledby="network-title">
+	<header class="glass-page-head">
+		<p class="glass-kicker">NETWORK / DIRECTORY</p>
+		<h1 id="network-title">友链网络</h1>
+		<p>
+			这些节点由仓库中的 JSON 记录在构建期汇总。
+			<a href="https://github.com/MingToneFurry/blog/tree/main/src/data/friends" target="_blank" rel="noopener noreferrer">提交新的友链</a>
+		</p>
+	</header>
+	<div class="glass-friend-list">
+		{friends.length > 0 ? friends.map((friend, index) => (
+			<a href={friend.url} target="_blank" rel="noopener noreferrer" class="glass-friend-row">
+				<span class="glass-friend-index">{String(index + 1).padStart(2, "0")}</span>
+				<img src={friend.avatar} alt="" loading="lazy" />
+				<span class="glass-friend-copy">
+					<strong>{friend.name}</strong>
+					<small>{friend.description}</small>
+				</span>
+				<Icon name="material-symbols:arrow-outward-rounded" />
+			</a>
+		)) : (
+			<p class="glass-empty-state">当前没有可展示的友链记录。</p>
+		)}
+	</div>
+</section>

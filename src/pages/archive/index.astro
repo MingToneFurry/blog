@@ -1,10 +1,11 @@
 ---
-import ArchivePanel from "@components/ArchivePanel.astro";
+import ArchiveLedger from "@/glass/components/ArchiveLedger.astro";
+import GlassShell from "@/glass/layouts/GlassShell.astro";
+import { getSortedPosts } from "@/utils/content-utils";
 
-import MainGridLayout from "@layouts/MainGridLayout.astro";
+const posts = await getSortedPosts();
 ---
 
-<MainGridLayout title="归档">
-    <ArchivePanel></ArchivePanel>
-</MainGridLayout>
-
+<GlassShell title="记录归档" description="按年份浏览全部公开写作记录。">
+	<ArchiveLedger posts={posts} />
+</GlassShell>

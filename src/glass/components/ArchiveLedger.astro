@@ -1,0 +1,48 @@
+---
+import type { PostEntry } from "@/types/content";
+import { getPostUrl, toPostSummary } from "@/utils/content-core";
+
+interface Props {
+	posts: PostEntry[];
+}
+
+const { posts } = Astro.props;
+const groups = new Map<number, PostEntry[]>();
+for (const post of posts) {
+	const year = post.data.published.getFullYear();
+	groups.set(year, [...(groups.get(year) || []), post]);
+}
+const years = [...groups.entries()].sort(([a], [b]) => b - a);
+const shortDate = (date: Date) => date.toISOString().slice(5, 10);
+---
+
+<section class="glass-ledger" aria-labelledby="archive-title">
+	<header class="glass-page-head">
+		<p class="glass-kicker">WRITING / ARCHIVE</p>
+		<h1 id="archive-title">记录归档</h1>
+		<p>共 {posts.length} 篇公开记录，按发布时间逆序排列。</p>
+	</header>
+	<div class="glass-ledger-years">
+		{years.map(([year, yearPosts]) => (
+			<section class="glass-ledger-year" aria-labelledby={`year-${year}`}>
+				<header>
+					<h2 id={`year-${year}`}>{year}</h2>
+					<span>{String(yearPosts.length).padStart(2, "0")} ENTRIES</span>
+				</header>
+				<ol>
+					{yearPosts.map((post, index) => {
+						const summary = toPostSummary(post);
+						return (
+							<li>
+								<span>{String(index + 1).padStart(2, "0")}</span>
+								<time datetime={summary.published.toISOString()}>{shortDate(summary.published)}</time>
+								<a href={getPostUrl(post.slug)}>{summary.title}</a>
+								<small>{summary.category}</small>
+							</li>
+						);
+					})}
+				</ol>
+			</section>
+		))}
+	</div>
+</section>

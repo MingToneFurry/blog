@@ -1,0 +1,27 @@
+---
+import { licenseConfig, profileConfig } from "@/config";
+import { formatDateToYYYYMMDD } from "@/utils/date-utils";
+import { Icon } from "astro-icon/components";
+
+interface Props {
+	title: string;
+	published: Date;
+	canonical: string;
+}
+
+const { title, published, canonical } = Astro.props;
+---
+
+<section class="glass-license" aria-labelledby="glass-license-title">
+	<Icon name="fa6-brands:creative-commons" aria-hidden="true" />
+	<div>
+		<p class="glass-kicker">CONTENT LICENSE</p>
+		<h2 id="glass-license-title">{title}</h2>
+		<dl>
+			<div><dt>作者</dt><dd>{profileConfig.name}</dd></div>
+			<div><dt>发布</dt><dd>{formatDateToYYYYMMDD(published)}</dd></div>
+			<div><dt>许可</dt><dd><a href={licenseConfig.url} target="_blank" rel="noopener noreferrer">{licenseConfig.name}</a></dd></div>
+		</dl>
+		<a class="glass-canonical-link" href={canonical}>{canonical}</a>
+	</div>
+</section>

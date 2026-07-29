@@ -1,0 +1,48 @@
+---
+import { profileConfig } from "@/config";
+import type { PostSummary } from "@/types/content";
+import { groupPostSummaries } from "@/utils/content-core";
+import { Icon } from "astro-icon/components";
+import ContextDrawer from "./ContextDrawer.astro";
+
+interface Props {
+	posts: PostSummary[];
+}
+
+const { posts } = Astro.props;
+const categories = groupPostSummaries(posts, "category");
+---
+
+<ContextDrawer title="观测站概览">
+	<section class="glass-context-section glass-profile">
+		<img src={profileConfig.avatar} alt={`${profileConfig.name} 的头像`} loading="lazy" />
+		<div>
+			<p class="glass-kicker">IDENTITY</p>
+			<h2>{profileConfig.name}</h2>
+			<p>{profileConfig.bio}</p>
+		</div>
+	</section>
+
+	<section class="glass-context-section">
+		<h2>分类信号</h2>
+		<ul class="glass-context-list">
+			{categories.map((category) => (
+				<li><span>{category.label}</span><strong>{String(category.posts.length).padStart(2, "0")}</strong></li>
+			))}
+		</ul>
+	</section>
+
+	<section class="glass-context-section">
+		<h2>外部坐标</h2>
+		<div class="glass-context-links">
+			{profileConfig.links.map((link) => (
+				<a href={link.url} target="_blank" rel="noopener noreferrer">
+					<Icon name={link.icon} /> {link.name}
+				</a>
+			))}
+			<a href="https://stats.uptimerobot.com/6zqrufirxf" target="_blank" rel="noopener noreferrer">
+				<Icon name="material-symbols:monitor-heart-outline-rounded" /> 运行状态
+			</a>
+		</div>
+	</section>
+</ContextDrawer>

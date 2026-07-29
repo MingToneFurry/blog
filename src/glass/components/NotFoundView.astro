@@ -1,0 +1,14 @@
+---
+import { Icon } from "astro-icon/components";
+---
+
+<section class="glass-not-found" aria-labelledby="not-found-title">
+	<p class="glass-kicker">OBSERVATION LOST / 404</p>
+	<div class="glass-not-found-code" aria-hidden="true">404</div>
+	<h1 id="not-found-title">没有捕捉到这个坐标</h1>
+	<p>链接可能已移动或从未存在。你可以返回首页，或在归档中重新定位。</p>
+	<div>
+		<a class="glass-primary-action" href="/"><Icon name="material-symbols:home-rounded" /> 返回首页</a>
+		<a class="glass-border-action" href="/archive/"><Icon name="material-symbols:inventory-2-outline-rounded" /> 查看归档</a>
+	</div>
+</section>

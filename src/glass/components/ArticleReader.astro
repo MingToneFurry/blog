@@ -1,0 +1,111 @@
+---
+import path from "node:path";
+import { gitHubEditConfig, licenseConfig } from "@/config";
+import type { PostEntry, PostNavigation, PostSummary } from "@/types/content";
+import { formatDateToYYYYMMDD } from "@/utils/date-utils";
+import { getDir } from "@/utils/url-utils";
+import { Icon } from "astro-icon/components";
+import GlassImage from "./GlassImage.astro";
+import GlassLicense from "./GlassLicense.astro";
+import SiteStats from "./SiteStats.astro";
+
+interface Props {
+	entry: PostEntry;
+	summary: PostSummary;
+	navigation: PostNavigation;
+	words: string | number;
+	minutes: string | number;
+	excerpt?: string;
+	canonical: string;
+}
+
+const { entry, summary, navigation, words, minutes, excerpt, canonical } = Astro.props;
+---
+
+<article class="glass-article" data-reading-progress data-pagefind-body>
+	<div class="glass-reading-meter" aria-hidden="true"><span></span></div>
+	<header class="glass-article-head">
+		<div class="glass-article-labels">
+			<span>{summary.type}</span>
+			<span>{summary.category}</span>
+			{summary.series && <span>{summary.series}</span>}
+		</div>
+		<h1 data-pagefind-weight="10" data-pagefind-meta="title">{summary.title}</h1>
+		{(summary.description || excerpt) && <p class="glass-article-deck">{summary.description || excerpt}</p>}
+		<div class="glass-article-meta">
+			<time datetime={summary.published.toISOString()}>发布 {formatDateToYYYYMMDD(summary.published)}</time>
+			{summary.updated && <time datetime={summary.updated.toISOString()}>更新 {formatDateToYYYYMMDD(summary.updated)}</time>}
+			<span>{words} 字</span>
+			<span>{minutes} 分钟</span>
+		</div>
+		<SiteStats scope="post" path={summary.url} compact />
+	</header>
+
+	{summary.image && (
+		<GlassImage
+			class="glass-article-cover"
+			src={summary.image}
+			alt={`${summary.title} 封面`}
+			basePath={path.join("content/posts", getDir(entry.id))}
+			loading="eager"
+		/>
+	)}
+
+	<div class="glass-prose glass-article-prose custom-md">
+		<slot />
+	</div>
+
+	<footer class="glass-article-footer">
+		<section class="glass-feedback" aria-labelledby="glass-feedback-title">
+			<div>
+				<p class="glass-kicker">HUMAN REVIEW</p>
+				<h2 id="glass-feedback-title">发现问题或想继续讨论？</h2>
+			</div>
+			<div>
+				<a class="glass-border-action" href="/contact/"><Icon name="material-symbols:alternate-email-rounded" /> 联系作者</a>
+				{gitHubEditConfig.enable && (
+					<a class="glass-primary-action" href={`${gitHubEditConfig.baseUrl}/${entry.slug}.md`} target="_blank" rel="noopener noreferrer">
+						<Icon name="fa6-brands:github" /> 编辑本文
+					</a>
+				)}
+			</div>
+		</section>
+
+		{licenseConfig.enable && (
+			<GlassLicense title={summary.title} published={summary.published} canonical={canonical} />
+		)}
+
+		<nav class="glass-article-navigation" aria-label="文章前后导航">
+			{navigation.newer ? (
+				<a href={navigation.newer.url} rel="prev"><small>NEWER</small><strong>{navigation.newer.title}</strong></a>
+			) : <span></span>}
+			{navigation.older ? (
+				<a href={navigation.older.url} rel="next"><small>OLDER</small><strong>{navigation.older.title}</strong></a>
+			) : <span></span>}
+		</nav>
+
+		<section class="glass-comments" aria-labelledby="glass-comments-title">
+			<header>
+				<p class="glass-kicker">DISCUSSION</p>
+				<h2 id="glass-comments-title">留言与讨论</h2>
+			</header>
+			<script
+				src="https://giscus.app/client.js"
+				data-repo="MingToneFurry/blog-discuss"
+				data-repo-id="R_kgDOQytHUg"
+				data-category="Announcements"
+				data-category-id="DIC_kwDOQytHUs4C0gFg"
+				data-mapping="pathname"
+				data-strict="0"
+				data-reactions-enabled="1"
+				data-emit-metadata="0"
+				data-input-position="top"
+				data-theme="preferred_color_scheme"
+				data-lang="zh-CN"
+				data-loading="lazy"
+				crossorigin="anonymous"
+				async
+			></script>
+		</section>
+	</footer>
+</article>

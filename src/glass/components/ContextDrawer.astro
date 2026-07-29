@@ -1,0 +1,30 @@
+---
+import { Icon } from "astro-icon/components";
+
+interface Props {
+	title?: string;
+}
+
+const { title = "上下文工具" } = Astro.props;
+---
+
+<details class="glass-context-drawer" data-glass-drawer>
+	<summary class="glass-context-trigger" aria-label={`打开${title}`} title={title}>
+		<Icon name="material-symbols:view-sidebar-rounded" />
+		<span>工具</span>
+	</summary>
+	<div class="glass-context-panel" role="dialog" aria-modal="true" aria-label={title}>
+		<div class="glass-context-head">
+			<div>
+				<small>CONTEXT RAIL</small>
+				<strong>{title}</strong>
+			</div>
+			<button class="glass-icon-button" type="button" data-glass-drawer-close aria-label={`关闭${title}`}>
+				<Icon name="material-symbols:close-rounded" />
+			</button>
+		</div>
+		<div class="glass-context-body">
+			<slot />
+		</div>
+	</div>
+</details>

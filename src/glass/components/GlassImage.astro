@@ -1,0 +1,59 @@
+---
+import path from "node:path";
+import { imageFallbackConfig } from "@/config";
+import { url } from "@/utils/url-utils";
+import { Image } from "astro:assets";
+import type { ImageMetadata } from "astro";
+
+interface Props {
+	src: string;
+	alt: string;
+	basePath?: string;
+	class?: string;
+	loading?: "eager" | "lazy";
+}
+
+const {
+	src,
+	alt,
+	basePath = "/",
+	class: className,
+	loading = "lazy",
+} = Astro.props;
+const isLocal = !(
+	src.startsWith("/") ||
+	src.startsWith("http://") ||
+	src.startsWith("https://") ||
+	src.startsWith("data:")
+);
+const isPublic = src.startsWith("/");
+let localImage: ImageMetadata | undefined;
+
+if (isLocal) {
+	const files = import.meta.glob<ImageMetadata>("../../**", { import: "default" });
+	const normalizedPath = path
+		.normalize(path.join("../../", basePath, src))
+		.replace(/\\/g, "/");
+	const loader = files[normalizedPath];
+	if (loader) localImage = await loader();
+}
+
+const publicSource = isPublic ? url(src) : src;
+const fallbackSource =
+	imageFallbackConfig.enable && publicSource.includes(imageFallbackConfig.originalDomain)
+		? publicSource.replace(imageFallbackConfig.originalDomain, imageFallbackConfig.fallbackDomain)
+		: "";
+---
+
+<figure class:list={["glass-image", className]}>
+	{isLocal && localImage && <Image src={localImage} alt={alt} loading={loading} />}
+	{!isLocal && (
+		<img
+			src={publicSource}
+			alt={alt}
+			loading={loading}
+			decoding="async"
+			onerror={fallbackSource ? `this.onerror=null;this.src='${fallbackSource}';` : undefined}
+		/>
+	)}
+</figure>
