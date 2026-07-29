@@ -93,7 +93,7 @@
 - `scripts/test-umami-share.mjs`
 - `scripts/test-stats-runtime.mjs`（新增）
 
-保留底层 helper 的动态分享令牌发现和 `startAt=0`，在其上增加唯一的无视觉消费运行时。
+保留底层 helper 的动态分享令牌发现，并使用其统一 lifetime 模式（站点 `createdAt` + 未来空窗 + `compare=prev` 单窗口取值），在其上增加唯一的无视觉消费运行时。
 
 DOM 协议：
 

@@ -39,15 +39,29 @@ const fetch = async (input, options = {}) => {
 	}
 
 	if (url === "https://gateway-us.umami.is/api/websites/website-id") {
-		return jsonResponse({ id: "website-id" });
+		return jsonResponse({
+			id: "website-id",
+			createdAt: "2025-07-06T04:54:09.999Z",
+		});
 	}
 
 	if (url.startsWith("https://gateway-us.umami.is/api/websites/website-id/stats?")) {
-		return jsonResponse({ pageviews: 42, visitors: 7 });
+		return jsonResponse({
+			pageviews: 42,
+			visitors: 7,
+			comparison: { pageviews: 100, visitors: 20 },
+		});
 	}
 
 	return jsonResponse({}, 404);
 };
+
+const fixedNow = Date.UTC(2026, 6, 29, 12, 0, 0);
+class FixedDate extends Date {
+	static now() {
+		return fixedNow;
+	}
+}
 
 const window = {};
 const storage = createStorage({
@@ -61,7 +75,7 @@ vm.runInNewContext(helperSource, {
 	localStorage: storage,
 	URL,
 	URLSearchParams,
-	Date,
+	Date: FixedDate,
 	Map,
 	Set,
 	JSON,
@@ -77,7 +91,9 @@ const stats = await window.fetchUmamiStats(
 	{ url: "/posts/example/", timezone: "Asia/Shanghai" },
 );
 
-assert.deepEqual(stats, { pageviews: 42, visitors: 7 });
+assert.equal(stats.pageviews, 100);
+assert.equal(stats.visitors, 20);
+assert.deepEqual(stats.comparison, { pageviews: 100, visitors: 20 });
 assert.equal(requests[0].url, "https://gateway-us.umami.is/api/share/share-id");
 
 const authenticatedRequests = requests.slice(1);
@@ -89,9 +105,18 @@ for (const { options } of authenticatedRequests) {
 const statsRequest = requests.find(({ url }) => url.includes("/stats?"));
 assert.ok(statsRequest);
 const statsUrl = new URL(statsRequest.url);
-assert.equal(statsUrl.searchParams.get("startAt"), "0");
+const openedAt = Date.parse("2025-07-06T04:54:09.999Z");
+const snapshotAt = Math.ceil(fixedNow / 60_000) * 60_000;
+const durationMinutes = Math.ceil((snapshotAt - openedAt) / 60_000);
+assert.equal(statsUrl.searchParams.get("startAt"), String(snapshotAt));
+assert.equal(
+	statsUrl.searchParams.get("endAt"),
+	String(snapshotAt + durationMinutes * 60_000),
+);
+assert.equal(statsUrl.searchParams.get("compare"), "prev");
 assert.equal(statsUrl.searchParams.get("path"), "eq./posts/example/");
 assert.equal(statsUrl.searchParams.get("timezone"), "Asia/Shanghai");
+assert.equal(statsUrl.searchParams.has("lifetime"), false);
 assert.deepEqual(storage.entries(), []);
 
 console.log("Umami share helper tests passed");
