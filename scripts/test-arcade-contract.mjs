@@ -129,6 +129,6 @@ assert.match(arcadeCss, /@media \(prefers-reduced-motion: reduce\)/, "ARCADE mus
 assert.match(arcadeCss, /@media \(max-width: 400px\)/, "ARCADE must include a 390px-safe breakpoint");
 const mobileTelemetryBlock = arcadeCss.match(/@media \(max-width: 980px\) \{([\s\S]*?)@media \(max-width: 820px\)/)?.[1] ?? "";
 assert.match(mobileTelemetryBlock, /\.arcade-site-telemetry\s*\{[\s\S]*?position:\s*absolute/, "ARCADE must keep lifetime telemetry visible below the compact system bar");
-assert.doesNotMatch(mobileTelemetryBlock, /\.arcade-site-telemetry\s*\{[^}]*display:\s*none/, "ARCADE must not hide lifetime telemetry on mobile");
+assert.doesNotMatch(arcadeCss, /\.arcade-site-telemetry\s*\{[^}]*display:\s*none/, "ARCADE must not hide lifetime telemetry at any responsive breakpoint");
 
 console.log(`ARCADE contract tests passed (${htmlFiles.length} HTML pages, ${articleFiles.length} articles)`);
