@@ -25,11 +25,11 @@ const {
 	<p>{label}</p>
 	<div class="glass-stat-grid">
 		<div>
-			<span data-stats-value="pageviews" data-stats-state="idle" aria-live="polite">--</span>
+			<span data-stats-value="pageviews" data-stats-state="idle" aria-live={compact ? "off" : "polite"}>--</span>
 			<small>累计浏览 PV</small>
 		</div>
 		<div>
-			<span data-stats-value="visitors" data-stats-state="idle" aria-live="polite">--</span>
+			<span data-stats-value="visitors" data-stats-state="idle" aria-live={compact ? "off" : "polite"}>--</span>
 			<small>累计访客 UV</small>
 		</div>
 	</div>

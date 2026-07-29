@@ -182,6 +182,26 @@ function updateCategoryFilter(button: HTMLButtonElement): void {
 	if (output) output.textContent = String(count).padStart(2, "0");
 }
 
+function syncDrawerSemantics(): void {
+	const mobile = window.matchMedia("(max-width: 900px)").matches;
+	const mode = mobile ? "mobile" : "desktop";
+	for (const drawer of document.querySelectorAll<HTMLDetailsElement>(
+		"[data-glass-context-drawer]",
+	)) {
+		if (drawer.dataset.glassDrawerMode !== mode) {
+			drawer.open = !mobile;
+			drawer.dataset.glassDrawerMode = mode;
+		} else if (!mobile) {
+			drawer.open = true;
+		}
+
+		const panel = drawer.querySelector<HTMLElement>("[data-glass-drawer-panel]");
+		if (!panel) continue;
+		panel.setAttribute("role", mobile ? "dialog" : "complementary");
+		panel.setAttribute("aria-modal", String(mobile));
+	}
+}
+
 function closeDrawer(details: HTMLDetailsElement): void {
 	details.open = false;
 	details.querySelector<HTMLElement>("summary")?.focus();
@@ -196,7 +216,7 @@ function focusableWithin(root: HTMLElement): HTMLElement[] {
 function handleKeydown(event: KeyboardEvent): void {
 	if (event.key === "Escape") {
 		const openDrawer = document.querySelector<HTMLDetailsElement>("[data-glass-drawer][open]");
-		if (openDrawer) {
+		if (openDrawer && window.matchMedia("(max-width: 900px)").matches) {
 			event.preventDefault();
 			closeDrawer(openDrawer);
 			return;
@@ -269,8 +289,14 @@ function scheduleScrollUpdate(): void {
 	scrollFrame = window.requestAnimationFrame(updateScrollState);
 }
 
+function handleResize(): void {
+	syncDrawerSemantics();
+	scheduleScrollUpdate();
+}
+
 function initializePage(): void {
 	applySettings(currentSettings());
+	syncDrawerSemantics();
 	activateToc();
 	updateScrollState();
 	const activeFilter = document.querySelector<HTMLButtonElement>('[data-glass-filter][aria-pressed="true"]');
@@ -329,6 +355,11 @@ export function startObservatory(): void {
 				if (dialog instanceof HTMLDialogElement) closeDialog(dialog);
 				return;
 			}
+			const searchResultLink = target.closest<HTMLAnchorElement>("#glass-search-results a");
+			if (searchResultLink) {
+				const dialog = searchResultLink.closest("dialog");
+				if (dialog instanceof HTMLDialogElement) closeDialog(dialog);
+			}
 			const themeButton = target.closest<HTMLButtonElement>("[data-glass-theme]");
 			if (themeButton) {
 				const theme = themeButton.dataset.glassTheme;
@@ -352,10 +383,52 @@ export function startObservatory(): void {
 				if (details instanceof HTMLDetailsElement) closeDrawer(details);
 				return;
 			}
+			const drawerSummary = target.closest<HTMLElement>("[data-glass-drawer] > summary");
+			if (drawerSummary) {
+				const current = drawerSummary.closest("details");
+				window.setTimeout(() => {
+					for (const drawer of document.querySelectorAll<HTMLDetailsElement>("[data-glass-drawer][open]")) {
+						if (drawer !== current) drawer.open = false;
+					}
+				}, 0);
+				return;
+			}
 			const drawerLink = target.closest<HTMLAnchorElement>("[data-glass-drawer][open] a");
-			if (drawerLink) {
+			if (drawerLink && window.matchMedia("(max-width: 900px)").matches) {
 				const details = drawerLink.closest("details");
 				if (details instanceof HTMLDetailsElement) details.open = false;
+			}
+			const openContextDrawer = document.querySelector<HTMLDetailsElement>(
+				"[data-glass-context-drawer][open]",
+			);
+			if (
+				openContextDrawer &&
+				window.matchMedia("(max-width: 900px)").matches &&
+				!target.closest("[data-glass-drawer-panel]") &&
+				!target.closest("[data-glass-context-drawer] > summary")
+			) {
+				event.preventDefault();
+				closeDrawer(openContextDrawer);
+				return;
+			}
+			const popoverSummary = target.closest<HTMLElement>("[data-glass-popover] > summary");
+			if (popoverSummary) {
+				const current = popoverSummary.closest("details");
+				window.setTimeout(() => {
+					for (const popover of document.querySelectorAll<HTMLDetailsElement>("[data-glass-popover][open]")) {
+						if (popover !== current) popover.open = false;
+					}
+				}, 0);
+				return;
+			}
+			const popoverLink = target.closest<HTMLAnchorElement>("[data-glass-popover] a");
+			if (popoverLink) {
+				const details = popoverLink.closest("details");
+				if (details instanceof HTMLDetailsElement) details.open = false;
+			} else if (!target.closest("[data-glass-popover]")) {
+				for (const popover of document.querySelectorAll<HTMLDetailsElement>("[data-glass-popover][open]")) {
+					popover.open = false;
+				}
 			}
 			const copyButton = target.closest<HTMLElement>(".copy-btn");
 			if (copyButton) {
@@ -394,7 +467,7 @@ export function startObservatory(): void {
 		document.addEventListener("keydown", handleKeydown);
 		document.addEventListener("close", close, true);
 		window.addEventListener("scroll", scheduleScrollUpdate, { passive: true });
-		window.addEventListener("resize", scheduleScrollUpdate);
+		window.addEventListener("resize", handleResize);
 		colorSchemeMedia.addEventListener("change", initializePage);
 
 		void waitForCoreRuntimes();
@@ -408,7 +481,7 @@ export function startObservatory(): void {
 			document.removeEventListener("keydown", handleKeydown);
 			document.removeEventListener("close", close, true);
 			window.removeEventListener("scroll", scheduleScrollUpdate);
-			window.removeEventListener("resize", scheduleScrollUpdate);
+			window.removeEventListener("resize", handleResize);
 			colorSchemeMedia.removeEventListener("change", initializePage);
 		};
 	});

@@ -37,10 +37,16 @@ assert.equal(count(home, 'data-stats-scope="site"'), 1, "home must expose one si
 assert.equal(count(home, 'data-stats-scope="post"'), 8, "home must expose one stats root for each of eight posts");
 assert.equal(count(home, 'data-stats-value="pageviews"'), 9, "home must expose PV for site and every post");
 assert.equal(count(home, 'data-stats-value="visitors"'), 9, "home must expose UV for site and every post");
-assert.equal(count(home, 'data-stats-state="idle" aria-live="polite">--</span>'), 18, "every home stat value must start at --");
+assert.equal(count(home, '>--</span>'), 18, "every home stat value must start at --");
 assert.match(home, /data-blog-background/, "home must expose the background state-machine root");
 assert.match(home, /id="glass-search-dialog"/, "home must retain RSS search");
 assert.match(home, /data-glass-theme="light"/, "home must expose light theme selection");
+assert.match(home, /data-glass-context-drawer/, "home must expose the persistent context rail contract");
+assert.match(
+	home,
+	/<details[^>]*class="glass-context-drawer"[^>]*\sopen(?:\s|>)/,
+	"desktop context rail must render as a genuinely open details element",
+);
 assert.match(home, /data-glass-theme="dark"/, "home must expose dark theme selection");
 assert.match(home, /data-glass-theme="auto"/, "home must expose automatic theme selection");
 

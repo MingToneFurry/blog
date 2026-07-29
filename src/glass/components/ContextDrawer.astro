@@ -8,12 +8,17 @@ interface Props {
 const { title = "上下文工具" } = Astro.props;
 ---
 
-<details class="glass-context-drawer" data-glass-drawer>
+<details
+	class="glass-context-drawer"
+	data-glass-drawer
+	data-glass-context-drawer
+	open
+>
 	<summary class="glass-context-trigger" aria-label={`打开${title}`} title={title}>
 		<Icon name="material-symbols:view-sidebar-rounded" />
 		<span>工具</span>
 	</summary>
-	<div class="glass-context-panel" role="dialog" aria-modal="true" aria-label={title}>
+	<div class="glass-context-panel" role="complementary" aria-modal="false" aria-label={title} data-glass-drawer-panel>
 		<div class="glass-context-head">
 			<div>
 				<small>CONTEXT RAIL</small>
@@ -28,3 +33,15 @@ const { title = "上下文工具" } = Astro.props;
 		</div>
 	</div>
 </details>
+
+<script is:inline>
+	(() => {
+		const details = document.currentScript?.previousElementSibling;
+		if (
+			details instanceof HTMLDetailsElement &&
+			window.matchMedia("(max-width: 900px)").matches
+		) {
+			details.open = false;
+		}
+	})();
+</script>
