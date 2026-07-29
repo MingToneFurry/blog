@@ -1,0 +1,102 @@
+---
+import { Icon } from "astro-icon/components";
+---
+
+<div class="arcade-command-layer" data-command-layer hidden aria-hidden="true">
+	<button class="arcade-command-scrim" type="button" data-command-close aria-label="关闭命令面板"></button>
+	<section
+		class="arcade-command-console cut-card"
+		role="dialog"
+		aria-modal="true"
+		aria-labelledby="arcade-command-title"
+		data-command-console
+	>
+		<header class="arcade-command-header">
+			<div>
+				<span class="hud-kicker">SYS / COMMAND INTERFACE</span>
+				<h2 id="arcade-command-title">节点控制台</h2>
+			</div>
+			<button type="button" class="arcade-icon-button cut-control" data-command-close aria-label="关闭命令面板">
+				<Icon name="material-symbols:close" />
+			</button>
+		</header>
+
+		<div class="arcade-command-tabs" role="tablist" aria-label="控制台模式">
+			<button type="button" role="tab" data-command-tab="search" aria-selected="true">
+				<Icon name="material-symbols:search" /> 搜索
+			</button>
+			<button type="button" role="tab" data-command-tab="settings" aria-selected="false">
+				<Icon name="material-symbols:tune" /> 显示
+			</button>
+		</div>
+
+		<section class="arcade-command-pane" data-command-pane="search" aria-label="文章搜索">
+			<label class="arcade-search-field cut-input">
+				<Icon name="material-symbols:keyboard-command-key" aria-hidden="true" />
+				<span class="sr-only">搜索文章</span>
+				<input
+					type="search"
+					placeholder="输入任务名称、关键词或标签..."
+					autocomplete="off"
+					data-command-search
+				/>
+				<kbd>ESC</kbd>
+			</label>
+
+			<div class="arcade-command-status" data-search-status aria-live="polite">
+				输入关键词以扫描 RSS 任务索引。
+			</div>
+			<div class="arcade-search-results" data-search-results></div>
+
+			<nav class="arcade-command-shortcuts" aria-label="快速模块">
+				<a href="/archive/"><span>01</span>全部归档</a>
+				<a href="/about/"><span>02</span>身份档案</a>
+				<a href="/friends/"><span>03</span>网络节点</a>
+				<a href="/privacy/"><span>04</span>隐私协议</a>
+			</nav>
+		</section>
+
+		<section class="arcade-command-pane" data-command-pane="settings" aria-label="显示设置" hidden>
+			<div class="arcade-setting-row">
+				<div>
+					<strong>色彩协议</strong>
+					<span>选择亮色、暗色或跟随系统。</span>
+				</div>
+				<div class="arcade-segmented" role="group" aria-label="主题">
+					<button type="button" data-theme-choice="light">亮</button>
+					<button type="button" data-theme-choice="dark">暗</button>
+					<button type="button" data-theme-choice="auto">自动</button>
+				</div>
+			</div>
+
+			<div class="arcade-setting-row">
+				<div>
+					<strong>任务场景</strong>
+					<span>加载 api.furry.ist 动态背景。</span>
+				</div>
+				<label class="arcade-switch cut-control">
+					<input type="checkbox" data-background-toggle />
+					<span aria-hidden="true"></span>
+					<b>显示背景</b>
+				</label>
+			</div>
+
+			<div class="arcade-setting-range">
+				<label for="arcade-background-blur">
+					<strong>场景模糊</strong>
+					<span data-background-blur-output>4 PX</span>
+				</label>
+				<input id="arcade-background-blur" type="range" min="0" max="24" step="1" data-background-blur />
+			</div>
+
+			<p class="arcade-setting-note">
+				设置仅保存在当前浏览器。背景主节点失败时自动切换 SNI 回退节点。
+			</p>
+		</section>
+
+		<footer class="arcade-command-footer">
+			<span><kbd>CTRL</kbd> + <kbd>K</kbd> 呼出</span>
+			<span>FIELD NODE / READY</span>
+		</footer>
+	</section>
+</div>

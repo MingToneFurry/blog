@@ -1,0 +1,61 @@
+---
+import { profileConfig, siteConfig } from "@/config";
+import { Icon } from "astro-icon/components";
+
+const currentPath = Astro.url.pathname;
+---
+
+<header class="arcade-system-bar" data-system-bar>
+	<a class="arcade-brand" href="/" aria-label={`${siteConfig.title} 首页`}>
+		<span class="arcade-brand-mark" aria-hidden="true">M</span>
+		<span class="arcade-brand-copy">
+			<strong>{siteConfig.title}</strong>
+			<small>FIELD NODE / {profileConfig.name}</small>
+		</span>
+	</a>
+
+	<div
+		class="arcade-site-telemetry"
+		data-blog-stats
+		data-stats-scope="site"
+		data-stats-state="idle"
+		aria-label="全站累计统计"
+		aria-live="polite"
+	>
+		<span class="arcade-telemetry-item">
+			<span>累计浏览 PV</span>
+			<strong data-stats-value="pageviews" data-stats-state="idle">--</strong>
+		</span>
+		<span class="arcade-telemetry-separator" aria-hidden="true"></span>
+		<span class="arcade-telemetry-item">
+			<span>累计访客 UV</span>
+			<strong data-stats-value="visitors" data-stats-state="idle">--</strong>
+		</span>
+	</div>
+
+	<div class="arcade-system-actions">
+		<span class="arcade-system-clock" data-system-clock aria-label="当前时间">--:--</span>
+		<button
+			type="button"
+			class="arcade-icon-button cut-control"
+			data-command-open="search"
+			aria-label="打开搜索"
+			aria-haspopup="dialog"
+		>
+			<Icon name="material-symbols:search" />
+		</button>
+		<button
+			type="button"
+			class="arcade-icon-button cut-control"
+			data-command-open="settings"
+			aria-label="打开显示设置"
+			aria-haspopup="dialog"
+		>
+			<Icon name="material-symbols:tune" />
+		</button>
+	</div>
+
+	<span class="arcade-route-signal" aria-hidden="true" data-route-signal={currentPath}>
+		LIVE
+	</span>
+</header>

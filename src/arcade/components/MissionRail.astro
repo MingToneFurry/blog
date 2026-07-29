@@ -1,0 +1,30 @@
+---
+import { Icon } from "astro-icon/components";
+
+const modules = [
+	{ label: "任务", href: "/", icon: "material-symbols:home-outline" },
+	{ label: "归档", href: "/archive/", icon: "material-symbols:inventory-2-outline" },
+	{ label: "关于", href: "/about/", icon: "material-symbols:person-outline" },
+	{ label: "联络", href: "/contact/", icon: "material-symbols:alternate-email" },
+	{ label: "友链", href: "/friends/", icon: "material-symbols:hub-outline" },
+];
+---
+
+<nav class="arcade-mission-rail" aria-label="主模块">
+	<div class="arcade-rail-axis" aria-hidden="true">NODE_01</div>
+	<ul>
+		{modules.map((module, index) => (
+			<li>
+				<a href={module.href} data-route-link data-route-path={module.href}>
+					<span class="arcade-rail-index">{String(index + 1).padStart(2, "0")}</span>
+					<Icon name={module.icon} />
+					<span>{module.label}</span>
+				</a>
+			</li>
+		))}
+	</ul>
+	<a class="arcade-rail-rss" href="/rss.xml" aria-label="RSS 订阅">
+		<Icon name="fa6-solid:rss" />
+		<span>RSS</span>
+	</a>
+</nav>
