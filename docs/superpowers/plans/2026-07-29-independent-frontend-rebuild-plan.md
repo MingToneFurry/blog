@@ -2,11 +2,18 @@
 
 日期：2026-07-29
 
-状态：用户已批准，执行中
+状态：用户已批准；Phase A 完成，Phase B 待执行
 
 适用仓库：`MingToneFurry/blog`
 
 对应规格：`docs/superpowers/specs/2026-07-29-independent-frontend-rebuild-design.md`
+
+实施记录：
+
+- `9c2564d`：纯内容 schema、稳定排序、分组、导航与 pathname 契约。
+- `a752b21`：累计统计 DOM 运行时、背景状态机、设置和幂等生命周期。
+- `0ae7614`：直接 `@types/hast` 依赖、标准应用类型检查与 core 聚合测试。
+- Phase A 已通过 `pnpm test:core`、`pnpm type-check`、`pnpm build`（36 页）和 `git diff --check`。
 
 ## 1. 交付边界
 
