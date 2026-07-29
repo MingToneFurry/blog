@@ -1,10 +1,7 @@
 ---
 title: "隐私政策"
-layout: "../layouts/MainGridLayout.astro"
+layout: "../mono/layouts/JournalMarkdownPage.astro"
 ---
-
-<div class="card-base p-6 md:p-8">
-<div class="prose dark:prose-invert prose-base !max-w-none custom-md">
 
 ##  隐私政策
 
@@ -119,6 +116,3 @@ layout: "../layouts/MainGridLayout.astro"
 
 
 我们将会尽可能少地收集用户数据，尽最大努力保护每一位访客的隐私权益！希望你能在这里放心浏览、自由留言～
-
-</div>
-</div>

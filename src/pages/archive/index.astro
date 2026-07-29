@@ -1,10 +1,17 @@
 ---
-import ArchivePanel from "@components/ArchivePanel.astro";
+import JournalArchive from "@/mono/components/JournalArchive.astro";
+import JournalShell from "@/mono/layouts/JournalShell.astro";
+import { getSortedPosts } from "@/utils/content-utils";
+import type { MarkdownHeading } from "astro";
 
-import MainGridLayout from "@layouts/MainGridLayout.astro";
+const posts = await getSortedPosts();
+const years = [...new Set(posts.map((post) => post.data.published.getFullYear()))].sort((a, b) => b - a);
+const headings: MarkdownHeading[] = [
+	{ depth: 2, slug: "archive-index", text: "完整时间索引" },
+	...years.map((year) => ({ depth: 3 as const, slug: `archive-${year}`, text: String(year) })),
+];
 ---
 
-<MainGridLayout title="归档">
-    <ArchivePanel></ArchivePanel>
-</MainGridLayout>
-
+<JournalShell title="归档" tocHeadings={headings} tocLabel="归档目录" backgroundMode="edge">
+	<JournalArchive posts={posts} />
+</JournalShell>

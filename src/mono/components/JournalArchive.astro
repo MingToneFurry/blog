@@ -1,0 +1,40 @@
+---
+import { formatDateToYYYYMMDD } from "@/utils/date-utils";
+import { getPostUrlBySlug } from "@/utils/url-utils";
+import type { CollectionEntry } from "astro:content";
+
+interface Props {
+	posts: CollectionEntry<"posts">[];
+}
+
+const { posts } = Astro.props;
+const grouped = new Map<number, CollectionEntry<"posts">[]>();
+for (const post of posts) {
+	const year = post.data.published.getFullYear();
+	grouped.set(year, [...(grouped.get(year) || []), post]);
+}
+const groups = [...grouped.entries()].sort((a, b) => b[0] - a[0]);
+---
+
+<header class="journal-page-header">
+	<p class="journal-kicker">[COMPLETE CATALOGUE / {String(posts.length).padStart(2, "0")}]</p>
+	<h1>归档。</h1>
+	<p>按时间倒序排列的完整出版目录。每篇文章都保留原始公开路径与中文 slug。</p>
+</header>
+
+<section id="archive-index" class="journal-archive" aria-label="文章时间归档">
+	{groups.map(([year, yearPosts]) => (
+		<section class="journal-archive__year" aria-labelledby={`archive-${year}`}>
+			<h2 id={`archive-${year}`}>{year}</h2>
+			<div class="journal-archive__entries">
+				{yearPosts.map((post) => (
+					<a class="journal-archive__entry" href={getPostUrlBySlug(post.slug)}>
+						<time datetime={post.data.published.toISOString()}>{formatDateToYYYYMMDD(post.data.published).slice(5)}</time>
+						<strong>{post.data.title}</strong>
+						<span>[OPEN]</span>
+					</a>
+				))}
+			</div>
+		</section>
+	))}
+</section>

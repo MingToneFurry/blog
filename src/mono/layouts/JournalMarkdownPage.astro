@@ -1,0 +1,35 @@
+---
+import type { MarkdownHeading } from "astro";
+import JournalShell from "./JournalShell.astro";
+
+interface Props {
+	frontmatter: {
+		title: string;
+		description?: string;
+	};
+	headings?: MarkdownHeading[];
+}
+
+const {
+	frontmatter,
+	headings = [],
+} = Astro.props;
+---
+
+<JournalShell
+	title={frontmatter.title}
+	description={frontmatter.description}
+	tocHeadings={headings}
+	tocLabel="页面目录"
+	backgroundMode="edge"
+>
+	<article class="journal-static-page">
+		<header class="journal-page-header">
+			<p class="journal-kicker">[REFERENCE PAGE]</p>
+			<h1>{frontmatter.title}。</h1>
+		</header>
+		<div class="journal-prose" data-pagefind-body>
+			<slot />
+		</div>
+	</article>
+</JournalShell>

@@ -1,0 +1,43 @@
+---
+import type { Friend } from "@/types/data";
+
+const records = Object.values(
+	import.meta.glob<Friend>("@/data/friends/*.json", {
+		eager: true,
+		import: "default",
+	}),
+);
+
+const friends = records.filter((friend) =>
+	friend &&
+	typeof friend.name === "string" &&
+	typeof friend.url === "string" &&
+	typeof friend.avatar === "string",
+);
+---
+
+<header class="journal-page-header">
+	<p class="journal-kicker">[PEER DIRECTORY / {String(friends.length).padStart(2, "0")}]</p>
+	<h1>友链。</h1>
+	<p>
+		由 <code>src/data/friends/*.json</code> 驱动的同行目录。
+		<a href="https://github.com/MingToneFurry/blog/tree/main/src/data/friends" target="_blank" rel="noopener noreferrer">提交友链申请 ↗</a>
+	</p>
+</header>
+
+{friends.length > 0 ? (
+	<section id="friends-index" class="journal-friends" aria-label="友链目录">
+		{friends.map((friend, index) => (
+			<a class="journal-friend" href={friend.url} target="_blank" rel="noopener noreferrer">
+				<span class="journal-friend__number">{String(index + 1).padStart(2, "0")}</span>
+				<img src={friend.avatar} alt={`${friend.name}的头像`} loading="lazy" decoding="async" />
+				<span>
+					<strong>{friend.name} ↗</strong>
+					<small>{friend.description}</small>
+				</span>
+			</a>
+		))}
+	</section>
+) : (
+	<p id="friends-index" class="journal-friends-empty">友链目录暂时为空，可稍后再来。</p>
+)}
