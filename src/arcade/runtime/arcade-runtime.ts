@@ -25,6 +25,7 @@ const pageEvents = [
 let settings: AppearanceSettings;
 let searchIndexPromise: Promise<SearchRecord[]> | null = null;
 let commandReturnFocus: HTMLElement | null = null;
+let commandCloseTimer: number | null = null;
 
 function getStorage(): Storage | null {
 	try {
@@ -95,6 +96,10 @@ function switchCommandPane(mode: "search" | "settings"): void {
 function openCommand(mode: "search" | "settings", trigger?: HTMLElement): void {
 	const layer = document.querySelector<HTMLElement>("[data-command-layer]");
 	if (!layer) return;
+	if (commandCloseTimer !== null) {
+		window.clearTimeout(commandCloseTimer);
+		commandCloseTimer = null;
+	}
 	commandReturnFocus = trigger ?? (document.activeElement instanceof HTMLElement ? document.activeElement : null);
 	switchCommandPane(mode);
 	layer.hidden = false;
@@ -109,17 +114,21 @@ function openCommand(mode: "search" | "settings", trigger?: HTMLElement): void {
 	});
 }
 
-function closeCommand(): void {
+function closeCommand({ immediate = false, restoreFocus = true } = {}): void {
 	const layer = document.querySelector<HTMLElement>("[data-command-layer]");
-	if (!layer || layer.hidden) return;
+	if (!layer) return;
 	delete layer.dataset.open;
 	layer.setAttribute("aria-hidden", "true");
 	delete document.documentElement.dataset.commandOpen;
-	window.setTimeout(() => {
+	if (commandCloseTimer !== null) window.clearTimeout(commandCloseTimer);
+	const finish = () => {
 		layer.hidden = true;
-		commandReturnFocus?.focus();
+		commandCloseTimer = null;
+		if (restoreFocus) commandReturnFocus?.focus();
 		commandReturnFocus = null;
-	}, 160);
+	};
+	if (immediate || layer.hidden) finish();
+	else commandCloseTimer = window.setTimeout(finish, 160);
 }
 
 function focusableElements(container: HTMLElement): HTMLElement[] {
@@ -211,6 +220,11 @@ function updateRouteState(): void {
 	toc?.classList.toggle("has-toc", Boolean(toc.querySelector(".arcade-toc")));
 	updateReadingProgress();
 	initGiscus();
+}
+
+function handlePageChange(): void {
+	closeCommand({ immediate: true, restoreFocus: false });
+	updateRouteState();
 }
 
 function updateReadingProgress(): void {
@@ -311,8 +325,6 @@ function handleDocumentClick(event: MouseEvent): void {
 		const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 		window.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" });
 	}
-	if (target.closest("[data-command-layer] a")) closeCommand();
-
 	const copyButton = target.closest<HTMLElement>(".copy-btn");
 	if (copyButton) {
 		const code = [...(copyButton.closest("pre")?.querySelectorAll<HTMLElement>(".code:not(summary *)") ?? [])]
@@ -321,6 +333,13 @@ function handleDocumentClick(event: MouseEvent): void {
 		void navigator.clipboard?.writeText(code);
 		copyButton.classList.add("success");
 		window.setTimeout(() => copyButton.classList.remove("success"), 1000);
+	}
+}
+
+function handleCommandNavigation(event: MouseEvent): void {
+	const target = event.target instanceof Element ? event.target : null;
+	if (target?.closest("[data-command-layer] a")) {
+		closeCommand({ immediate: true, restoreFocus: false });
 	}
 }
 
@@ -389,6 +408,7 @@ export function startArcadeRuntime(): void {
 	global.__arcadeRuntimeStarted = true;
 	settings = readAppearanceSettings(getStorage());
 	applySettings(settings);
+	document.addEventListener("click", handleCommandNavigation, { capture: true });
 	document.addEventListener("click", handleDocumentClick);
 	document.addEventListener("input", handleDocumentInput);
 	document.addEventListener("keydown", handleKeyboard);
@@ -400,7 +420,7 @@ export function startArcadeRuntime(): void {
 	getMediaQuery().addEventListener("change", () => {
 		if (settings.theme === "auto") applySettings(settings);
 	});
-	for (const eventName of pageEvents) document.addEventListener(eventName, updateRouteState);
+	for (const eventName of pageEvents) document.addEventListener(eventName, handlePageChange);
 	updateClock();
 	window.setInterval(updateClock, 30_000);
 	updateRouteState();

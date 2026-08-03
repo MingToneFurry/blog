@@ -124,6 +124,7 @@ assert.doesNotMatch(routedText, /MainGridLayout|layouts\/Layout|components\/Navb
 assert.doesNotMatch(routedText, /fetchUmamiStats|fetchPostStats|loadPostStats|loadPostCardStats|post-pageviews/, "routes still contain a competing stats consumer");
 
 const arcadeCss = await readFile(path.join("src", "styles", "arcade", "index.css"), "utf8");
+const arcadeRuntime = await readFile(path.join("src", "arcade", "runtime", "arcade-runtime.ts"), "utf8");
 assert.match(arcadeCss, /border-radius:\s*0\s*!important/, "ARCADE must globally enforce square corners");
 assert.match(arcadeCss, /@media \(prefers-reduced-motion: reduce\)/, "ARCADE must include reduced-motion fallbacks");
 assert.match(arcadeCss, /@media \(max-width: 400px\)/, "ARCADE must include a 390px-safe breakpoint");
@@ -131,5 +132,15 @@ assert.match(arcadeCss, /\.arcade-command-layer\[hidden\]\s*\{[^}]*display:\s*no
 const mobileTelemetryBlock = arcadeCss.match(/@media \(max-width: 980px\) \{([\s\S]*?)@media \(max-width: 820px\)/)?.[1] ?? "";
 assert.match(mobileTelemetryBlock, /\.arcade-site-telemetry\s*\{[\s\S]*?position:\s*absolute/, "ARCADE must keep lifetime telemetry visible below the compact system bar");
 assert.doesNotMatch(arcadeCss, /\.arcade-site-telemetry\s*\{[^}]*display:\s*none/, "ARCADE must not hide lifetime telemetry at any responsive breakpoint");
+assert.match(
+	arcadeRuntime,
+	/document\.addEventListener\("click",\s*handleCommandNavigation,\s*\{\s*capture:\s*true\s*\}\)/,
+	"ARCADE must close command-layer links before Swup intercepts navigation",
+);
+assert.match(
+	arcadeRuntime,
+	/function handlePageChange\(\): void \{[\s\S]*?closeCommand\(\{\s*immediate:\s*true,\s*restoreFocus:\s*false\s*\}\);[\s\S]*?updateRouteState\(\);[\s\S]*?\}/,
+	"ARCADE page replacement must synchronously reset the persistent command layer",
+);
 
 console.log(`ARCADE contract tests passed (${htmlFiles.length} HTML pages, ${articleFiles.length} articles)`);
