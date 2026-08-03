@@ -48,6 +48,7 @@ for (const htmlFile of htmlFiles) {
 	assert(stage.getAttribute("data-journal-background-mode") === backgroundMode, `${relative}: stage and main background modes differ`);
 
 	for (const rootNode of document.querySelectorAll("[data-blog-stats]")) {
+		assert(rootNode.hasAttribute("hidden"), `${relative}: stats roots must start hidden`);
 		const pageviews = rootNode.querySelector('[data-stats-value="pageviews"]');
 		const visitors = rootNode.querySelector('[data-stats-value="visitors"]');
 		assert(pageviews?.text.trim() === "--", `${relative}: pageviews must start at --`);
@@ -103,6 +104,10 @@ assert(journalRuntime.includes("link.click()"), "Article keyboard navigation mus
 assert(!journalRuntime.includes("window.location.href = link.href"), "Article keyboard navigation must not hard reload the page");
 assert(journalCss.includes('html[data-journal-dialog-open="true"]'), "Journal CSS must lock page scrolling behind dialogs");
 assert(journalCss.includes(".journal-mobile-menu[open]"), "Journal CSS must include the mobile menu open state");
+assert(journalCss.includes(".journal-stats[hidden]"), "Hidden stats must not retain labels, borders, or placeholders");
+assert(journalCss.includes(".journal-entry:has(> .journal-stats:not([hidden]))"), "Post rows must allocate a stats column only after success");
+assert(journalCss.includes(".journal-masthead__identity:has(> .journal-masthead__stats:not([hidden]))"), "Masthead must allocate a stats column only after success");
+assert(fs.readFileSync(path.join(root, "public/js/blog-stats.js"), "utf8").includes("requestTimeout: 8000"), "Stats runtime must bound blocked or stalled requests");
 assert(astroConfig.includes('containers: ["main", "#toc"]'), "Swup containers must leave the persistent background untouched");
 
 const nonNoneShadows = [...journalCss.matchAll(/box-shadow\s*:\s*([^;]+);/gi)]

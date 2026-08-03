@@ -23,6 +23,7 @@ class StatsRoot {
 		};
 		this.values = [new ValueNode("pageviews"), new ValueNode("visitors")];
 		this.attributes = new Map();
+		this.hidden = true;
 	}
 	querySelectorAll(selector) {
 		return selector === "[data-stats-value]" ? this.values : [];
@@ -59,6 +60,7 @@ vm.runInNewContext(source, {
 	String,
 	Error,
 	setTimeout,
+	clearTimeout,
 	decodeURIComponent,
 });
 
@@ -117,7 +119,10 @@ assert.deepEqual(
 	["0", "0"],
 );
 assert.ok(calls.some((query) => query.url === "/posts/中文/"));
-for (const root of roots) assert.equal(root.dataset.statsState, "ready");
+for (const root of roots) {
+	assert.equal(root.dataset.statsState, "ready");
+	assert.equal(root.hidden, false, "valid stats must reveal the complete group");
+}
 
 window.blogStats.reset();
 let failureCalls = 0;
@@ -136,9 +141,45 @@ assert.equal(
 	"initial request plus two finite retries expected",
 );
 assert.equal(failed.dataset.statsState, "error");
+assert.equal(failed.hidden, true, "failed stats must hide the complete group");
 assert.deepEqual(
 	failed.values.map((node) => node.textContent),
 	["--", "--"],
 );
+
+let recoveryCalls = 0;
+window.blogStats.configure({
+	retryDelays: [],
+	fetchStats: async () => {
+		recoveryCalls += 1;
+		return { pageviews: 88, visitors: 12 };
+	},
+});
+await window.blogStats.initialize(new StatsDocument([failed]));
+assert.equal(recoveryCalls, 1, "a later initialize must retry a previously failed cache key");
+assert.equal(failed.dataset.statsState, "ready");
+assert.equal(failed.hidden, false, "successful retry must reveal the stats group");
+assert.deepEqual(failed.values.map((node) => node.textContent), ["88", "12"]);
+
+window.blogStats.reset();
+window.blogStats.configure({
+	retryDelays: [],
+	fetchStats: async () => ({ pageviews: null, visitors: -1 }),
+});
+const invalid = new StatsRoot("post", "/posts/invalid/");
+await window.blogStats.initialize(new StatsDocument([invalid]));
+assert.equal(invalid.dataset.statsState, "error");
+assert.equal(invalid.hidden, true, "invalid PV/UV must keep the complete group hidden");
+
+window.blogStats.reset();
+window.blogStats.configure({
+	retryDelays: [],
+	requestTimeout: 5,
+	fetchStats: async () => new Promise(() => {}),
+});
+const timedOut = new StatsRoot("post", "/posts/timeout/");
+await window.blogStats.initialize(new StatsDocument([timedOut]));
+assert.equal(timedOut.dataset.statsState, "error");
+assert.equal(timedOut.hidden, true, "timed-out stats must keep the complete group hidden");
 
 console.log("Stats runtime tests passed");

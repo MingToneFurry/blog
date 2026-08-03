@@ -11,6 +11,7 @@
 		timezone: "Asia/Shanghai",
 		concurrency: 4,
 		retryDelays: DEFAULT_RETRY_DELAYS,
+		requestTimeout: 8000,
 		fetchStats: null,
 	};
 
@@ -19,6 +20,7 @@
 			...config,
 			...next,
 			concurrency: Math.max(1, Math.floor(Number(next.concurrency ?? config.concurrency) || 4)),
+			requestTimeout: Math.max(1, Number(next.requestTimeout ?? config.requestTimeout) || 8000),
 			retryDelays: Array.isArray(next.retryDelays)
 				? next.retryDelays.map((delay) => Math.max(0, Number(delay) || 0))
 				: config.retryDelays,
@@ -51,6 +53,7 @@
 
 	function setState(root, state) {
 		root.dataset.statsState = state;
+		root.hidden = state !== "ready";
 		root.setAttribute?.("aria-busy", state === "loading" ? "true" : "false");
 		for (const node of getValueNodes(root)) {
 			node.dataset.statsState = state;
@@ -60,7 +63,7 @@
 
 	function getNumericValue(value) {
 		const candidate = value && typeof value === "object" ? value.value : value;
-		return typeof candidate === "number" && Number.isFinite(candidate)
+		return typeof candidate === "number" && Number.isFinite(candidate) && candidate >= 0
 			? candidate
 			: null;
 	}
@@ -81,6 +84,7 @@
 			node.textContent = String(stats[key]);
 			node.dataset.statsState = "ready";
 		}
+		root.hidden = false;
 		root.dataset.statsState = "ready";
 		root.setAttribute?.("aria-busy", "false");
 	}
@@ -119,7 +123,16 @@
 		let lastError;
 		for (let attempt = 0; attempt <= config.retryDelays.length; attempt += 1) {
 			try {
-				const response = await fetchStats(config.baseUrl, config.shareId, query);
+				let timeout;
+				const response = await Promise.race([
+					fetchStats(config.baseUrl, config.shareId, query),
+					new Promise((_, reject) => {
+						timeout = setTimeout(
+							() => reject(new Error("Blog stats request timed out")),
+							config.requestTimeout,
+						);
+					}),
+				]).finally(() => clearTimeout(timeout));
 				return normalizeStats(response);
 			} catch (error) {
 				lastError = error;
@@ -145,7 +158,11 @@
 
 	function getStats(key, query) {
 		if (!resultCache.has(key)) {
-			resultCache.set(key, schedule(() => requestStats(query)));
+			const request = schedule(() => requestStats(query));
+			resultCache.set(key, request);
+			void request.catch(() => {
+				if (resultCache.get(key) === request) resultCache.delete(key);
+			});
 		}
 		return resultCache.get(key);
 	}

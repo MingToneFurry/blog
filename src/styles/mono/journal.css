@@ -219,11 +219,15 @@ time,
 
 .journal-masthead__identity {
 	display: grid;
-	grid-template-columns: minmax(0, 1fr) auto;
+	grid-template-columns: minmax(0, 1fr);
 	align-items: end;
 	gap: 2rem;
 	padding: clamp(1.5rem, 4vw, 3.4rem) 0 1.5rem;
 	border-top: 1px solid var(--ui-line);
+}
+
+.journal-masthead__identity:has(> .journal-masthead__stats:not([hidden])) {
+	grid-template-columns: minmax(0, 1fr) auto;
 }
 
 .journal-wordmark {
@@ -500,6 +504,10 @@ time,
 	grid-template-columns: repeat(2, minmax(7rem, 1fr));
 	margin: 0;
 	border: 1px solid var(--ui-line);
+}
+
+.journal-stats[hidden] {
+	display: none !important;
 }
 
 .journal-stat {
@@ -976,11 +984,17 @@ html.is-animating .transition-swup-journal {
 
 .journal-entry {
 	display: grid;
-	grid-template-columns: 3rem minmax(0, 1fr) minmax(12rem, 0.28fr);
+	grid-template-columns: 3rem minmax(0, 1fr);
 	gap: 1rem;
 	align-items: start;
 	padding: 1.5rem 0;
 	border-bottom: 1px solid var(--ui-line);
+}
+
+@media (min-width: 53rem) {
+	.journal-entry:has(> .journal-stats:not([hidden])) {
+		grid-template-columns: 3rem minmax(0, 1fr) minmax(12rem, 0.28fr);
+	}
 }
 
 .journal-entry:hover {

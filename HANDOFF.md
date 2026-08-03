@@ -182,3 +182,27 @@
 - 设置测试先持久化为 desktop `light / hidden / 13`、mobile `dark / hidden / 9`，经 Swup 与 reload 验证后均恢复为 `auto / visible / 4`；恢复后主背景源重新进入 ready。
 - 最终截图覆盖为 `mono-final-home-desktop.png`、`mono-final-home-mobile.png`、`mono-final-article-desktop.png`，位于 `C:\Users\MingTone\.codex\visualizations\2026\07\27\019fa50e-1c97-71e2-a08c-fab02dbda466\blog-rebuild-qa`；截图中全站累计为 `335965 PV / 140108 UV`，文章样本为 `82 PV / 16 UV`，数值会随访问增长。
 - 最终门禁：`pnpm test:core`、`pnpm type-check`、`pnpm build`（36 页）、`pnpm test:mono-contract`、`git diff --check` 均通过；仅保留空 assets、旧 Browserslist 数据和 pnpm 字段位置三项既有非阻塞提示。
+
+## 2026-08-04 统计拦截与失败降级
+
+### 授权环境与操作边界
+
+- 本轮继续仅在用户明确授权的 `D:\Projects\blog-mono`、`design/mono` 中修改和验证；没有触碰其他工作树，没有合并 `main` 或任何候选分支。Umami 操作仍限定为公开分享接口的只读请求以及本地浏览器中的网络中止模拟，未输出动态分享令牌。
+- 当前分支仍只是待用户选型的 MONO 候选。用户明确选择前禁止合入 `main`。
+
+### 降级契约
+
+- `JournalStats` 的服务端 HTML 默认带原生 `hidden`；即使统计脚本本身被广告拦截，页面也不会闪现累计 PV/UV 标签、`--`、`0`、边框或占位卡片。`journal-stats[hidden]` 以显式 `display:none` 锁定该行为。
+- `blog-stats.js` 在 loading、网络失败、请求超时或 PV/UV 缺失、非有限、负值时保持整组隐藏；只有 pageviews 与 visitors 均为有效非负数值后才一次性写值并揭示整组，真实 `0` 仍是有效统计。
+- 单请求默认超时为 8 秒，继续继承两次有限退避重试；最终失败会删除对应 Promise 缓存，因此后续页面生命周期或显式 `initialize` 可以重新请求，成功后恢复同一统计根。
+- Masthead 默认单列，只有站点统计成功后才启用统计列；桌面文章条目默认两列，只有该条文章统计成功后才启用第三列。失败态不保留空列或列间距，移动端继续保持单列。
+- 核心单测新增：失败整组隐藏、有效成功揭示、失败后再次初始化恢复、缺失/负数隐藏、挂起请求超时隐藏；MONO 36 页契约新增默认 hidden、无统计空列 CSS 与超时边界检查。
+
+### 真实拦截与成功回归
+
+- 临时 Playwright Core + 本机 Chrome 通过 route abort 中止所有 `*.umami.is` 请求：`1440x1000` 首页 9/9、文章页 2/2、`390x844` 首页 9/9 统计根均为 hidden，visible 根为 0，页面可见文本中累计 PV/UV 为 0 处，统计占位为 0 处。
+- 拦截态桌面首页 7 条普通文章的正文右侧空隙均为 `0px`，Masthead 统计空列为 `0px`；移动端标题至菜单正常收拢、页面宽度严格为 `390px`，桌面宽度严格为 `1440px`，均无横向溢出。
+- 同一文章页面解除网络拦截后直接再次调用统计初始化，2/2 统计根恢复可见：当次全站 `336006 PV / 140108 UV`，文章样本 `82 PV / 16 UV`；随后 Swup 回首页 9/9 统计成功，文章与 Masthead 统计列正常恢复。
+- 降级截图：`mono-stats-blocked-home-desktop.png`、`mono-stats-blocked-article-desktop.png`、`mono-stats-blocked-home-mobile.png`；恢复与成功截图：`mono-stats-recovered-article-desktop.png`、`mono-stats-success-home-desktop.png`。目录仍为 `C:\Users\MingTone\.codex\visualizations\2026\07\27\019fa50e-1c97-71e2-a08c-fab02dbda466\blog-rebuild-qa`。
+- 统计改动后再次运行完整桌面/移动交互矩阵：搜索、Dialog 焦点/滚动锁、设置持久化、移动菜单、分页、TOC、返回顶部、Alt 前后篇、Swup、浏览器 back/forward 与背景节点复用全部通过，无 console error 或 pageerror。
+- 最终门禁再次通过：`pnpm test:core`、`pnpm type-check`、`pnpm build`（36 页）、`pnpm test:mono-contract`、`git diff --check`。既有空 assets、Browserslist 过期和 pnpm 字段位置提示仍为非阻塞项。
