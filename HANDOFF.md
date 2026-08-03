@@ -95,6 +95,7 @@
 ### 分支与边界
 
 - 工作树：`D:\Projects\blog-arcade`；分支：`design/arcade`。
+- 当前实现基线：`3d404fe`；其中 `6204314` 恢复移动累计遥测条，`6fcdae2` 将“任何断点不得隐藏全站统计”锁入契约，`ad04129` 恢复原生 `hidden` 的 CSS 呈现，`3d404fe` 进一步修复命令搜索结果被 Swup 接管后面板仍覆盖新页面的问题。
 - 本分支以普通 merge 吸收 `design/rebuild-core`，保留第一轮 ARCADE 换肤提交作为历史回退点，未 reset、rebase 或改写历史。
 - 2026-07-29 再次普通 merge core 的 Umami 安全修复：动态分享令牌仅在页面内存复用，启动时清除旧版持久缓存；令牌未写入代码、构建产物、测试输出或本文档。
 - `247dbf0` 普通 merge `design/rebuild-core@c0ab512`，同步精确 lifetime 统计：以 `max(createdAt, resetAt)` 为起点，通过未来空窗与单个 `prev` comparison 取得完整有效历史，缺失 comparison 时保持 UI `--` 而不误报 0。
@@ -124,6 +125,7 @@
 - ARCADE 视觉严格使用全直角、分级切角、唯一电光黄、硬 offset 阴影、宽字距标题、编号/斜线/L 形角括号；背景之外无磨砂或柔和弥散阴影。所有主要动效不超过 520ms，`prefers-reduced-motion` 下取消 skew、overshoot、大位移和脚本平滑滚动。
 - 桌面使用固定左任务轨和文章右侧 TOC；小屏切换为底部 Dock，TOC 转为正文后的线性模块；CSS 提供 820px、640px 和 400px 断点，正文表格、代码和长链接局部滚动或换行。
 - 响应式收尾已修复小屏全站统计被隐藏的问题：980px 以下累计 PV/UV 作为 28px 紧凑遥测条固定显示在系统条下方，场景、任务轨和正文同步下移；390px 断点进一步收紧间距但不删除统计。结构测试会阻止以后重新使用 `display: none` 隐藏该遥测条。
+- 命令层内链接在捕获阶段先同步关闭，再交给 Swup 导航；任一 Astro/Swup 页面替换事件也会幂等清除命令层与根节点打开标记。普通 Escape 关闭仍保留 160ms 退场和焦点返回，快速重开会取消旧关闭定时器。
 - 个人资料、Bilibili、GitHub、RSS、Sitemap、隐私、外部状态页和 Umami 统计页均保留直接入口。
 
 ### 验证证据
@@ -137,9 +139,15 @@
 - 本地 HTTP 冒烟：`http://127.0.0.1:4326/` 与 `/posts/start/` 均返回 200、均输出 `data-product="arcade-field-node"`，且不引用任何退役资产。
 - `git diff --check`：通过。
 - 本地静态预览：`http://127.0.0.1:4326/`（仅当对应预览进程仍在运行）。
+- 主线程以精确 `390x844` 复验移动首页：全站累计条为 `display:flex` 且可见，实测高度 `28px`、底边约 `85.3px`，Hero 顶边 `110px`，重叠量为 `0`；当次实时值为 `335874+ PV / 140105 UV`。文档宽度与视口内容宽度均为 `380px`，没有页面级横向溢出。
+- 同一移动浏览器会话已确认文章累计 `90 PV / 61 UV` 就绪，文章 H1 位于累计条下方且 TOC 存在；数值会随访问继续增长。
+- 最终截图目录：`C:\Users\MingTone\.codex\visualizations\2026\07\27\019fa50e-1c97-71e2-a08c-fab02dbda466\blog-rebuild-qa`；文件为 `arcade-final-home-desktop.png`、`arcade-final-home-mobile.png`、`arcade-final-article-desktop.png`，均不包含动态分享令牌。
+- 真实浏览器在 `3d404fe` 前精确复现：输入 `cloudflare` 并点击首条结果后，文章 H1 已被 Swup 替换，但命令层仍为 `hidden=false`、`data-open=true`、`aria-hidden=false`、`display:grid`，根节点仍有 `data-command-open=true`。
+- 同一路径在 `3d404fe` 后通过：文章 URL/H1 正确，命令层为 `hidden=true`、无 `data-open`、`aria-hidden=true`、`display:none`，根节点无打开标记；Escape 关闭后焦点返回“打开搜索”，浏览器后退首页与前进文章也始终保持命令层关闭。
+- `3d404fe` 验证：`pnpm type-check` 与自包含 `pnpm test:arcade` 均通过；后者重新构建 36 页并通过 26 篇文章的 ARCADE 契约，新增捕获阶段关闭与页面替换同步归一断言。
 
 ### 尚待主线程补验
 
-- 当前子代理已按 Browser skill 的恢复流程确认浏览器列表为空，因此无法在本代理内生成更新后的精确 `390x844` 与文章页截图，也无法以真实浏览器完成点击式 Swup/命令面板/主题/背景持久化矩阵。
-- 这不是实现或构建阻塞；主线程应在浏览器绑定可用时使用上述预览地址补做视觉、键盘、前进后退、无横向溢出和截图终验，再决定是否存在需要回到本分支修正的问题。
+- 移动布局、截图、文章统计、搜索打开/结果跳转、Escape 焦点返回、Swup 搜索导航及浏览器前进后退已完成真实浏览器复验。
+- 仍需主线程补做设置面板、主题与背景持久化、背景主源到 SNI/纯色降级、TOC 与 Alt 前后篇的真实交互矩阵；未复验的项目不得记为通过。
 - 已知非阻塞警告：`src/content/assets` 数据集合为空、Browserslist 数据较旧、pnpm 10 提示旧 `pnpm.patchedDependencies` 字段位置；均未影响当前构建与运行时契约。
