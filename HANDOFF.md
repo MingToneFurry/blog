@@ -127,6 +127,7 @@
 - 响应式收尾已修复小屏全站统计被隐藏的问题：980px 以下累计 PV/UV 作为 28px 紧凑遥测条固定显示在系统条下方，场景、任务轨和正文同步下移；390px 断点进一步收紧间距但不删除统计。结构测试会阻止以后重新使用 `display: none` 隐藏该遥测条。
 - 命令层内链接在捕获阶段先同步关闭，再交给 Swup 导航；任一 Astro/Swup 页面替换事件也会幂等清除命令层与根节点打开标记。普通 Escape 关闭仍保留 160ms 退场和焦点返回，快速重开会取消旧关闭定时器。
 - 个人资料、Bilibili、GitHub、RSS、Sitemap、隐私、外部状态页和 Umami 统计页均保留直接入口。
+- 2026-08-04 按用户视觉反馈将系统条原有字母 `M` 标记替换为 `siteConfig.favicon` 配置的站点图标；图标保持装饰语义，站名链接仍提供完整可访问名称，配置为空时沿用默认 favicon 列表。
 
 ### 验证证据
 
@@ -145,6 +146,7 @@
 - 真实浏览器在 `3d404fe` 前精确复现：输入 `cloudflare` 并点击首条结果后，文章 H1 已被 Swup 替换，但命令层仍为 `hidden=false`、`data-open=true`、`aria-hidden=false`、`display:grid`，根节点仍有 `data-command-open=true`。
 - 同一路径在 `3d404fe` 后通过：文章 URL/H1 正确，命令层为 `hidden=true`、无 `data-open`、`aria-hidden=true`、`display:none`，根节点无打开标记；Escape 关闭后焦点返回“打开搜索”，浏览器后退首页与前进文章也始终保持命令层关闭。
 - `3d404fe` 验证：`pnpm type-check` 与自包含 `pnpm test:arcade` 均通过；后者重新构建 36 页并通过 26 篇文章的 ARCADE 契约，新增捕获阶段关闭与页面替换同步归一断言。
+- 站点图标替换后再次通过 `pnpm type-check` 与自包含 `pnpm test:arcade`；契约新增首页品牌必须渲染非空 favicon `<img>` 且不得回退字母标记。公开图标源经授权代理返回 `200 image/jpeg`，真实浏览器在 1440×1000 与 390×844 下均完成解码，图标框分别为 36×36 与 32×32，和站名重叠量为 0。
 
 ### 尚待主线程补验
 

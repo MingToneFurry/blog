@@ -1,13 +1,17 @@
 ---
 import { profileConfig, siteConfig } from "@/config";
+import { defaultFavicons } from "@/constants/icon";
 import { Icon } from "astro-icon/components";
 
 const currentPath = Astro.url.pathname;
+const brandIcon = (siteConfig.favicon.length > 0 ? siteConfig.favicon : defaultFavicons)[0];
 ---
 
 <header class="arcade-system-bar" data-system-bar>
 	<a class="arcade-brand" href="/" aria-label={`${siteConfig.title} 首页`}>
-		<span class="arcade-brand-mark" aria-hidden="true">M</span>
+		<span class="arcade-brand-mark" aria-hidden="true">
+			<img src={brandIcon.src} alt="" width="36" height="36" decoding="async" fetchpriority="high" />
+		</span>
 		<span class="arcade-brand-copy">
 			<strong>{siteConfig.title}</strong>
 			<small>FIELD NODE / {profileConfig.name}</small>

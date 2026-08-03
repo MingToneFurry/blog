@@ -100,6 +100,9 @@ assert.doesNotMatch(
 const homeDocument = parse(await readFile(path.join("dist", "index.html"), "utf8"));
 assert.equal(homeDocument.querySelectorAll('[data-stats-scope="post"]').length, 8, "homepage must expose PV+UV roots for all 8 posts");
 assert.equal(homeDocument.querySelectorAll('[data-stats-scope="site"]').length, 1, "homepage must expose site lifetime stats");
+const brandIcon = homeDocument.querySelector(".arcade-brand-mark img");
+assert.ok(brandIcon?.getAttribute("src"), "ARCADE brand must load the configured site icon");
+assert.equal(homeDocument.querySelector(".arcade-brand-mark")?.text.trim(), "", "ARCADE brand must not fall back to a letter mark");
 
 for (const pageNumber of [2, 3, 4]) {
 	const pageDocument = parse(await readFile(path.join("dist", String(pageNumber), "index.html"), "utf8"));
