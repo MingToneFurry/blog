@@ -5,6 +5,18 @@ import { globSync } from "glob";
 
 const read = (file) => readFileSync(file, "utf8");
 const count = (text, needle) => text.split(needle).length - 1;
+const statsRootTags = (html) =>
+	html.match(/<div\b[^>]*\bdata-blog-stats\b[^>]*>/g) || [];
+
+function assertStatsRootsStartHidden(html, expected, label) {
+	const roots = statsRootTags(html);
+	assert.equal(roots.length, expected, `${label} stats root count drifted`);
+	for (const root of roots) {
+		assert.match(root, /\shidden(?:=""|="hidden")?(?=\s|>)/, `${label} stats must start hidden`);
+		assert.match(root, /aria-hidden="true"/, `${label} stats must start outside the accessibility tree`);
+		assert.match(root, /data-stats-state="idle"/, `${label} stats must expose an idle state`);
+	}
+}
 
 assert.ok(existsSync("dist/index.html"), "Run pnpm build before the GLASS contract test");
 
@@ -64,7 +76,8 @@ assert.equal(count(home, 'data-stats-scope="site"'), 1, "home must expose one si
 assert.equal(count(home, 'data-stats-scope="post"'), 8, "home must expose one stats root for each of eight posts");
 assert.equal(count(home, 'data-stats-value="pageviews"'), 9, "home must expose PV for site and every post");
 assert.equal(count(home, 'data-stats-value="visitors"'), 9, "home must expose UV for site and every post");
-assert.equal(count(home, '>--</span>'), 18, "every home stat value must start at --");
+assert.equal(count(home, '>--</span>'), 18, "every hidden home stat value must retain its internal placeholder");
+assertStatsRootsStartHidden(home, 9, "home");
 assert.match(home, /data-blog-background/, "home must expose the background state-machine root");
 assert.match(home, /id="glass-search-dialog"/, "home must retain RSS search");
 assert.match(home, /data-glass-theme="light"/, "home must expose light theme selection");
@@ -90,6 +103,7 @@ const post = read(postFile);
 assert.ok(count(post, 'data-stats-scope="post"') >= 2, "article must expose cumulative PV+UV in header and context rail");
 assert.ok(count(post, 'data-stats-value="pageviews"') >= 2, "article must expose PV in both reading contexts");
 assert.ok(count(post, 'data-stats-value="visitors"') >= 2, "article must expose UV in both reading contexts");
+assertStatsRootsStartHidden(post, statsRootTags(post).length, "article");
 assert.match(post, /giscus\.app\/client\.js/, "article must retain Giscus");
 assert.match(post, /CONTENT LICENSE/, "article must retain the license panel");
 assert.match(post, /编辑本文/, "article must retain the GitHub edit action");
@@ -101,6 +115,21 @@ assert.match(glassStyles, /prefers-reduced-motion:\s*reduce/, "GLASS styles must
 assert.equal(/transition:\s*all\b/.test(glassStyles), false, "GLASS styles must not use transition: all");
 assert.equal(/border-radius:\s*50%/.test(glassStyles), false, "GLASS styles must use the named radius scale");
 assert.equal(/backdrop-filter/.test(glassStyles), false, "GLASS surfaces must not become a site-wide frosted stack");
+assert.match(
+	glassStyles,
+	/\[data-blog-stats\]\[hidden\]\s*\{\s*display:\s*none;\s*\}/,
+	"hidden stats roots must override the normal grid display",
+);
+assert.match(
+	glassStyles,
+	/\.glass-home-intro:has\(> \[data-blog-stats\]\[hidden\]\)[\s\S]*?grid-template-columns:\s*minmax\(0, 1fr\)/,
+	"a hidden site total must collapse the empty home intro track",
+);
+assert.match(
+	glassStyles,
+	/\[data-stats-container\]:has\(> \[data-blog-stats\]\[hidden\]\)[\s\S]*?display:\s*none/,
+	"a dedicated stats wrapper must not leave an empty context section",
+);
 
 const glassTokens = read("src/styles/glass/tokens.css");
 for (const requiredToken of [
@@ -159,6 +188,37 @@ for (const runtime of ["/js/umami-share.js", "/js/blog-stats.js", "/js/blog-back
 	assert.match(shell, new RegExp(runtime.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")), `shell must load ${runtime}`);
 }
 
+const siteStats = read("src/glass/components/SiteStats.astro");
+assert.match(
+	siteStats,
+	/data-stats-state="idle"[\s\S]*?\shidden[\s\S]*?aria-hidden="true"/,
+	"stats markup must stay hidden until a complete PV and UV response is ready",
+);
+
+const articleContext = read("src/glass/components/ArticleContext.astro");
+assert.match(
+	articleContext,
+	/<section class="glass-context-section" data-stats-container>[\s\S]*?<SiteStats/,
+	"the article context stats wrapper must participate in empty-state collapse",
+);
+
+const statsRuntime = read("public/js/blog-stats.js");
+assert.match(
+	statsRuntime,
+	/const RUNTIME_ID = "glass-blog-stats-v1";[\s\S]*?global\.blogStats\?\.runtimeId === RUNTIME_ID[\s\S]*?return;/,
+	"Swup script replay must preserve the configured singleton stats runtime",
+);
+assert.match(
+	statsRuntime,
+	/function setRootVisibility\(root, visible\)[\s\S]*?root\.hidden = !visible;[\s\S]*?removeAttribute\?\.\("aria-hidden"\)/,
+	"stats runtime must hide the entire group and restore its accessibility state on success",
+);
+assert.match(
+	statsRuntime,
+	/schedule\(\(\) => requestStats\(query\)\)\.catch\([\s\S]*?resultCache\.delete\(key\)/,
+	"failed stats requests must leave the result cache so a later lifecycle can recover",
+);
+
 const observatoryRuntime = read("src/glass/runtime/observatory.ts");
 assert.match(
 	observatoryRuntime,
@@ -169,6 +229,16 @@ assert.match(
 	observatoryRuntime,
 	/function initializeNavigatedPage\(\)[\s\S]*?resetTransientUi\(\);[\s\S]*?bindPageLifecycle\(document, initializeNavigatedPage\)/,
 	"page lifecycle replacement must clear stale dialogs, drawers, and popovers before reinitializing",
+);
+assert.match(
+	observatoryRuntime,
+	/function initializePage\(\)[\s\S]*?connectCoreRuntimes\(\);[\s\S]*?window\.blogStats\?\.initialize\(document\)/,
+	"every page lifecycle must reconnect a stats runtime replaced by Swup head processing",
+);
+assert.match(
+	observatoryRuntime,
+	/connectedStatsRuntime !== statsRuntime[\s\S]*?disconnectStatsRuntime\?\.\(\);[\s\S]*?statsRuntime\.configure\([\s\S]*?statsRuntime\.bindLifecycle\(document\)/,
+	"a replaced stats runtime must release the old lifecycle and receive fresh configuration",
 );
 assert.match(
 	observatoryRuntime,

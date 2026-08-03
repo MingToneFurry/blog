@@ -79,6 +79,78 @@ async function routeState(page) {
 	}));
 }
 
+async function waitForStatsState(page, state, expectedCount) {
+	await page.waitForFunction(
+		({ expectedCount, state }) => {
+			const roots = [...document.querySelectorAll("[data-blog-stats]")];
+			return (
+				roots.length === expectedCount &&
+				roots.every((root) => root.getAttribute("data-stats-state") === state)
+			);
+		},
+		{ expectedCount, state },
+		{ timeout: 20_000 },
+	);
+}
+
+async function statsSnapshot(page) {
+	return page.evaluate(() => {
+		const isVisible = (element) =>
+			element.getClientRects().length > 0 &&
+			getComputedStyle(element).visibility !== "hidden";
+		const roots = [...document.querySelectorAll("[data-blog-stats]")];
+		return {
+			roots: roots.map((root) => ({
+				scope: root.getAttribute("data-stats-scope"),
+				state: root.getAttribute("data-stats-state"),
+				hidden: root.hidden,
+				ariaHidden: root.getAttribute("aria-hidden"),
+				visible: isVisible(root),
+				values: [...root.querySelectorAll("[data-stats-value]")].map(
+					(value) => ({ text: value.textContent?.trim() || "", visible: isVisible(value) }),
+				),
+			})),
+			visibleLabels: [...document.querySelectorAll("[data-blog-stats] small")].filter(
+				isVisible,
+			).length,
+			visiblePlaceholders: [...document.querySelectorAll("[data-stats-value]")].filter(
+				(value) => isVisible(value) && value.textContent?.trim() === "--",
+			).length,
+		};
+	});
+}
+
+async function assertStatsHidden(page, expectedCount, label) {
+	const snapshot = await statsSnapshot(page);
+	assert.equal(snapshot.roots.length, expectedCount, `${label} stats root count drifted`);
+	assert.equal(snapshot.visibleLabels, 0, `${label} must not show PV or UV labels`);
+	assert.equal(snapshot.visiblePlaceholders, 0, `${label} must not show -- placeholders`);
+	for (const root of snapshot.roots) {
+		assert.equal(root.state, "error", `${label} must expose a retryable error state`);
+		assert.equal(root.hidden, true, `${label} must hide the complete stats root`);
+		assert.equal(root.ariaHidden, "true", `${label} must leave the accessibility tree`);
+		assert.equal(root.visible, false, `${label} stats root must have no rendered box`);
+		assert.ok(root.values.every((value) => !value.visible), `${label} values must not render`);
+	}
+}
+
+async function assertStatsReady(page, expectedCount, label) {
+	const snapshot = await statsSnapshot(page);
+	assert.equal(snapshot.roots.length, expectedCount, `${label} stats root count drifted`);
+	assert.equal(snapshot.visibleLabels, expectedCount * 2, `${label} must restore both labels`);
+	assert.equal(snapshot.visiblePlaceholders, 0, `${label} must replace every placeholder`);
+	for (const root of snapshot.roots) {
+		assert.equal(root.state, "ready", `${label} stats must be ready`);
+		assert.equal(root.hidden, false, `${label} stats root must be restored`);
+		assert.equal(root.ariaHidden, null, `${label} stats must return to the accessibility tree`);
+		assert.equal(root.visible, true, `${label} stats root must render`);
+		assert.ok(
+			root.values.every((value) => value.visible && /^\d+$/.test(value.text)),
+			`${label} must render finite numeric PV and UV values`,
+		);
+	}
+}
+
 async function runDesktop(baseUrl, browser) {
 	const context = await browser.newContext({
 		viewport: { width: 1440, height: 1000 },
@@ -341,6 +413,156 @@ async function runMobile(baseUrl, browser) {
 	);
 }
 
+async function runStatsAvailability(baseUrl, browser) {
+	const context = await browser.newContext({
+		viewport: { width: 1280, height: 900 },
+		reducedMotion: "reduce",
+	});
+	let blockUmami = true;
+	const umamiRequests = [];
+	const corsHeaders = {
+		"access-control-allow-origin": "*",
+		"access-control-allow-methods": "GET, OPTIONS",
+		"access-control-allow-headers":
+			"content-type, x-umami-share-context, x-umami-share-token",
+		"cache-control": "no-store",
+	};
+
+	await context.route(
+		/^https:\/\/(?:gateway-[^.]+|cloud)\.umami\.is\//,
+		async (route) => {
+			umamiRequests.push(
+				`${blockUmami ? "blocked" : "mock"} ${route.request().method()} ${route.request().url()}`,
+			);
+			if (blockUmami) {
+				await route.abort("blockedbyclient");
+				return;
+			}
+
+			const request = route.request();
+			const requestUrl = new URL(request.url());
+			if (request.method() === "OPTIONS") {
+				await route.fulfill({ status: 204, headers: corsHeaders, body: "" });
+				return;
+			}
+			if (requestUrl.hostname === "cloud.umami.is") {
+				await route.fulfill({
+					status: 200,
+					contentType: "application/javascript",
+					body: "window.__glassMockUmamiScript = true;",
+				});
+				return;
+			}
+			if (requestUrl.pathname.startsWith("/api/share/")) {
+				await route.fulfill({
+					status: 200,
+					contentType: "application/json",
+					headers: corsHeaders,
+					body: JSON.stringify({
+						websiteId: "playwright-website",
+						token: "playwright-share-token",
+					}),
+				});
+				return;
+			}
+			if (requestUrl.pathname === "/api/websites/playwright-website") {
+				await route.fulfill({
+					status: 200,
+					contentType: "application/json",
+					headers: corsHeaders,
+					body: JSON.stringify({
+						id: "playwright-website",
+						createdAt: "2020-01-01T00:00:00.000Z",
+					}),
+				});
+				return;
+			}
+			if (requestUrl.pathname === "/api/websites/playwright-website/stats") {
+				const isPost = requestUrl.searchParams.has("path");
+				await route.fulfill({
+					status: 200,
+					contentType: "application/json",
+					headers: corsHeaders,
+					body: JSON.stringify({
+						comparison: {
+							pageviews: { value: isPost ? 73 : 12_034 },
+							visitors: { value: isPost ? 31 : 4_567 },
+						},
+					}),
+				});
+				return;
+			}
+			await route.fulfill({
+				status: 404,
+				contentType: "application/json",
+				headers: corsHeaders,
+				body: JSON.stringify({ error: "unexpected Umami test route" }),
+			});
+		},
+	);
+
+	const page = await context.newPage();
+	const pageErrors = [];
+	page.on("pageerror", (error) => pageErrors.push(error.message));
+
+	await page.goto(baseUrl, { waitUntil: "domcontentloaded" });
+	await waitForStatsState(page, "error", 9);
+	await assertStatsHidden(page, 9, "blocked home");
+	const collapsedIntro = await page.evaluate(() => {
+		const intro = document.querySelector(".glass-home-intro")?.getBoundingClientRect();
+		const copy = document.querySelector(".glass-intro-copy")?.getBoundingClientRect();
+		return intro && copy ? Math.abs(intro.right - copy.right) : Number.POSITIVE_INFINITY;
+	});
+	assert.ok(collapsedIntro <= 2, "blocked site totals must not leave an empty home grid track");
+	await assertNoHorizontalOverflow(page, "blocked stats home");
+
+	await page.locator(".glass-writing-row h3 a").first().click();
+	await page.waitForURL(/\/posts\//);
+	await waitForStatsState(page, "error", 2);
+	await assertStatsHidden(page, 2, "blocked article");
+	assert.equal(
+		await page.locator("[data-stats-container]").evaluate(
+			(element) => getComputedStyle(element).display,
+		),
+		"none",
+		"blocked article stats must not leave an empty context section",
+	);
+	await assertNoHorizontalOverflow(page, "blocked stats article");
+
+	blockUmami = false;
+	const runtimeConfig = await page.evaluate(() => window.blogStats.configure());
+	assert.equal(runtimeConfig.baseUrl, "https://gateway-us.umami.is");
+	assert.equal(runtimeConfig.shareId, "HdVBrs2TcRJ2LJd4");
+	await page.evaluate(() => window.blogStats.initialize());
+	const recoveryProbe = await statsSnapshot(page);
+	assert.ok(
+		recoveryProbe.roots.every((root) => root.state === "ready"),
+		`article stats did not recover: ${JSON.stringify({ runtimeConfig, recoveryProbe, umamiRequests })}`,
+	);
+	await waitForStatsState(page, "ready", 2);
+	await assertStatsReady(page, 2, "recovered article");
+	assert.notEqual(
+		await page.locator("[data-stats-container]").evaluate(
+			(element) => getComputedStyle(element).display,
+		),
+		"none",
+		"recovered article stats context must return",
+	);
+
+	await page.goBack({ waitUntil: "domcontentloaded" });
+	await page.waitForURL(new URL("/", baseUrl).href);
+	await waitForStatsState(page, "ready", 9);
+	await assertStatsReady(page, 9, "recovered home");
+	await assertNoHorizontalOverflow(page, "recovered stats home");
+
+	await context.close();
+	assert.deepEqual(
+		pageErrors,
+		[],
+		`stats availability page errors: ${pageErrors.join("\n")}`,
+	);
+}
+
 const port = await reservePort();
 const baseUrl = `http://127.0.0.1:${port}/`;
 const output = [];
@@ -362,8 +584,9 @@ try {
 	browser = await chromium.launch({ headless: true });
 	await runDesktop(baseUrl, browser);
 	await runMobile(baseUrl, browser);
+	await runStatsAvailability(baseUrl, browser);
 	console.log(
-		"GLASS Playwright interactions passed: desktop 1440x1000 and mobile 390x844.",
+		"GLASS Playwright interactions passed: desktop 1440x1000, mobile 390x844, and blocked/recovered Umami states.",
 	);
 } finally {
 	await browser?.close();

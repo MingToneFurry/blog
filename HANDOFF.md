@@ -155,3 +155,27 @@
 - 新增 `pnpm test:glass` 总门禁；静态契约继续检查 36 个 HTML，并新增 composedPath、真实 backdrop、生命周期清理的源码与构建契约。
 - 本地 4325 实时复验：动态背景为 `ready`，`currentSrc=https://api.furry.ist/furry-img`；分页、文章、浏览器 back/forward 后 `#glass-main` 与 `#toc` 均各一份，关闭态 overlay 不残留。
 - 修改后的最终设置恢复为 `theme=auto`、背景显示、`blur=4`；用户选定设计前仍禁止将本分支合入 `main`。
+
+## `design/glass` 2026-08-04 Umami 拦截降级与恢复
+
+### 授权、目标与边界
+
+- 本轮仍属于用户授权的本地博客开发与只读统计验证，仅修改 `D:\Projects\blog-glass` 的 `design/glass`；未修改、合并或推送 `main`，未改动其他候选设计分支。
+- 目标是让 Umami 在广告拦截、网络失败、超时或缺失有效 PV/UV 时隐藏整组统计，不显示标签、`--`、伪造的 `0` 或空框；后续请求成功时恢复累计 PV/UV。
+- Playwright 通过 route abort 模拟 `gateway-*.umami.is` 与 `cloud.umami.is` 被拦截，恢复阶段使用确定性的本地路由响应；没有记录或输出真实动态分享令牌，也没有向外部统计系统写入数据。
+- 背景协议保持不变：主源仍为 `https://api.furry.ist/furry-img`，fallback 仍为 `https://sni-api.furry.ist/furry-img`。
+
+### 实现与根因
+
+- `SiteStats.astro` 的统计根在服务端 HTML 中默认带 `hidden` 与 `aria-hidden="true"`；`blog-stats.js` 只有在 PV、UV 都是有限数字时才写值、移除隐藏并恢复可访问树。合法的真实 `0` 仍按成功数据展示。
+- loading、网络异常、有限重试耗尽或响应缺字段时，统计根保持隐藏；首页介绍区自动折叠第二网格轨道，文章 context 中的专用统计 section 同步隐藏，列表卡和 Reader 不留下统计占位。
+- rejected Promise 会从 `resultCache` 驱逐，因此后续页面生命周期可以重新请求；成功结果仍按 site 或规范化文章路径去重缓存。
+- Playwright 复现出 Swup 会重执行 `blog-stats.js` 并替换已配置的 `window.blogStats`，导致新实例的 `baseUrl/shareId` 为空。运行时现以 `glass-blog-stats-v1` 标识保持窗口级单例；Observatory 也按实例而非布尔值跟踪核心运行时，替换时解绑旧生命周期并重新配置。
+
+### 回归证据
+
+- 运行时测试覆盖：成功、真零、并发上限、同路径去重、三次失败、失败隐藏、缺失 UV 隐藏、失败缓存驱逐后恢复，以及 Swup 脚本重执行时保留同一已配置实例。
+- 静态契约覆盖：36 个 HTML 的统计根默认隐藏、隐藏 CSS 优先级、首页空轨道折叠、文章空 section 折叠、失败缓存驱逐、统计单例和 Swup 运行时重连。
+- Playwright 覆盖：首页 1 组全站累计 + 8 组文章累计，以及文章 header + context 两组统计；拦截时可见标签、可见 `--` 与渲染框均为 0，解除拦截后全部恢复有限数字，并继续通过桌面、移动、背景、设置、抽屉、搜索、history 和横向溢出矩阵。
+- 最终门禁已通过：`pnpm test:core`、`pnpm type-check`、`pnpm test:glass`（含 36 页生产构建、静态契约与 Playwright）、`git diff --check`。
+- 用户选定最终设计前，本分支继续保持独立，禁止合入 `main`；完成推送后 Goal 进入 `blocked`，等待用户选择，不自动继续。

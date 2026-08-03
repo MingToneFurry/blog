@@ -25,8 +25,10 @@ let activeRouteKey = "";
 
 const colorSchemeMedia = window.matchMedia("(prefers-color-scheme: dark)");
 const reducedMotionMedia = window.matchMedia("(prefers-reduced-motion: reduce)");
-let statsRuntimeConnected = false;
-let backgroundRuntimeConnected = false;
+let connectedStatsRuntime: Window["blogStats"];
+let disconnectStatsRuntime: (() => void) | null = null;
+let connectedBackgroundRuntime: Window["blogBackground"];
+let disconnectBackgroundRuntime: (() => void) | null = null;
 
 function currentSettings(): AppearanceSettings {
 	return readAppearanceSettings(window.localStorage);
@@ -339,6 +341,7 @@ function initializePage(): void {
 	updateScrollState();
 	const activeFilter = document.querySelector<HTMLButtonElement>('[data-glass-filter][aria-pressed="true"]');
 	if (activeFilter) updateCategoryFilter(activeFilter);
+	connectCoreRuntimes();
 	void window.blogStats?.initialize(document);
 	void window.blogBackground?.initialize(document);
 }
@@ -354,28 +357,39 @@ function initializeNavigatedPage(): void {
 
 function connectCoreRuntimes(): boolean {
 	const dataset = document.documentElement.dataset;
-	if (!statsRuntimeConnected && window.blogStats) {
-		window.blogStats.configure({
+	const statsRuntime = window.blogStats;
+	if (statsRuntime && connectedStatsRuntime !== statsRuntime) {
+		disconnectStatsRuntime?.();
+		statsRuntime.configure({
 			baseUrl: dataset.statsBaseUrl,
 			shareId: dataset.statsShareId,
 			timezone: dataset.statsTimezone,
 			concurrency: 4,
 			retryDelays: [250, 750],
 		});
-		window.blogStats.bindLifecycle(document);
-		statsRuntimeConnected = true;
+		disconnectStatsRuntime = statsRuntime.bindLifecycle(document);
+		connectedStatsRuntime = statsRuntime;
 	}
-	if (!backgroundRuntimeConnected && window.blogBackground) {
-		window.blogBackground.bindLifecycle(document);
-		backgroundRuntimeConnected = true;
+	const backgroundRuntime = window.blogBackground;
+	if (backgroundRuntime && connectedBackgroundRuntime !== backgroundRuntime) {
+		disconnectBackgroundRuntime?.();
+		disconnectBackgroundRuntime = backgroundRuntime.bindLifecycle(document);
+		connectedBackgroundRuntime = backgroundRuntime;
 	}
-	initializePage();
-	return statsRuntimeConnected && backgroundRuntimeConnected;
+	return (
+		Boolean(statsRuntime) &&
+		connectedStatsRuntime === statsRuntime &&
+		Boolean(backgroundRuntime) &&
+		connectedBackgroundRuntime === backgroundRuntime
+	);
 }
 
 async function waitForCoreRuntimes(maxAttempts = 50, interval = 100): Promise<void> {
 	for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
-		if (connectCoreRuntimes()) return;
+		if (connectCoreRuntimes()) {
+			initializePage();
+			return;
+		}
 		await new Promise((resolve) => window.setTimeout(resolve, interval));
 	}
 }
@@ -537,6 +551,8 @@ export function startObservatory(): void {
 
 		return () => {
 			lifecycleCleanup();
+			disconnectStatsRuntime?.();
+			disconnectBackgroundRuntime?.();
 			tocObserver?.disconnect();
 			document.removeEventListener("click", click);
 			document.removeEventListener("input", input);

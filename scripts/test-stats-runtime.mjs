@@ -23,12 +23,16 @@ class StatsRoot {
 		};
 		this.values = [new ValueNode("pageviews"), new ValueNode("visitors")];
 		this.attributes = new Map();
+		this.hidden = true;
 	}
 	querySelectorAll(selector) {
 		return selector === "[data-stats-value]" ? this.values : [];
 	}
 	setAttribute(name, value) {
 		this.attributes.set(name, value);
+	}
+	removeAttribute(name) {
+		this.attributes.delete(name);
 	}
 }
 
@@ -49,7 +53,7 @@ class StatsDocument {
 }
 
 const window = {};
-vm.runInNewContext(source, {
+const sandbox = {
 	window,
 	document: new StatsDocument([]),
 	URL,
@@ -60,7 +64,8 @@ vm.runInNewContext(source, {
 	Error,
 	setTimeout,
 	decodeURIComponent,
-});
+};
+vm.runInNewContext(source, sandbox);
 
 assert.equal(
 	window.blogStats.normalizePathname("/posts/%E4%B8%AD%E6%96%87?q=1"),
@@ -90,6 +95,16 @@ window.blogStats.configure({
 	fetchStats,
 });
 
+const configuredRuntime = window.blogStats;
+vm.runInNewContext(source, sandbox);
+assert.equal(
+	window.blogStats,
+	configuredRuntime,
+	"Swup script replay must preserve the configured stats runtime instance",
+);
+assert.equal(window.blogStats.configure().baseUrl, "https://gateway-us.umami.is");
+assert.equal(window.blogStats.configure().shareId, "share-id");
+
 const roots = [
 	new StatsRoot("site"),
 	new StatsRoot("post", "/posts/中文/"),
@@ -118,6 +133,10 @@ assert.deepEqual(
 );
 assert.ok(calls.some((query) => query.url === "/posts/中文/"));
 for (const root of roots) assert.equal(root.dataset.statsState, "ready");
+for (const root of roots) {
+	assert.equal(root.hidden, false);
+	assert.equal(root.attributes.has("aria-hidden"), false);
+}
 
 window.blogStats.reset();
 let failureCalls = 0;
@@ -136,9 +155,40 @@ assert.equal(
 	"initial request plus two finite retries expected",
 );
 assert.equal(failed.dataset.statsState, "error");
+assert.equal(failed.hidden, true);
+assert.equal(failed.attributes.get("aria-hidden"), "true");
 assert.deepEqual(
 	failed.values.map((node) => node.textContent),
 	["--", "--"],
 );
+
+let recoveryCalls = 0;
+window.blogStats.configure({
+	retryDelays: [],
+	fetchStats: async () => {
+		recoveryCalls += 1;
+		return { pageviews: 91, visitors: { value: 23 } };
+	},
+});
+await window.blogStats.initialize(new StatsDocument([failed]));
+assert.equal(recoveryCalls, 1, "a rejected request must be evicted so the root can retry");
+assert.equal(failed.dataset.statsState, "ready");
+assert.equal(failed.hidden, false);
+assert.equal(failed.attributes.has("aria-hidden"), false);
+assert.deepEqual(
+	failed.values.map((node) => node.textContent),
+	["91", "23"],
+);
+
+window.blogStats.reset();
+window.blogStats.configure({
+	retryDelays: [],
+	fetchStats: async () => ({ pageviews: 1 }),
+});
+const invalid = new StatsRoot("post", "/posts/invalid/");
+await window.blogStats.initialize(new StatsDocument([invalid]));
+assert.equal(invalid.dataset.statsState, "error");
+assert.equal(invalid.hidden, true, "a response missing PV or UV must hide the full group");
+assert.equal(invalid.attributes.get("aria-hidden"), "true");
 
 console.log("Stats runtime tests passed");

@@ -82,6 +82,18 @@
 	background: var(--glass-accent-hover);
 }
 
+[data-blog-stats][hidden] {
+	display: none;
+}
+
+.glass-home-intro:has(> [data-blog-stats][hidden]) {
+	grid-template-columns: minmax(0, 1fr);
+}
+
+[data-stats-container]:has(> [data-blog-stats][hidden]) {
+	display: none;
+}
+
 .glass-stats {
 	display: grid;
 	align-content: center;

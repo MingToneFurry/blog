@@ -1,4 +1,7 @@
 ((global) => {
+	const RUNTIME_ID = "glass-blog-stats-v1";
+	if (global.blogStats?.runtimeId === RUNTIME_ID) return;
+
 	const DEFAULT_RETRY_DELAYS = [250, 750];
 	const resultCache = new Map();
 	const queue = [];
@@ -49,9 +52,19 @@
 		return [...root.querySelectorAll("[data-stats-value]")];
 	}
 
+	function setRootVisibility(root, visible) {
+		root.hidden = !visible;
+		if (visible) {
+			root.removeAttribute?.("aria-hidden");
+		} else {
+			root.setAttribute?.("aria-hidden", "true");
+		}
+	}
+
 	function setState(root, state) {
 		root.dataset.statsState = state;
 		root.setAttribute?.("aria-busy", state === "loading" ? "true" : "false");
+		setRootVisibility(root, state === "ready");
 		for (const node of getValueNodes(root)) {
 			node.dataset.statsState = state;
 			if (state !== "ready") node.textContent = "--";
@@ -83,6 +96,7 @@
 		}
 		root.dataset.statsState = "ready";
 		root.setAttribute?.("aria-busy", "false");
+		setRootVisibility(root, true);
 	}
 
 	function sleep(milliseconds) {
@@ -145,7 +159,11 @@
 
 	function getStats(key, query) {
 		if (!resultCache.has(key)) {
-			resultCache.set(key, schedule(() => requestStats(query)));
+			const result = schedule(() => requestStats(query)).catch((error) => {
+				if (resultCache.get(key) === result) resultCache.delete(key);
+				throw error;
+			});
+			resultCache.set(key, result);
 		}
 		return resultCache.get(key);
 	}
@@ -193,6 +211,7 @@
 	}
 
 	global.blogStats = {
+		runtimeId: RUNTIME_ID,
 		configure,
 		initialize,
 		bindLifecycle,
