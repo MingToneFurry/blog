@@ -49,6 +49,18 @@ export function sortPosts<T extends PostLike>(posts: readonly T[]): T[] {
 	return [...posts].sort(comparePosts);
 }
 
+export function partitionPinnedPosts<T extends PostLike>(posts: readonly T[]): {
+	pinned: T[];
+	regular: T[];
+} {
+	const pinned: T[] = [];
+	const regular: T[] = [];
+	for (const post of posts) {
+		(post.data.pinned ? pinned : regular).push(post);
+	}
+	return { pinned, regular };
+}
+
 export function getPostUrl(slug: string): string {
 	return `/posts/${slug.replace(/^\/+|\/+$/g, "")}/`;
 }

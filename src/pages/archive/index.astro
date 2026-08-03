@@ -16,7 +16,7 @@ const years = [...groups.entries()].sort(([left], [right]) => right - left);
 
 <ArcadeShell title="归档" description="按年份浏览全部任务传输。">
 	<section class="arcade-module-page">
-		<PageHeader kicker="SYSTEM MODULE / 001" title="任务归档" description={`按时间回溯全部 ${posts.length} 条传输记录。`} code="001" />
+		<PageHeader kicker="SYSTEM MODULE / 002" title="任务归档" description={`按时间回溯全部 ${posts.length} 条传输记录。`} code="002" />
 		<div class="arcade-archive-list">
 			{years.map(([year, yearPosts]) => (
 				<section class="arcade-archive-year" aria-labelledby={`archive-${year}`}>

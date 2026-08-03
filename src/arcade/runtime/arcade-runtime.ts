@@ -65,7 +65,7 @@ function applySettings(next: AppearanceSettings, persist = false): void {
 	for (const toggle of document.querySelectorAll<HTMLInputElement>("[data-background-toggle]")) {
 		toggle.checked = settings.backgroundVisible;
 	}
-	for (const slider of document.querySelectorAll<HTMLInputElement>("[data-background-blur]")) {
+	for (const slider of document.querySelectorAll<HTMLInputElement>("input[data-background-blur-control]")) {
 		slider.value = String(settings.backgroundBlur);
 	}
 	for (const output of document.querySelectorAll<HTMLElement>("[data-background-blur-output]")) {
@@ -248,18 +248,40 @@ function updateReadingProgress(): void {
 	if (backTop) backTop.dataset.visible = String(window.scrollY > 560);
 }
 
+function decodeTocId(hash: string): string {
+	try {
+		return decodeURIComponent(hash.slice(1));
+	} catch {
+		return hash.slice(1);
+	}
+}
+
 function updateToc(): void {
 	const links = [...document.querySelectorAll<HTMLAnchorElement>("[data-toc-link]")];
 	if (links.length === 0) return;
-	let activeId = links[0].hash.slice(1);
+	let activeId = decodeTocId(links[0].hash);
 	for (const link of links) {
-		const id = decodeURIComponent(link.hash.slice(1));
+		const id = decodeTocId(link.hash);
 		const heading = document.getElementById(id);
 		if (heading && heading.getBoundingClientRect().top <= 180) activeId = id;
 	}
 	for (const link of links) {
-		link.setAttribute("aria-current", String(decodeURIComponent(link.hash.slice(1)) === activeId));
+		link.setAttribute("aria-current", String(decodeTocId(link.hash) === activeId));
 	}
+}
+
+function navigateToToc(link: HTMLAnchorElement): boolean {
+	const heading = document.getElementById(decodeTocId(link.hash));
+	if (!heading) return false;
+	const systemBarBottom = document.querySelector<HTMLElement>("[data-system-bar]")?.getBoundingClientRect().bottom ?? 64;
+	const telemetryBottom = document.querySelector<HTMLElement>(".arcade-site-telemetry")?.getBoundingClientRect().bottom ?? systemBarBottom;
+	const offset = Math.max(100, systemBarBottom, telemetryBottom) + 16;
+	const top = Math.max(0, heading.getBoundingClientRect().top + window.scrollY - offset);
+	if (window.location.hash !== link.hash) window.history.pushState(null, "", link.hash);
+	const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+	window.scrollTo({ top, behavior: reduceMotion ? "auto" : "smooth" });
+	window.setTimeout(updateToc, reduceMotion ? 0 : 320);
+	return true;
 }
 
 function initGiscus(): void {
@@ -305,27 +327,48 @@ async function connectCoreRuntimes(): Promise<void> {
 	void window.blogBackground?.initialize(document);
 }
 
+function getEventElements(event: Event): Element[] {
+	const path = typeof event.composedPath === "function" ? event.composedPath() : [];
+	const elements: Element[] = [];
+	for (const target of path) {
+		if (target instanceof Element) elements.push(target);
+	}
+	if (elements.length === 0 && event.target instanceof Element) elements.push(event.target);
+	return elements;
+}
+
+function closestFromEvent<T extends Element>(event: Event, selector: string): T | null {
+	for (const element of getEventElements(event)) {
+		const match = element.closest<T>(selector);
+		if (match) return match;
+	}
+	return null;
+}
+
 function handleDocumentClick(event: MouseEvent): void {
-	const target = event.target instanceof Element ? event.target : null;
-	if (!target) return;
-	const open = target.closest<HTMLElement>("[data-command-open]");
+	const open = closestFromEvent<HTMLButtonElement>(event, "button[data-command-open]");
 	if (open) {
 		openCommand(open.dataset.commandOpen === "settings" ? "settings" : "search", open);
 		return;
 	}
-	if (target.closest("[data-command-close]")) {
+	if (closestFromEvent(event, "[data-command-close]")) {
 		closeCommand();
 		return;
 	}
-	const tab = target.closest<HTMLButtonElement>("[data-command-tab]");
+	const tocLink = closestFromEvent<HTMLAnchorElement>(event, "[data-toc-link]");
+	if (tocLink && event.button === 0 && !event.ctrlKey && !event.metaKey && !event.shiftKey && !event.altKey && navigateToToc(tocLink)) {
+		event.preventDefault();
+		return;
+	}
+	const tab = closestFromEvent<HTMLButtonElement>(event, "[data-command-tab]");
 	if (tab) switchCommandPane(tab.dataset.commandTab === "settings" ? "settings" : "search");
-	const theme = target.closest<HTMLButtonElement>("[data-theme-choice]");
+	const theme = closestFromEvent<HTMLButtonElement>(event, "[data-theme-choice]");
 	if (theme) applySettings({ ...settings, theme: theme.dataset.themeChoice as AppearanceSettings["theme"] }, true);
-	if (target.closest("[data-back-top]")) {
+	if (closestFromEvent(event, "[data-back-top]")) {
 		const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 		window.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" });
 	}
-	const copyButton = target.closest<HTMLElement>(".copy-btn");
+	const copyButton = closestFromEvent<HTMLElement>(event, ".copy-btn");
 	if (copyButton) {
 		const code = [...(copyButton.closest("pre")?.querySelectorAll<HTMLElement>(".code:not(summary *)") ?? [])]
 			.map((line) => line.textContent === "\n" ? "" : line.textContent)
@@ -337,8 +380,7 @@ function handleDocumentClick(event: MouseEvent): void {
 }
 
 function handleCommandNavigation(event: MouseEvent): void {
-	const target = event.target instanceof Element ? event.target : null;
-	if (target?.closest("[data-command-layer] a")) {
+	if (closestFromEvent(event, "[data-command-layer] a")) {
 		closeCommand({ immediate: true, restoreFocus: false });
 	}
 }
@@ -349,7 +391,7 @@ function handleDocumentInput(event: Event): void {
 	if (target instanceof HTMLInputElement && target.matches("[data-background-toggle]")) {
 		applySettings({ ...settings, backgroundVisible: target.checked }, true);
 	}
-	if (target instanceof HTMLInputElement && target.matches("[data-background-blur]")) {
+	if (target instanceof HTMLInputElement && target.matches("[data-background-blur-control]")) {
 		applySettings({ ...settings, backgroundBlur: Number(target.value) }, true);
 	}
 }

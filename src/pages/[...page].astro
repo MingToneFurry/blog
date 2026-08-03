@@ -7,28 +7,40 @@ import PageHeader from "@/arcade/components/PageHeader.astro";
 import TransmissionCard from "@/arcade/components/TransmissionCard.astro";
 import ArcadeShell from "@/arcade/layouts/ArcadeShell.astro";
 import { PAGE_SIZE } from "@/constants/constants";
+import { partitionPinnedPosts } from "@/utils/content-core";
 import { getSortedPosts } from "@/utils/content-utils";
 
 export const getStaticPaths = (async ({ paginate }) => {
 	const allBlogPosts = await getSortedPosts();
-	return paginate(allBlogPosts, { pageSize: PAGE_SIZE });
+	const { pinned, regular } = partitionPinnedPosts(allBlogPosts);
+	return paginate(regular, {
+		pageSize: PAGE_SIZE,
+		props: { pinnedMissions: pinned },
+	});
 }) satisfies GetStaticPaths;
 
-const { page } = Astro.props;
+const { page, pinnedMissions } = Astro.props;
 const isFirstPage = page.currentPage === 1;
-const activeMission = isFirstPage ? page.data[0] : null;
-const transmissions = activeMission ? page.data.slice(1) : page.data;
-const absoluteStart = (page.currentPage - 1) * PAGE_SIZE + (activeMission ? 2 : 1);
+const absoluteStart = pinnedMissions.length + page.start + 1;
 ---
 
 <ArcadeShell title={isFirstPage ? undefined : `任务传输 第 ${page.currentPage} 页`}>
 	<section class="arcade-module-page" data-home-console>
-		{isFirstPage && activeMission ? (
-			<section class="arcade-mission-scene" aria-labelledby="field-node-title">
+		{isFirstPage ? (
+			<section
+				class:list={[
+					"arcade-mission-scene",
+					{ "has-no-missions": pinnedMissions.length === 0, "has-multiple-missions": pinnedMissions.length > 1 },
+				]}
+				aria-labelledby="field-node-title"
+			>
 				<div class="arcade-scene-coordinates">SCENE // API.FURRY.IST</div>
 				<div class="arcade-scene-intro">
 					<span class="hud-kicker">PERSONAL FIELD NODE / ONLINE</span>
-					<h1 id="field-node-title">探索<span>记录 / 连接</span></h1>
+					<h1 id="field-node-title">
+						<span class="arcade-scene-title-line arcade-scene-title-lead">探索</span>
+						<span class="arcade-scene-title-line">记录 / 连接</span>
+					</h1>
 					<p>
 						这里是 MingTone 的数字任务节点：生活记录、Cloudflare 实验、Furry 文化与沿途信号，
 						都以可检索的传输形式持续归档。
@@ -38,7 +50,13 @@ const absoluteStart = (page.currentPage - 1) * PAGE_SIZE + (activeMission ? 2 : 
 						<button class="arcade-secondary-action" type="button" data-command-open="search">打开命令搜索 <span aria-hidden="true">⌘</span></button>
 					</div>
 				</div>
-				<ActiveMission entry={activeMission} />
+				{pinnedMissions.length > 0 && (
+					<div class="arcade-active-mission-deck" aria-label="置顶任务">
+						{pinnedMissions.map((entry, index) => (
+							<ActiveMission entry={entry} priority={index + 1} index={index + 1} />
+						))}
+					</div>
+				)}
 			</section>
 		) : (
 			<PageHeader
@@ -55,10 +73,10 @@ const absoluteStart = (page.currentPage - 1) * PAGE_SIZE + (activeMission ? 2 : 
 					<span class="hud-kicker">LIVE FEED / SORTED</span>
 					<h2 id="transmission-heading">Transmissions</h2>
 				</div>
-				<span>PAGE_{String(page.currentPage).padStart(2, "0")} / {String(transmissions.length).padStart(2, "0")} SIGNALS</span>
+				<span>PAGE_{String(page.currentPage).padStart(2, "0")} / {String(page.data.length).padStart(2, "0")} SIGNALS</span>
 			</header>
 			<div class="arcade-transmission-grid">
-				{transmissions.map((entry, index) => (
+				{page.data.map((entry, index) => (
 					<TransmissionCard entry={entry} index={absoluteStart + index} />
 				))}
 			</div>
@@ -72,7 +90,7 @@ const absoluteStart = (page.currentPage - 1) * PAGE_SIZE + (activeMission ? 2 : 
 						<span class="hud-kicker">SYSTEM ACCESS / MODULES</span>
 						<h2 id="module-heading">Module Rail</h2>
 					</div>
-					<span>04 ACCESS POINTS</span>
+					<span>05 ACCESS POINTS</span>
 				</header>
 				<ModuleDeck />
 			</section>

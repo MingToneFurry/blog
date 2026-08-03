@@ -20,7 +20,7 @@ const cleanHeading = (text: string) => text.endsWith("#") ? text.slice(0, -1) : 
 	<ol>
 		{visibleHeadings.map((heading, index) => (
 			<li data-depth={heading.depth}>
-				<a href={`#${heading.slug}`} data-toc-link aria-current="false">
+				<a href={`#${heading.slug}`} data-toc-link data-no-swup aria-current="false">
 					<span>{String(index + 1).padStart(2, "0")}</span>
 					<span>{cleanHeading(heading.text)}</span>
 				</a>

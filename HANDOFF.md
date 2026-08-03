@@ -128,6 +128,7 @@
 - 命令层内链接在捕获阶段先同步关闭，再交给 Swup 导航；任一 Astro/Swup 页面替换事件也会幂等清除命令层与根节点打开标记。普通 Escape 关闭仍保留 160ms 退场和焦点返回，快速重开会取消旧关闭定时器。
 - 个人资料、Bilibili、GitHub、RSS、Sitemap、隐私、外部状态页和 Umami 统计页均保留直接入口。
 - 2026-08-04 按用户视觉反馈将系统条原有字母 `M` 标记替换为 `siteConfig.favicon` 配置的站点图标；图标保持装饰语义，站名链接仍提供完整可访问名称，配置为空时沿用默认 favicon 列表。
+- 同日按用户反馈移除任务侧栏重复且竖排的 `NODE_01` 标签；侧栏保留可读的 `01` 编号、图标、模块名称与 RSS 入口，避免窄栏中的装饰文字折行。
 
 ### 验证证据
 
@@ -147,9 +148,18 @@
 - 同一路径在 `3d404fe` 后通过：文章 URL/H1 正确，命令层为 `hidden=true`、无 `data-open`、`aria-hidden=true`、`display:none`，根节点无打开标记；Escape 关闭后焦点返回“打开搜索”，浏览器后退首页与前进文章也始终保持命令层关闭。
 - `3d404fe` 验证：`pnpm type-check` 与自包含 `pnpm test:arcade` 均通过；后者重新构建 36 页并通过 26 篇文章的 ARCADE 契约，新增捕获阶段关闭与页面替换同步归一断言。
 - 站点图标替换后再次通过 `pnpm type-check` 与自包含 `pnpm test:arcade`；契约新增首页品牌必须渲染非空 favicon `<img>` 且不得回退字母标记。公开图标源经授权代理返回 `200 image/jpeg`，真实浏览器在 1440×1000 与 390×844 下均完成解码，图标框分别为 36×36 与 32×32，和站名重叠量为 0。
+- 目录标题装饰已约束为单行 `//`，目录链接标记 `data-no-swup` 并由运行时补偿固定顶栏偏移；任务侧栏不再输出 `NODE_01`。上述改动已完成 ARCADE 门禁与真实文章截图回归。
 
-### 尚待主线程补验
+### 2026-08-04 最终收尾
 
-- 移动布局、截图、文章统计、搜索打开/结果跳转、Escape 焦点返回、Swup 搜索导航及浏览器前进后退已完成真实浏览器复验。
-- 仍需主线程补做设置面板、主题与背景持久化、背景主源到 SNI/纯色降级、TOC 与 Alt 前后篇的真实交互矩阵；未复验的项目不得记为通过。
+- 首页内容契约改为先通过纯函数 `partitionPinnedPosts()` 分离置顶与普通文章，再仅对普通文章按 `PAGE_SIZE=8` 分页；置顶任务只在首页独立展示，支持 0、1、多个置顶。当前 26 篇文章在四页形成 `9/8/8/1` 的可见分布（第一页为 1 篇置顶加 8 篇普通文章），无重复、无遗漏；每个置顶任务使用唯一 heading ID 和动态 `PRIORITY_XX`。
+- Hero 标题固定为“探索”与“记录 / 连接”两行，桌面字号收敛为 `6.4vw`、行高为 `1.02`；模块编号统一为首页 `001`、归档 `002`、关于 `003`、联络 `004`、友链 `005`、隐私 `006`，并同步 PageHeader、ModuleDeck 与命令快捷入口。
+- 事件委托现在扫描完整 `event.composedPath()`；命令打开目标收窄为 `button[data-command-open]`，因此点击 SVG `<use>` 也能可靠关闭面板，且不会把根节点的打开状态误识别为触发器。设置滑杆协议独立为 `data-background-blur-control`，不再与根节点 `data-background-blur` 状态属性冲突。
+- TOC 链接标记 `data-no-swup` 并由运行时按固定系统条和移动遥测条计算滚动偏移；目录装饰 `//` 强制单行。页面替换入场改为只改变 opacity 的 `arcade-reveal`，不再让 Swup 后的容器残留 transform。
+- 背景运行时保持原主源与 SNI fallback；成功状态下重复初始化不会重新写入图片 `src`。真实 Swup 导航验证为同一图片节点、0 次额外 `src` 赋值、0 次状态变化、总资源请求仍为 1 次，`currentSrc` 与 opacity 均保持不变。
+- `[data-blog-stats]` 在 `idle`、`loading`、`error` 状态下整块隐藏，只在 PV/UV 同时有效的 `ready` 状态显示；全站统计同步到根节点 `data-site-stats-state`，桌面和移动布局会在统计不可用时收回预留轨道。后续成功重试可恢复整块统计及数字显示。
+- 生产模式 Playwright 矩阵已覆盖 `1440x1000`、`1280x580`、`390x844`：Hero、搜索、SVG 关闭、Escape 与焦点恢复、设置页签、主题/背景/模糊持久化、TOC、分页、上一篇/下一篇、浏览器前进后退、移动 Dock、背景 Swup 同源、正常统计、广告拦截及解除后恢复均通过，无 page error 或 console error。
+- 广告拦截场景中 10 个统计根全部隐藏，不显示 PV/UV、`--`、`0` 或空框；桌面遥测区域为 `0x0`，移动场景与系统栏保持 `24px` 间距。解除拦截后 10 个根全部恢复，20 个 PV/UV 值均为数字。
+- 最终 QA 结果：`C:\Users\MingTone\.codex\visualizations\2026\08\04\arcade-final-qa\qa-results.json`；主要截图为同目录下的 `home-1440x1000.png`、`home-1280x580.png`、`home-390x844.png`、`home-stats-blocked-1440x1000.png`、`home-stats-blocked-390x844.png` 与 `article-1280x580.png`。
+- 最终实现见 `design/arcade` 分支 HEAD；禁止在用户选定前合入 `main`。候选交付完成并推送后，Goal 停在等待用户选择，不自动继续或合并。
 - 已知非阻塞警告：`src/content/assets` 数据集合为空、Browserslist 数据较旧、pnpm 10 提示旧 `pnpm.patchedDependencies` 字段位置；均未影响当前构建与运行时契约。

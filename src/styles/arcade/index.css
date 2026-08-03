@@ -92,6 +92,10 @@ html[data-command-open="true"] {
 	overflow: hidden;
 }
 
+[data-blog-stats]:not([data-stats-state="ready"]) {
+	display: none !important;
+}
+
 body.arcade-body {
 	margin: 0;
 	min-height: 100vh;
@@ -279,6 +283,14 @@ input:not(:disabled) {
 	background: var(--ui-bg);
 }
 
+html:not([data-site-stats-state="ready"]) .arcade-system-bar {
+	grid-template-columns: minmax(230px, 1fr) auto;
+}
+
+html:not([data-site-stats-state="ready"]) .arcade-system-actions {
+	grid-column: 2;
+}
+
 .arcade-system-bar::after {
 	content: "";
 	position: absolute;
@@ -443,18 +455,6 @@ input:not(:disabled) {
 	background: var(--ui-bg);
 }
 
-.arcade-rail-axis {
-	height: 50px;
-	display: grid;
-	place-items: center;
-	border-bottom: 1px solid var(--ui-line);
-	color: var(--ui-accent);
-	font: 700 0.55rem/1 var(--font-mono);
-	letter-spacing: 0.08em;
-	writing-mode: vertical-rl;
-	transform: rotate(180deg);
-}
-
 .arcade-mission-rail ul {
 	list-style: none;
 	margin: 0;
@@ -528,7 +528,7 @@ input:not(:disabled) {
 }
 
 #arcade-main > :first-child {
-	animation: arcade-impact var(--ui-dur-slow) var(--ui-ease) both;
+	animation: arcade-reveal var(--ui-dur-slow) var(--ui-ease) backwards;
 }
 
 .arcade-module-page {
@@ -674,17 +674,23 @@ input:not(:disabled) {
 
 .arcade-scene-intro h1 {
 	max-width: 11ch;
+	display: grid;
+	gap: 0.08em;
 	margin: 0.9rem 0 1rem;
-	font-size: clamp(3rem, 7.6vw, 7rem);
+	font-size: clamp(3rem, 6.4vw, 7rem);
 	font-weight: 850;
-	letter-spacing: 0.06em;
-	line-height: 0.88;
+	letter-spacing: 0;
+	line-height: 1.02;
 	text-transform: uppercase;
 }
 
-.arcade-scene-intro h1 span {
+.arcade-scene-title-line {
 	display: block;
 	color: var(--ui-accent);
+}
+
+.arcade-scene-title-lead {
+	color: var(--ui-fg);
 }
 
 .arcade-scene-intro > p {
@@ -735,6 +741,30 @@ input:not(:disabled) {
 	box-shadow: var(--ui-shadow-md);
 }
 
+.arcade-active-mission-deck {
+	position: relative;
+	z-index: 2;
+	display: grid;
+	min-width: 0;
+}
+
+.arcade-mission-scene.has-multiple-missions {
+	grid-template-columns: minmax(0, 1fr);
+	align-items: start;
+	padding-bottom: clamp(1rem, 3vw, 2.5rem);
+}
+
+.arcade-mission-scene.has-multiple-missions .arcade-scene-intro {
+	max-width: 880px;
+	padding-bottom: 1rem;
+}
+
+.arcade-mission-scene.has-multiple-missions .arcade-active-mission-deck {
+	grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+	gap: 1rem;
+	padding: 0 clamp(1rem, 3vw, 2.5rem);
+}
+
 .arcade-mission-card {
 	position: relative;
 	z-index: 2;
@@ -743,6 +773,11 @@ input:not(:disabled) {
 	border: 1px solid var(--ui-line-strong);
 	background: var(--ui-bg);
 	clip-path: var(--ui-cut-card);
+}
+
+.arcade-mission-scene.has-multiple-missions .arcade-mission-card {
+	width: auto;
+	margin: 0;
 }
 
 .arcade-mission-card > header {
@@ -975,7 +1010,7 @@ input:not(:disabled) {
 
 .arcade-module-grid {
 	display: grid;
-	grid-template-columns: repeat(4, minmax(0, 1fr));
+	grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
 	gap: 0.75rem;
 }
 
@@ -1353,8 +1388,12 @@ input:not(:disabled) {
 	content: "//";
 	position: absolute;
 	right: calc(100% + 0.65rem);
+	display: inline-block;
+	width: max-content;
 	color: var(--ui-accent);
 	font: 700 0.72rem/1.8 var(--font-mono);
+	overflow-wrap: normal;
+	white-space: nowrap;
 }
 
 .arcade-prose p,
@@ -2355,10 +2394,9 @@ input:not(:disabled) {
 	line-height: 1.7;
 }
 
-@keyframes arcade-impact {
-	0% { opacity: 0; transform: translateX(-32px) skewX(-6deg); }
-	72% { opacity: 1; transform: translateX(4px) skewX(1deg); }
-	100% { opacity: 1; transform: translateX(0) skewX(0); }
+@keyframes arcade-reveal {
+	0% { opacity: 0; }
+	100% { opacity: 1; }
 }
 
 @keyframes arcade-pulse {
@@ -2403,9 +2441,14 @@ input:not(:disabled) {
 	.arcade-scene { top: 92px; }
 	.arcade-mission-rail { top: 92px; }
 	#arcade-main { padding-top: 126px; }
+	html:not([data-site-stats-state="ready"]) .arcade-scene { top: 64px; }
+	html:not([data-site-stats-state="ready"]) .arcade-mission-rail { top: 64px; }
+	html:not([data-site-stats-state="ready"]) #arcade-main { padding-top: 98px; }
 	.arcade-module-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 	.arcade-mission-scene { grid-template-columns: 1fr; }
+	.arcade-active-mission-deck { width: 100%; justify-items: end; }
 	.arcade-mission-card { width: min(520px, calc(100% - 2rem)); justify-self: end; }
+	.arcade-mission-scene.has-multiple-missions .arcade-active-mission-deck { justify-items: stretch; }
 	.arcade-transmission-card,
 	.arcade-transmission-card:nth-child(n) { grid-column: span 6; }
 	.arcade-friend-grid { grid-template-columns: 1fr; }
@@ -2426,6 +2469,8 @@ input:not(:disabled) {
 		margin-left: 0;
 		padding: 110px 1rem 3rem;
 	}
+	html:not([data-site-stats-state="ready"]) .arcade-scene { top: 58px; }
+	html:not([data-site-stats-state="ready"]) #arcade-main { padding-top: 82px; }
 	.arcade-footer {
 		margin-left: 0;
 		padding-bottom: 86px;
@@ -2474,6 +2519,8 @@ input:not(:disabled) {
 	.arcade-page-header { padding: 1.25rem; }
 	.arcade-page-header h1 { font-size: clamp(2.2rem, 13vw, 4rem); }
 	.arcade-mission-scene { min-height: 680px; align-content: end; }
+	.arcade-mission-scene.has-no-missions { min-height: min(64vh, 540px); }
+	.arcade-mission-scene.has-multiple-missions { min-height: auto; align-content: start; }
 	.arcade-scene-intro { padding: 1.25rem; }
 	.arcade-scene-intro h1 { font-size: clamp(2.65rem, 14vw, 4.7rem); }
 	.arcade-mission-card { width: calc(100% - 1.5rem); margin: 0.75rem; padding: 1rem; }

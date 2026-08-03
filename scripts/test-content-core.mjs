@@ -47,6 +47,25 @@ assert.deepEqual(
 );
 assert.equal(core.filterPosts(input, true).length, 5);
 
+const partition = core.partitionPinnedPosts(sorted);
+assert.deepEqual(partition.pinned.map(({ slug }) => slug), ["pinned"]);
+assert.deepEqual(partition.regular.map(({ slug }) => slug), ["featured", "same-a", "same-b"]);
+assert.deepEqual(sorted.map(({ slug }) => slug), ["pinned", "featured", "same-a", "same-b"]);
+
+const partitionFixture = (pinnedSlugs) => [
+	post("regular-a", "2026-01-01T00:00:00Z"),
+	post("pinned-a", "2025-01-01T00:00:00Z", { pinned: pinnedSlugs.includes("pinned-a") }),
+	post("pinned-b", "2024-01-01T00:00:00Z", { pinned: pinnedSlugs.includes("pinned-b") }),
+	post("pinned-c", "2023-01-01T00:00:00Z", { pinned: pinnedSlugs.includes("pinned-c") }),
+];
+for (const [label, pinnedSlugs] of [["zero", []], ["one", ["pinned-a"]], ["many", ["pinned-a", "pinned-b", "pinned-c"]]]) {
+	const fixture = partitionFixture(pinnedSlugs);
+	const result = core.partitionPinnedPosts(fixture);
+	assert.equal(result.pinned.length, pinnedSlugs.length, `${label} pinned fixture`);
+	assert.equal(result.regular.length + result.pinned.length, fixture.length, `${label} partition coverage`);
+	assert.equal(new Set([...result.pinned, ...result.regular]).size, fixture.length, `${label} partition uniqueness`);
+}
+
 const legacy = core.withLegacyNavigation(sorted);
 assert.notEqual(legacy[0], sorted[0]);
 assert.notEqual(legacy[0].data, sorted[0].data);

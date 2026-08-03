@@ -49,9 +49,16 @@
 		return [...root.querySelectorAll("[data-stats-value]")];
 	}
 
+	function syncSiteState(root, state) {
+		if (root.dataset.statsScope !== "site") return;
+		const documentElement = typeof document === "undefined" ? null : document.documentElement;
+		if (documentElement?.dataset) documentElement.dataset.siteStatsState = state;
+	}
+
 	function setState(root, state) {
 		root.dataset.statsState = state;
 		root.setAttribute?.("aria-busy", state === "loading" ? "true" : "false");
+		syncSiteState(root, state);
 		for (const node of getValueNodes(root)) {
 			node.dataset.statsState = state;
 			if (state !== "ready") node.textContent = "--";
@@ -83,6 +90,7 @@
 		}
 		root.dataset.statsState = "ready";
 		root.setAttribute?.("aria-busy", "false");
+		syncSiteState(root, "ready");
 	}
 
 	function sleep(milliseconds) {

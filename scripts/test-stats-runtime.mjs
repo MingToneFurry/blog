@@ -48,10 +48,12 @@ class StatsDocument {
 	}
 }
 
+const runtimeDocument = new StatsDocument([]);
+runtimeDocument.documentElement = { dataset: {} };
 const window = {};
 vm.runInNewContext(source, {
 	window,
-	document: new StatsDocument([]),
+	document: runtimeDocument,
 	URL,
 	Promise,
 	Map,
@@ -118,6 +120,7 @@ assert.deepEqual(
 );
 assert.ok(calls.some((query) => query.url === "/posts/中文/"));
 for (const root of roots) assert.equal(root.dataset.statsState, "ready");
+assert.equal(runtimeDocument.documentElement.dataset.siteStatsState, "ready");
 
 window.blogStats.reset();
 let failureCalls = 0;
@@ -140,5 +143,14 @@ assert.deepEqual(
 	failed.values.map((node) => node.textContent),
 	["--", "--"],
 );
+
+window.blogStats.reset();
+window.blogStats.configure({
+	retryDelays: [],
+	fetchStats: async () => ({ pageviews: 9, visitors: 3 }),
+});
+await window.blogStats.initialize(new StatsDocument([failed]));
+assert.equal(failed.dataset.statsState, "ready", "a later successful retry must restore a failed root");
+assert.deepEqual(failed.values.map((node) => node.textContent), ["9", "3"]);
 
 console.log("Stats runtime tests passed");

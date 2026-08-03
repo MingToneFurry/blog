@@ -83,6 +83,9 @@ await Promise.all([
 ]);
 assert.equal(successRoot.background.dataset.backgroundState, "ready");
 assert.deepEqual(successImage.srcValues, ["https://api.furry.ist/furry-img"]);
+await window.blogBackground.initialize(successRoot);
+await window.blogBackground.initialize(successRoot);
+assert.deepEqual(successImage.srcValues, ["https://api.furry.ist/furry-img"], "ready backgrounds must not be assigned again");
 
 const recoveredImage = new FakeImage([new Error("cached primary"), undefined]);
 const recoveredRoot = makeRoot(recoveredImage);
