@@ -1013,13 +1013,12 @@
 		box-shadow: var(--glass-dialog-shadow);
 	}
 
-	.glass-context-drawer[open]::before {
-		content: "";
+	.glass-context-drawer[open] > .glass-drawer-backdrop {
 		position: fixed;
 		inset: 0;
 		z-index: 110;
+		display: block;
 		background: rgba(5, 10, 18, 0.5);
-		pointer-events: auto;
 	}
 
 	.glass-context-head {

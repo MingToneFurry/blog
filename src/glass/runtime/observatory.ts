@@ -21,6 +21,7 @@ let searchIndex: Promise<SearchRecord[]> | null = null;
 let lastDialogTrigger: HTMLElement | null = null;
 let tocObserver: IntersectionObserver | null = null;
 let scrollFrame = 0;
+let activeRouteKey = "";
 
 const colorSchemeMedia = window.matchMedia("(prefers-color-scheme: dark)");
 const reducedMotionMedia = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -207,6 +208,14 @@ function closeDrawer(details: HTMLDetailsElement): void {
 	details.querySelector<HTMLElement>("summary")?.focus();
 }
 
+function closestInEvent<T extends Element>(event: Event, selector: string): T | null {
+	for (const entry of event.composedPath()) {
+		if (entry instanceof Element && entry.matches(selector)) return entry as T;
+	}
+	const target = event.target instanceof Element ? event.target : null;
+	return target?.closest<T>(selector) ?? null;
+}
+
 function focusableWithin(root: HTMLElement): HTMLElement[] {
 	return [...root.querySelectorAll<HTMLElement>(
 		'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), summary, [tabindex]:not([tabindex="-1"])',
@@ -303,6 +312,26 @@ function handleResize(): void {
 	scheduleScrollUpdate();
 }
 
+function resetTransientUi(): void {
+	for (const dialog of document.querySelectorAll<HTMLDialogElement>("dialog[open]")) {
+		closeDialog(dialog);
+	}
+	for (const popover of document.querySelectorAll<HTMLDetailsElement>("[data-glass-popover][open]")) {
+		popover.open = false;
+	}
+
+	const mobile = window.matchMedia("(max-width: 900px)").matches;
+	for (const drawer of document.querySelectorAll<HTMLDetailsElement>("[data-glass-drawer][open]")) {
+		if (mobile || drawer.matches(".glass-mobile-menu")) drawer.open = false;
+	}
+	lastDialogTrigger = null;
+}
+
+function handleHistoryNavigation(): void {
+	resetTransientUi();
+	activeRouteKey = `${window.location.pathname}${window.location.search}`;
+}
+
 function initializePage(): void {
 	applySettings(currentSettings());
 	syncDrawerSemantics();
@@ -312,6 +341,15 @@ function initializePage(): void {
 	if (activeFilter) updateCategoryFilter(activeFilter);
 	void window.blogStats?.initialize(document);
 	void window.blogBackground?.initialize(document);
+}
+
+function initializeNavigatedPage(): void {
+	const nextRouteKey = `${window.location.pathname}${window.location.search}`;
+	if (activeRouteKey !== nextRouteKey) {
+		resetTransientUi();
+		activeRouteKey = nextRouteKey;
+	}
+	initializePage();
 }
 
 function connectCoreRuntimes(): boolean {
@@ -347,29 +385,26 @@ export function startObservatory(): void {
 	started = true;
 
 	runLifecycleModule("glass-observatory", () => {
-		const lifecycleCleanup = bindPageLifecycle(document, initializePage);
+		const lifecycleCleanup = bindPageLifecycle(document, initializeNavigatedPage);
 		const click = (event: MouseEvent) => {
-			const target = event.target instanceof Element ? event.target : null;
-			if (!target) return;
-
-			const openButton = target.closest<HTMLElement>("[data-glass-dialog-open]");
+			const openButton = closestInEvent<HTMLElement>(event, "[data-glass-dialog-open]");
 			if (openButton) {
 				const dialog = document.getElementById(openButton.dataset.glassDialogOpen || "");
 				if (dialog instanceof HTMLDialogElement) openDialog(dialog, openButton);
 				return;
 			}
-			const closeButton = target.closest<HTMLElement>("[data-glass-dialog-close]");
+			const closeButton = closestInEvent<HTMLElement>(event, "[data-glass-dialog-close]");
 			if (closeButton) {
 				const dialog = closeButton.closest("dialog");
 				if (dialog instanceof HTMLDialogElement) closeDialog(dialog);
 				return;
 			}
-			const searchResultLink = target.closest<HTMLAnchorElement>("#glass-search-results a");
+			const searchResultLink = closestInEvent<HTMLAnchorElement>(event, "#glass-search-results a");
 			if (searchResultLink) {
 				const dialog = searchResultLink.closest("dialog");
 				if (dialog instanceof HTMLDialogElement) closeDialog(dialog);
 			}
-			const themeButton = target.closest<HTMLButtonElement>("[data-glass-theme]");
+			const themeButton = closestInEvent<HTMLButtonElement>(event, "[data-glass-theme]");
 			if (themeButton) {
 				const theme = themeButton.dataset.glassTheme;
 				if (theme === "light" || theme === "dark" || theme === "auto") {
@@ -377,22 +412,31 @@ export function startObservatory(): void {
 				}
 				return;
 			}
-			const filterButton = target.closest<HTMLButtonElement>("[data-glass-filter]");
+			const filterButton = closestInEvent<HTMLButtonElement>(event, "[data-glass-filter]");
 			if (filterButton) {
 				updateCategoryFilter(filterButton);
 				return;
 			}
-			if (target.closest("[data-glass-backtop]")) {
+			if (closestInEvent(event, "[data-glass-backtop]")) {
 				window.scrollTo({ top: 0, behavior: reducedMotionMedia.matches ? "auto" : "smooth" });
 				return;
 			}
-			const drawerClose = target.closest("[data-glass-drawer-close]");
+			const drawerBackdrop = closestInEvent<HTMLElement>(event, "[data-glass-drawer-backdrop]");
+			if (drawerBackdrop) {
+				const details = drawerBackdrop.closest("details");
+				if (details instanceof HTMLDetailsElement) {
+					event.preventDefault();
+					closeDrawer(details);
+				}
+				return;
+			}
+			const drawerClose = closestInEvent<HTMLElement>(event, "[data-glass-drawer-close]");
 			if (drawerClose) {
 				const details = drawerClose.closest("details");
 				if (details instanceof HTMLDetailsElement) closeDrawer(details);
 				return;
 			}
-			const drawerSummary = target.closest<HTMLElement>("[data-glass-drawer] > summary");
+			const drawerSummary = closestInEvent<HTMLElement>(event, "[data-glass-drawer] > summary");
 			if (drawerSummary) {
 				const current = drawerSummary.closest("details");
 				window.setTimeout(() => {
@@ -411,7 +455,7 @@ export function startObservatory(): void {
 				}, 0);
 				return;
 			}
-			const drawerLink = target.closest<HTMLAnchorElement>("[data-glass-drawer][open] a");
+			const drawerLink = closestInEvent<HTMLAnchorElement>(event, "[data-glass-drawer][open] a");
 			if (drawerLink && window.matchMedia("(max-width: 900px)").matches) {
 				const details = drawerLink.closest("details");
 				if (details instanceof HTMLDetailsElement) details.open = false;
@@ -422,14 +466,14 @@ export function startObservatory(): void {
 			if (
 				openContextDrawer &&
 				window.matchMedia("(max-width: 900px)").matches &&
-				!target.closest("[data-glass-drawer-panel]") &&
-				!target.closest("[data-glass-context-drawer] > summary")
+				!closestInEvent(event, "[data-glass-drawer-panel]") &&
+				!closestInEvent(event, "[data-glass-context-drawer] > summary")
 			) {
 				event.preventDefault();
 				closeDrawer(openContextDrawer);
 				return;
 			}
-			const popoverSummary = target.closest<HTMLElement>("[data-glass-popover] > summary");
+			const popoverSummary = closestInEvent<HTMLElement>(event, "[data-glass-popover] > summary");
 			if (popoverSummary) {
 				const current = popoverSummary.closest("details");
 				window.setTimeout(() => {
@@ -439,16 +483,16 @@ export function startObservatory(): void {
 				}, 0);
 				return;
 			}
-			const popoverLink = target.closest<HTMLAnchorElement>("[data-glass-popover] a");
+			const popoverLink = closestInEvent<HTMLAnchorElement>(event, "[data-glass-popover] a");
 			if (popoverLink) {
 				const details = popoverLink.closest("details");
 				if (details instanceof HTMLDetailsElement) details.open = false;
-			} else if (!target.closest("[data-glass-popover]")) {
+			} else if (!closestInEvent(event, "[data-glass-popover]")) {
 				for (const popover of document.querySelectorAll<HTMLDetailsElement>("[data-glass-popover][open]")) {
 					popover.open = false;
 				}
 			}
-			const copyButton = target.closest<HTMLElement>(".copy-btn");
+			const copyButton = closestInEvent<HTMLElement>(event, ".copy-btn");
 			if (copyButton) {
 				const code = copyButton.closest(".expressive-code")?.querySelector("code")?.textContent || "";
 				void navigator.clipboard?.writeText(code).then(() => {
@@ -486,6 +530,7 @@ export function startObservatory(): void {
 		document.addEventListener("close", close, true);
 		window.addEventListener("scroll", scheduleScrollUpdate, { passive: true });
 		window.addEventListener("resize", handleResize);
+		window.addEventListener("popstate", handleHistoryNavigation);
 		colorSchemeMedia.addEventListener("change", initializePage);
 
 		void waitForCoreRuntimes();
@@ -500,6 +545,7 @@ export function startObservatory(): void {
 			document.removeEventListener("close", close, true);
 			window.removeEventListener("scroll", scheduleScrollUpdate);
 			window.removeEventListener("resize", handleResize);
+			window.removeEventListener("popstate", handleHistoryNavigation);
 			colorSchemeMedia.removeEventListener("change", initializePage);
 		};
 	});

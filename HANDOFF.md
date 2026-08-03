@@ -133,3 +133,25 @@
 - 最终截图位于 `C:\Users\MingTone\.codex\visualizations\2026\07\27\019fa50e-1c97-71e2-a08c-fab02dbda466\blog-rebuild-qa`：`glass-final-home-desktop.png`（1280x720）、`glass-final-home-mobile.png`（390x844）、`glass-final-article-desktop.png`（1280x720），三张截图中的统计均为 ready。
 - 当前子代理的 Browser skill 返回空浏览器列表，以上交互与截图证据由主线程在同一 `4332` 预览完成。
 - 非阻塞警告：空 `src/content/assets`、Browserslist 数据较旧、pnpm 10 提示旧 `pnpm.patchedDependencies` 字段位置。
+
+## `design/glass` 2026-08-04 交互审计与修复
+
+### 授权、目标与边界
+
+- 本轮继续在用户授权的本地博客开发环境中操作，仅修改 `D:\Projects\blog-glass` 的 `design/glass`；禁止合入 `main`，禁止改动其他候选分支。
+- 目标是覆盖 GLASS 桌面 `1440x1000` 与移动 `390x844` 的搜索、设置、抽屉、分页、Reader、Swup、history、动态背景和布局状态，并将复现缺陷固化为自动回归测试。
+
+### 复现与修复
+
+- Playwright 复现：移动首页打开全局导航后调用浏览器返回，正文已由 Swup 切换到文章页，但位于稳定头部中的 `.glass-mobile-menu` 仍保持 `open`，全屏面板持续覆盖新页面。
+- `src/glass/runtime/observatory.ts` 现在以 pathname + search 路由键去重生命周期初始化；实际路由变化时统一关闭残留 dialog、移动 drawer 与桌面 popover，同一路由的重复初始化不会关闭用户刚打开的控件。
+- 委托点击统一通过 `event.composedPath()` 命中控制器，并保留 `target.closest()` 回退；点击 Astro Icon 的 `svg`/内部路径与普通文字节点都使用同一处理路径。
+- 移动全局导航和上下文 drawer 均输出真实 `data-glass-drawer-backdrop`；导航改为右侧 `min(88vw, 380px)` 面板，外点、关闭按钮和 Escape 都会关闭并恢复触发器焦点，Tab/Shift+Tab 继续限制在 modal panel 内。
+- 抽屉打开时锁定根滚动；窄屏标题区域改为两行网格，避免 `OBSERVATORY MAP` 与“站点导航”在侧向面板中拥挤重叠。
+
+### 回归与验收
+
+- 新增 `scripts/test-glass-interactions.mjs` 和 `playwright@1.61.1` 开发依赖；脚本自行启动随机端口的生产预览，并覆盖桌面/移动 SVG 点击、搜索关闭/Escape 焦点恢复、设置持久化、背景节点跨 Swup 保持、分页、真实 backdrop、焦点闭环、history 清理、唯一容器与横向溢出。
+- 新增 `pnpm test:glass` 总门禁；静态契约继续检查 36 个 HTML，并新增 composedPath、真实 backdrop、生命周期清理的源码与构建契约。
+- 本地 4325 实时复验：动态背景为 `ready`，`currentSrc=https://api.furry.ist/furry-img`；分页、文章、浏览器 back/forward 后 `#glass-main` 与 `#toc` 均各一份，关闭态 overlay 不残留。
+- 修改后的最终设置恢复为 `theme=auto`、背景显示、`blur=4`；用户选定设计前仍禁止将本分支合入 `main`。

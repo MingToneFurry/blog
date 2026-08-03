@@ -144,6 +144,11 @@ const compactBar = read("src/glass/components/CompactBar.astro");
 assert.match(compactBar, /class="glass-switch-track"/, "the settings UI must render a portable explicit switch track");
 assert.match(
 	compactBar,
+	/class="glass-drawer-backdrop"[^>]*data-glass-drawer-backdrop/,
+	"mobile navigation must expose a real outside-click backdrop",
+);
+assert.match(
+	compactBar,
 	/class="glass-mobile-drawer"[\s\S]*?data-glass-drawer-panel/,
 	"the mobile navigation dialog must expose the shared focus-trap panel contract",
 );
@@ -155,6 +160,26 @@ for (const runtime of ["/js/umami-share.js", "/js/blog-stats.js", "/js/blog-back
 }
 
 const observatoryRuntime = read("src/glass/runtime/observatory.ts");
+assert.match(
+	observatoryRuntime,
+	/function closestInEvent[\s\S]*?event\.composedPath\(\)/,
+	"delegated controls must resolve SVG and shadow-boundary clicks through composedPath",
+);
+assert.match(
+	observatoryRuntime,
+	/function initializeNavigatedPage\(\)[\s\S]*?resetTransientUi\(\);[\s\S]*?bindPageLifecycle\(document, initializeNavigatedPage\)/,
+	"page lifecycle replacement must clear stale dialogs, drawers, and popovers before reinitializing",
+);
+assert.match(
+	observatoryRuntime,
+	/addEventListener\("popstate", handleHistoryNavigation\)[\s\S]*?removeEventListener\("popstate", handleHistoryNavigation\)/,
+	"browser history traversal must clear transient UI even when only the URL fragment changes",
+);
+assert.match(
+	observatoryRuntime,
+	/closestInEvent<HTMLElement>\(event, "\[data-glass-drawer-backdrop\]"\)[\s\S]*?closeDrawer\(details\)/,
+	"drawer backdrops must close their owning details element through delegated events",
+);
 assert.match(
 	observatoryRuntime,
 	/if \(event\.key === "Escape"\) \{\s*const dialog = document\.querySelector<HTMLDialogElement>\("dialog\[open\]"\);\s*if \(dialog\) \{\s*event\.preventDefault\(\);\s*closeDialog\(dialog\);\s*return;/,
@@ -169,6 +194,18 @@ assert.match(
 	observatoryRuntime,
 	/querySelector<HTMLElement>\("\[data-glass-drawer-panel\] \[data-glass-drawer-close\]"\)[\s\S]*?\.focus\(\)/,
 	"opening a mobile drawer must move focus to its in-panel close control",
+);
+
+const contextDrawer = read("src/glass/components/ContextDrawer.astro");
+assert.match(
+	contextDrawer,
+	/class="glass-drawer-backdrop"[^>]*data-glass-drawer-backdrop/,
+	"context drawers must expose the shared outside-click backdrop",
+);
+assert.match(
+	glassStyles,
+	/\.glass-mobile-menu\[open\] > \.glass-drawer-backdrop/,
+	"mobile navigation backdrop must have an explicit open state",
 );
 
 console.log(`GLASS contracts passed: ${htmlFiles.length} HTML documents, 8 home post stats roots, article feature matrix intact.`);

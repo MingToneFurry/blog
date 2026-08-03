@@ -17,6 +17,8 @@
 		"test:lifecycle-core": "node scripts/test-lifecycle-core.mjs",
 		"test:core": "pnpm test:umami && pnpm test:content-core && pnpm test:stats-runtime && pnpm test:background-core && pnpm test:settings-core && pnpm test:lifecycle-core",
 		"test:glass-contracts": "node scripts/test-glass-contracts.mjs",
+		"test:glass-interactions": "node scripts/test-glass-interactions.mjs",
+		"test:glass": "pnpm build && pnpm test:glass-contracts && pnpm test:glass-interactions",
 		"new-post": "node scripts/new-post.js",
 		"clean": "node scripts/clean-unused-images.js",
 		"format": "biome format --write ./src",
@@ -90,6 +92,7 @@
 		"@types/markdown-it": "^14.1.2",
 		"@types/mdast": "^4.0.4",
 		"@types/sanitize-html": "^2.15.0",
+		"playwright": "1.61.1",
 		"postcss-import": "^16.1.0",
 		"postcss-nesting": "^13.0.1",
 		"rehype": "^13.0.2"
