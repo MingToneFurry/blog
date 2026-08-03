@@ -70,6 +70,46 @@ const normalizedCurrentPath = normalizePathname(currentPath);
 			</button>
 			<a href="/rss.xml" target="_blank" rel="noopener noreferrer">RSS ↗</a>
 		</div>
+
+		<details class="journal-mobile-menu" data-journal-mobile-menu>
+			<summary>
+				<span>浏览刊物</span>
+				<span class="journal-mobile-menu__mark" aria-hidden="true">+</span>
+			</summary>
+			<div class="journal-mobile-menu__panel">
+				<nav aria-label="移动端主索引">
+					<ol>
+						{links.map((link, index) => {
+							const current = !link.external && normalizePathname(link.url) === normalizedCurrentPath;
+							return (
+								<li>
+									<a
+										href={link.url}
+										target={link.external ? "_blank" : undefined}
+										rel={link.external ? "noopener noreferrer" : undefined}
+										aria-current={current ? "page" : undefined}
+										data-journal-nav-link={!link.external ? "true" : undefined}
+									>
+										<span class="journal-nav-number">{String(index + 1).padStart(2, "0")}</span>
+										{link.name}{link.external ? " ↗" : ""}
+									</a>
+								</li>
+							);
+						})}
+					</ol>
+				</nav>
+
+				<div class="journal-masthead__tools" aria-label="移动端刊物工具">
+					<button type="button" data-journal-search-open aria-haspopup="dialog" aria-controls="journal-search">
+						搜索
+					</button>
+					<button type="button" data-journal-settings-open aria-haspopup="dialog" aria-controls="journal-settings">
+						显示
+					</button>
+					<a href="/rss.xml" target="_blank" rel="noopener noreferrer">RSS ↗</a>
+				</div>
+			</div>
+		</details>
 	</div>
 
 	<p class="journal-masthead__byline journal-mono">

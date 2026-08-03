@@ -159,3 +159,26 @@
 
 - 构建仍报告 `src/content/assets` 没有匹配 JSON/YAML 的 glob-loader 提示；这是既有空数据集合提示，不影响 36 页输出。
 - pnpm 会提示旧版 `package.json` 中的 `pnpm.patchedDependencies` 字段在当前 pnpm 版本不再读取；本轮未修改该部署基线，Astro 生产构建仍通过。
+
+## 2026-08-04 MONO 最终交互收尾
+
+### 授权环境、目标与边界
+
+- 本轮全部修改、构建、浏览器自动化与截图均位于用户明确授权的 `D:\Projects\blog-mono` 本地开发和安全测试环境，只操作 `design/mono`；没有触碰、合并或改写 `main`、`design/arcade`、`design/glass`、`design/rebuild-core`。
+- 当前目标仍是把 MONO 作为独立候选交付给用户选型；用户确认前禁止将本分支合入 `main`。Umami 与动态背景只做公开接口的只读运行时验证，未记录或输出动态分享令牌。
+
+### 修复与回归契约
+
+- 移动端新增原生 `details` 刊物菜单，支持 Enter 打开、Escape 关闭、焦点返回、站内导航自动收起，并从菜单进入搜索/显示设置后把焦点恢复到仍可见的菜单摘要。
+- 搜索与显示设置 dialog 现在显式维护页面滚动锁，覆盖关闭按钮、Escape、`cancel` 与遮罩点击；增加首尾 Tab/Shift+Tab 焦点闭环，避免 Chrome 在最后一个搜索结果后把焦点移出 modal。
+- 动态刊图已提升到 Swup 的 `main/#toc` 容器之外，页面只通过 `data-journal-background-mode` 在 cover/edge 之间同步表现。搜索结果、分页、Alt 前后篇及浏览器 history 导航均复用同一背景 DOM、`currentSrc` 和 ready 状态；Alt 前后篇改为触发链接点击，不再使用硬跳转。
+- `pnpm test:mono-contract` 新增 36 页移动菜单、持久背景父子关系、背景模式、Swup 容器、dialog 滚动锁/焦点闭环、移动焦点返回及 Alt 导航非硬刷新约束。
+
+### 真实浏览器矩阵与截图
+
+- 临时 Playwright Core + 本机 Chrome 在 `1440x1000` 与精确 `390x844` 完成全矩阵：搜索打开/输入 3 条 `cloudflare` 结果/关闭按钮/Escape/遮罩/焦点闭环，主题/背景显隐/柔化跨 Swup 与重载持久化，移动菜单、分页、文章 TOC、返回顶部、Alt 前后篇、站内 Swup、浏览器 back/forward 全部通过。
+- 所有导航后 `#journal-main`、`#toc`、`[data-blog-background]` 各保持 1 个，`html` 无残留 `is-changing/is-animating/is-leaving/is-rendering`，正文 computed transform 为 `none`、opacity 为 `1`、scroll lock 已释放；桌面和移动均无横向溢出、关键区块无重叠，页面无 console error 或 pageerror。
+- 在背景为 `https://api.furry.ist/furry-img` 且 ready 时安装节点、load、opacity transition 计数器；搜索结果、Alt、分页及 history 导航后节点 identity 不变，新增 load 为 `0`、新增 opacity transition 为 `0`、该段导航新增背景请求为 `0`。
+- 设置测试先持久化为 desktop `light / hidden / 13`、mobile `dark / hidden / 9`，经 Swup 与 reload 验证后均恢复为 `auto / visible / 4`；恢复后主背景源重新进入 ready。
+- 最终截图覆盖为 `mono-final-home-desktop.png`、`mono-final-home-mobile.png`、`mono-final-article-desktop.png`，位于 `C:\Users\MingTone\.codex\visualizations\2026\07\27\019fa50e-1c97-71e2-a08c-fab02dbda466\blog-rebuild-qa`；截图中全站累计为 `335965 PV / 140108 UV`，文章样本为 `82 PV / 16 UV`，数值会随访问增长。
+- 最终门禁：`pnpm test:core`、`pnpm type-check`、`pnpm build`（36 页）、`pnpm test:mono-contract`、`git diff --check` 均通过；仅保留空 assets、旧 Browserslist 数据和 pnpm 字段位置三项既有非阻塞提示。

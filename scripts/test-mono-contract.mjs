@@ -9,6 +9,7 @@ const journalCssPath = path.join(root, "src/styles/mono/journal.css");
 const journalCss = fs.readFileSync(journalCssPath, "utf8");
 const journalRuntimePath = path.join(root, "src/mono/runtime/journal.ts");
 const journalRuntime = fs.readFileSync(journalRuntimePath, "utf8");
+const astroConfig = fs.readFileSync(path.join(root, "astro.config.mjs"), "utf8");
 
 function assert(condition, message) {
 	if (!condition) throw new Error(message);
@@ -33,7 +34,18 @@ for (const htmlFile of htmlFiles) {
 	const document = parse(fs.readFileSync(htmlFile, "utf8"));
 	assert(document.querySelectorAll("main").length === 1, `${relative}: expected one main element`);
 	assert(document.querySelectorAll("#toc").length === 1, `${relative}: expected one #toc element`);
+	assert(document.querySelectorAll("[data-journal-mobile-menu]").length === 1, `${relative}: expected one mobile menu`);
 	assert(!document.querySelector("#main-grid, #sidebar-sticky, .post-card, .card-base"), `${relative}: legacy Fuwari markup leaked into output`);
+
+	const stage = document.querySelector("[data-journal-stage]");
+	const main = document.querySelector("#journal-main");
+	const background = document.querySelector("[data-blog-background]");
+	const backgroundMode = main?.getAttribute("data-journal-background-mode");
+	assert(stage && main && background, `${relative}: persistent journal stage is incomplete`);
+	assert(background.parentNode === stage, `${relative}: background must remain outside Swup containers`);
+	assert(!main.querySelector("[data-blog-background]"), `${relative}: main must not own the persistent background`);
+	assert(backgroundMode === "cover" || backgroundMode === "edge", `${relative}: invalid background mode`);
+	assert(stage.getAttribute("data-journal-background-mode") === backgroundMode, `${relative}: stage and main background modes differ`);
 
 	for (const rootNode of document.querySelectorAll("[data-blog-stats]")) {
 		const pageviews = rootNode.querySelector('[data-stats-value="pageviews"]');
@@ -81,6 +93,17 @@ assert(journalCss.includes("@media (max-width: 39rem)"), "Journal CSS must inclu
 assert(journalRuntime.includes('event.key === "Escape"'), "Journal runtime must handle the Escape key explicitly");
 assert(journalRuntime.includes('querySelector<HTMLDialogElement>("dialog[open]")'), "Journal runtime must find the open dialog on Escape");
 assert(journalRuntime.includes("closeDialog(dialog)"), "Journal runtime must close dialogs through the focus-restoring helper");
+assert(journalRuntime.includes("function closeMobileMenu"), "Journal runtime must close the mobile menu explicitly");
+assert(journalRuntime.includes("mobileSummary || trigger"), "Mobile dialogs must restore focus to the visible menu summary");
+assert(journalRuntime.includes("function trapDialogFocus"), "Journal dialogs must explicitly trap keyboard focus");
+assert(journalRuntime.includes('event.key === "Tab"'), "Journal runtime must handle dialog Tab boundaries");
+assert(journalRuntime.includes("function syncBackgroundMode"), "Journal runtime must synchronize the persistent background mode");
+assert(journalRuntime.includes("journalDialogOpen"), "Journal runtime must expose dialog scroll-lock state");
+assert(journalRuntime.includes("link.click()"), "Article keyboard navigation must stay inside Swup");
+assert(!journalRuntime.includes("window.location.href = link.href"), "Article keyboard navigation must not hard reload the page");
+assert(journalCss.includes('html[data-journal-dialog-open="true"]'), "Journal CSS must lock page scrolling behind dialogs");
+assert(journalCss.includes(".journal-mobile-menu[open]"), "Journal CSS must include the mobile menu open state");
+assert(astroConfig.includes('containers: ["main", "#toc"]'), "Swup containers must leave the persistent background untouched");
 
 const nonNoneShadows = [...journalCss.matchAll(/box-shadow\s*:\s*([^;]+);/gi)]
 	.map((match) => match[1].trim())

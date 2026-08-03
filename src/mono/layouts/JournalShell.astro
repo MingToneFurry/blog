@@ -109,9 +109,14 @@ const canonicalUrl = new URL(Astro.url.pathname, Astro.site);
 		<div class="journal-reading-progress" aria-hidden="true"></div>
 		<div class="journal-page">
 			<JournalMasthead currentPath={Astro.url.pathname} />
-			<div class="journal-stage">
-				<main id="journal-main" class="transition-swup-journal" tabindex="-1">
-					<JournalBackground mode={backgroundMode} />
+			<div class="journal-stage" data-journal-stage data-journal-background-mode={backgroundMode}>
+				<JournalBackground mode={backgroundMode} />
+				<main
+					id="journal-main"
+					class="transition-swup-journal"
+					tabindex="-1"
+					data-journal-background-mode={backgroundMode}
+				>
 					<slot />
 				</main>
 				<aside id="toc" class="journal-toc transition-swup-journal" aria-label={tocLabel || "本页索引"}>

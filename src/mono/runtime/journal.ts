@@ -54,6 +54,17 @@ function syncBackgrounds(settings: AppearanceSettings): void {
 	}
 }
 
+function syncBackgroundMode(): void {
+	const stage = document.querySelector<HTMLElement>("[data-journal-stage]");
+	const background = stage?.querySelector<HTMLElement>(":scope > [data-blog-background]");
+	const main = document.querySelector<HTMLElement>("#journal-main[data-journal-background-mode]");
+	if (!stage || !background || !main) return;
+	const mode = main.dataset.journalBackgroundMode === "cover" ? "cover" : "edge";
+	stage.dataset.journalBackgroundMode = mode;
+	background.classList.toggle("journal-background--cover", mode === "cover");
+	background.classList.toggle("journal-background--edge", mode === "edge");
+}
+
 function applySettings(settings: AppearanceSettings, persist = false): void {
 	const normalized = persist
 		? writeAppearanceSettings(window.localStorage, settings)
@@ -80,16 +91,57 @@ function settingsFromControls(): AppearanceSettings {
 	};
 }
 
-function openDialog(dialog: HTMLDialogElement, trigger: HTMLElement): void {
-	dialogReturnFocus.set(dialog, trigger);
-	if (typeof dialog.showModal === "function") dialog.showModal();
-	else dialog.setAttribute("open", "");
+function syncDialogOpenState(): void {
+	root.dataset.journalDialogOpen = String(Boolean(document.querySelector("dialog[open]")));
 }
 
-function closeDialog(dialog: HTMLDialogElement): void {
-	if (typeof dialog.close === "function") dialog.close();
+function closeMobileMenu(restoreFocus = true): void {
+	const menu = document.querySelector<HTMLDetailsElement>("[data-journal-mobile-menu][open]");
+	if (!menu) return;
+	const summary = menu.querySelector<HTMLElement>("summary");
+	menu.removeAttribute("open");
+	if (restoreFocus) summary?.focus();
+}
+
+function openDialog(dialog: HTMLDialogElement, trigger: HTMLElement): void {
+	const current = document.querySelector<HTMLDialogElement>("dialog[open]");
+	if (current && current !== dialog) closeDialog(current, false);
+	const mobileSummary = trigger.closest<HTMLDetailsElement>("[data-journal-mobile-menu]")?.querySelector<HTMLElement>("summary");
+	dialogReturnFocus.set(dialog, mobileSummary || trigger);
+	if (typeof dialog.showModal === "function") dialog.showModal();
+	else dialog.setAttribute("open", "");
+	syncDialogOpenState();
+}
+
+function closeDialog(dialog: HTMLDialogElement, restoreFocus = true): void {
+	const trigger = dialogReturnFocus.get(dialog);
+	if (!restoreFocus) dialogReturnFocus.delete(dialog);
+	if (dialog.open && typeof dialog.close === "function") dialog.close();
 	else dialog.removeAttribute("open");
-	dialogReturnFocus.get(dialog)?.focus();
+	syncDialogOpenState();
+	if (restoreFocus) trigger?.focus();
+}
+
+function trapDialogFocus(event: KeyboardEvent, dialog: HTMLDialogElement): void {
+	const focusable = [...dialog.querySelectorAll<HTMLElement>(
+		'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+	)].filter((element) => element.getClientRects().length > 0 && element.getAttribute("aria-hidden") !== "true");
+	if (focusable.length === 0) {
+		event.preventDefault();
+		dialog.focus();
+		return;
+	}
+
+	const first = focusable[0];
+	const last = focusable[focusable.length - 1];
+	const active = document.activeElement;
+	if (event.shiftKey && (active === first || !dialog.contains(active))) {
+		event.preventDefault();
+		last.focus();
+	} else if (!event.shiftKey && (active === last || !dialog.contains(active))) {
+		event.preventDefault();
+		first.focus();
+	}
 }
 
 function textFromNode(node: Element | null): string {
@@ -203,13 +255,18 @@ function prepareImages(): void {
 }
 
 function initializePage(): void {
+	for (const dialog of document.querySelectorAll<HTMLDialogElement>("dialog[open]")) {
+		closeDialog(dialog, false);
+	}
+	closeMobileMenu(false);
+	syncDialogOpenState();
+	syncBackgroundMode();
 	const settings = readAppearanceSettings(window.localStorage);
 	applySettings(settings);
 	syncNavigation();
 	syncReadingProgress();
 	prepareImages();
 	void window.blogStats?.initialize(document);
-	void window.blogBackground?.initialize(document);
 }
 
 document.addEventListener("click", (event) => {
@@ -220,6 +277,7 @@ document.addEventListener("click", (event) => {
 	if (searchTrigger) {
 		const dialog = document.querySelector<HTMLDialogElement>("#journal-search");
 		if (!dialog) return;
+		closeMobileMenu(false);
 		openDialog(dialog, searchTrigger);
 		window.setTimeout(() => document.querySelector<HTMLInputElement>("[data-journal-search-input]")?.focus(), 0);
 		void loadSearchIndex().catch(() => undefined);
@@ -230,6 +288,7 @@ document.addEventListener("click", (event) => {
 	if (settingsTrigger) {
 		const dialog = document.querySelector<HTMLDialogElement>("#journal-settings");
 		if (!dialog) return;
+		closeMobileMenu(false);
 		syncSettingsControls(readAppearanceSettings(window.localStorage));
 		openDialog(dialog, settingsTrigger);
 		return;
@@ -260,19 +319,38 @@ document.addEventListener("click", (event) => {
 	const resultLink = target.closest<HTMLAnchorElement>("[data-journal-search-results] a");
 	if (resultLink) {
 		const dialog = document.querySelector<HTMLDialogElement>("#journal-search");
-		if (dialog?.open) closeDialog(dialog);
+		if (dialog?.open) closeDialog(dialog, false);
+		return;
 	}
+
+	if (target.closest("[data-journal-mobile-menu] a")) closeMobileMenu(false);
 });
 
 document.addEventListener("click", (event) => {
-	if (!(event.target instanceof HTMLDialogElement)) return;
-	const bounds = event.target.getBoundingClientRect();
-	const outside = event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom;
-	if (outside) closeDialog(event.target);
+	const target = event.target;
+	if (!(target instanceof Element)) return;
+	if (target instanceof HTMLDialogElement) {
+		const bounds = target.getBoundingClientRect();
+		const outside = event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom;
+		if (outside) closeDialog(target);
+	}
+
+	const menu = document.querySelector<HTMLDetailsElement>("[data-journal-mobile-menu][open]");
+	if (menu && !menu.contains(target)) closeMobileMenu(false);
 });
 
 document.addEventListener("close", (event) => {
-	if (event.target instanceof HTMLDialogElement) dialogReturnFocus.get(event.target)?.focus();
+	if (!(event.target instanceof HTMLDialogElement)) return;
+	const trigger = dialogReturnFocus.get(event.target);
+	dialogReturnFocus.delete(event.target);
+	syncDialogOpenState();
+	trigger?.focus();
+}, true);
+
+document.addEventListener("cancel", (event) => {
+	if (!(event.target instanceof HTMLDialogElement)) return;
+	event.preventDefault();
+	closeDialog(event.target);
 }, true);
 
 document.addEventListener("submit", (event) => {
@@ -306,12 +384,25 @@ document.addEventListener("change", (event) => {
 });
 
 document.addEventListener("keydown", (event) => {
+	if (event.key === "Tab") {
+		const dialog = document.querySelector<HTMLDialogElement>("dialog[open]");
+		if (dialog) trapDialogFocus(event, dialog);
+		return;
+	}
+
 	if (event.key === "Escape") {
 		const dialog = document.querySelector<HTMLDialogElement>("dialog[open]");
-		if (!dialog) return;
-		event.preventDefault();
-		closeDialog(dialog);
-		return;
+		if (dialog) {
+			event.preventDefault();
+			closeDialog(dialog);
+			return;
+		}
+		const menu = document.querySelector<HTMLDetailsElement>("[data-journal-mobile-menu][open]");
+		if (menu) {
+			event.preventDefault();
+			closeMobileMenu();
+			return;
+		}
 	}
 
 	if (!event.altKey || (event.key !== "ArrowLeft" && event.key !== "ArrowRight")) return;
@@ -320,7 +411,7 @@ document.addEventListener("keydown", (event) => {
 	const link = document.querySelector<HTMLAnchorElement>(`[data-journal-article-nav="${direction}"]`);
 	if (!link) return;
 	event.preventDefault();
-	window.location.href = link.href;
+	link.click();
 });
 
 window.addEventListener("scroll", syncReadingProgress, { passive: true });
