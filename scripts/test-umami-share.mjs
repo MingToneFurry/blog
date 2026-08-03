@@ -30,6 +30,7 @@ function jsonResponse(data, status = 200) {
 }
 
 const requests = [];
+let invalidCacheCalls = 0;
 const fetch = async (input, options = {}) => {
 	const url = String(input);
 	requests.push({ url, options });
@@ -46,9 +47,18 @@ const fetch = async (input, options = {}) => {
 		});
 	}
 
-	if (url.startsWith("https://gateway-us.umami.is/api/websites/website-id/stats?")) {
-		if (new URL(url).searchParams.get("path") === "eq./posts/no-comparison/") {
+	if (
+		url.startsWith("https://gateway-us.umami.is/api/websites/website-id/stats?")
+	) {
+		const requestPath = new URL(url).searchParams.get("path");
+		if (requestPath === "eq./posts/no-comparison/") {
 			return jsonResponse({ pageviews: 1, visitors: 1 });
+		}
+		if (requestPath === "eq./posts/invalid-cache/") {
+			invalidCacheCalls += 1;
+			return invalidCacheCalls === 1
+				? jsonResponse({ comparison: { pageviews: null, visitors: -1 } })
+				: jsonResponse({ comparison: { pageviews: 9, visitors: 3 } });
 		}
 		return jsonResponse({
 			pageviews: 42,
@@ -122,13 +132,31 @@ assert.equal(statsUrl.searchParams.get("path"), "eq./posts/example/");
 assert.equal(statsUrl.searchParams.get("timezone"), "Asia/Shanghai");
 assert.equal(statsUrl.searchParams.has("lifetime"), false);
 await assert.rejects(
-	window.fetchUmamiStats(
-		"https://cloud.umami.is/analytics/us",
-		"share-id",
-		{ url: "/posts/no-comparison/", timezone: "Asia/Shanghai" },
-	),
+	window.fetchUmamiStats("https://cloud.umami.is/analytics/us", "share-id", {
+		url: "/posts/no-comparison/",
+		timezone: "Asia/Shanghai",
+	}),
 	/未返回 lifetime comparison/,
 );
+await assert.rejects(
+	window.fetchUmamiStats("https://cloud.umami.is/analytics/us", "share-id", {
+		url: "/posts/invalid-cache/",
+		timezone: "Asia/Shanghai",
+	}),
+	/返回无效的 pageviews 或 visitors/,
+);
+const recoveredStats = await window.fetchUmamiStats(
+	"https://cloud.umami.is/analytics/us",
+	"share-id",
+	{ url: "/posts/invalid-cache/", timezone: "Asia/Shanghai" },
+);
+assert.equal(
+	invalidCacheCalls,
+	2,
+	"invalid stats must not poison the response cache",
+);
+assert.equal(recoveredStats.pageviews, 9);
+assert.equal(recoveredStats.visitors, 3);
 assert.deepEqual(storage.entries(), []);
 
 console.log("Umami share helper tests passed");

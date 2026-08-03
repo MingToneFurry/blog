@@ -67,6 +67,24 @@
 		return { ...data, ...data.comparison, comparison: data.comparison };
 	}
 
+	function assertValidStats(data) {
+		const readValue = (value) =>
+			value && typeof value === "object" ? value.value : value;
+		const pageviews = readValue(data?.pageviews);
+		const visitors = readValue(data?.visitors);
+		if (
+			typeof pageviews !== "number" ||
+			!Number.isFinite(pageviews) ||
+			pageviews < 0 ||
+			typeof visitors !== "number" ||
+			!Number.isFinite(visitors) ||
+			visitors < 0
+		) {
+			throw new Error("Umami stats API 返回无效的 pageviews 或 visitors");
+		}
+		return data;
+	}
+
 	/**
 	 * Build candidate API bases for Umami Cloud / self-hosted.
 	 * Umami Cloud serves the UI from cloud.umami.is and the API from a
@@ -227,7 +245,7 @@
 		const cacheKey = `${normalizeBaseUrl(baseUrl)}|${shareId}|${JSON.stringify(queryParams)}`;
 
 		if (dataCache.has(cacheKey)) {
-			const data = dataCache.get(cacheKey);
+			const data = assertValidStats(dataCache.get(cacheKey));
 			return { ...data, _fromCache: true };
 		}
 
@@ -303,7 +321,7 @@
 			}
 
 			const data = await res.json();
-			const result = lifetime ? selectLifetimeStats(data) : data;
+			const result = assertValidStats(lifetime ? selectLifetimeStats(data) : data);
 			dataCache.set(cacheKey, result);
 			return result;
 		}

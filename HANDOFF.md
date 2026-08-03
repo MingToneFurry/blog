@@ -21,6 +21,7 @@
 - 新 API 基址为 `https://gateway-us.umami.is`；分享上下文请求必须带 `x-umami-share-context: 1` 和动态分享令牌。
 - Umami Cloud 免费分享查询会把过早的 `startAt` 截到近期窗口，因此不能把 `startAt=0` 直接当作累计。现 helper 以 `max(createdAt, resetAt)` 为统计起点，构造未来空窗并用 `compare=prev` 让单个 comparison 窗口覆盖起点至当前快照，直接取该窗口的全站与文章 PV/UV；接入前、重置前或已删除的历史数据仍无法补算。
 - 公开分享令牌只在浏览器内动态获取并仅作内存级复用，不写入仓库、交接文档或 `localStorage`；新版 helper 会主动清理旧版 `umami-share-cache:*` 持久缓存。
+- 所有前端统计根均遵循 fail-closed 契约：SSR 默认 `hidden`，只有同时取得有效非负累计 PV/UV 后才显示；广告拦截、请求失败、超时和响应无效时，标签、数值、横线占位与统计空框全部隐藏。真实 `0` 是有效数据，仍会正常显示。
 - `iudesigns` 目录共三种风格：`arcade.md`、`glass.md`、`mono.md`。
 
 ## 分支策略
@@ -42,27 +43,30 @@
 ## 验证清单
 
 - `pnpm test:umami`
+- `pnpm test:stats`
 - `pnpm type-check`
 - `pnpm build`
-- 浏览器验证首页全站统计及至少一篇文章的 PV/UV。
+- 浏览器验证首页全站统计及至少一篇文章的 PV/UV，并用阻断 `umami-share.js` / Umami 网络请求的场景确认统计整组不可见。
 - 三个设计分支分别进行桌面和移动端视觉、键盘焦点、减少动效检查。
 
 ## 当前进度
 
 - 仓库已克隆并跟踪 `origin/main`。
-- Umami 修复已完成本地单测、生产构建与浏览器端到端验证：全站和文章 PV/UV 均恢复显示。
-- 三个设计分支已经完成第一轮视觉重写并推送，但审计确认它们仍大量复用 Fuwari 页面骨架，现定位为可回退的阶段性版本，不是最终“完全重构”交付。
-- 用户已通过可视化头脑风暴批准架构级重构：ARCADE、GLASS、MONO 作为三个独立产品，只共享内容 schema、路由契约、类型和纯逻辑，不共享 Layout、导航、文章卡、Reader、移动菜单或视觉组件。
-- 已批准的产品定位：ARCADE 为高互动任务控制台；GLASS 为个人数字观测站；MONO 为极简数字出版物。
-- 已批准保留 Astro、Markdown、构建部署链、全部公开 URL、RSS、Sitemap、中文 slug 与现有核心功能；允许增加向后兼容的可选内容元数据和风格专属增强。
-- 动态背景继续使用主接口与 SNI fallback，但按风格原生化：ARCADE 任务场景、GLASS 观景窗、MONO 灰度刊物封面或页边图。
+- `main` 已完成 Umami 累计统计接口修复及 fail-closed 消费端收敛：单例运行时替代重复内联脚本，Swup 不会重复绑定，无效 HTTP 200 响应不写缓存，失败后可恢复；预览为 `http://127.0.0.1:4329/`。
+- `main` 的 helper 缺失实测：首页 9 个统计根、文章页 2 个统计根全部为 `display:none`，可见 `0` / `-` / `--` 占位数为 0；正常接口下全站与文章累计 PV/UV 均正常显示，前进/后退后可恢复且背景节点保持唯一。
+- `design/arcade` 最终提交为 `87fbda40c9b7ea82671f3431ff5db9d4935e7631`，预览 `http://127.0.0.1:4327/`；已覆盖 0、1、多篇置顶文章、搜索、设置、移动菜单、TOC、历史导航、背景复用和双视口布局。
+- `design/glass` 最终提交为 `a1625b47661bc2f904cb2e0a8c293327c3819077`，预览 `http://127.0.0.1:4325/`；已覆盖统计空轨道折叠、搜索、设置、移动导航、焦点闭环、历史导航和背景复用。
+- `design/mono` 最终提交为 `c759ff831f4be3d88844519151bebbdabe87e8d6`，预览 `http://127.0.0.1:4328/`；已覆盖统计列折叠、搜索、设置、移动菜单、分页、TOC、Alt 导航、历史导航和背景复用。
+- 三个设计分支均已通过各自契约测试、类型检查、36 页生产构建、`git diff --check`、桌面与移动 Playwright 交互矩阵，并与对应远端分支同步；尚未合入 `main`。
+- 已批准的产品定位保持不变：ARCADE 为高互动任务控制台；GLASS 为个人数字观测站；MONO 为极简数字出版物。三者只共享内容 schema、路由契约、类型和纯逻辑，不共享产品 UI 骨架。
+- 已保留 Astro、Markdown、全部公开 URL、RSS、Sitemap、中文 slug、主要功能与分类，以及 `https://api.furry.ist/furry-img` 主背景接口和 SNI fallback。
 - 正式设计规格位于 `docs/superpowers/specs/2026-07-29-independent-frontend-rebuild-design.md`；已完成三轮自动审阅并修正全部已报问题，用户已于 2026-07-29 批准实施。
 - 实施计划位于 `docs/superpowers/plans/2026-07-29-independent-frontend-rebuild-plan.md`；先构建并验证 `design/rebuild-core`，再分别合入三个现有设计分支进行独立产品重构。
-- 实现阶段计划使用未合入 `main` 的 `design/rebuild-core` 承载无视觉共享代码，再分别进入三个现有设计分支；旧设计提交保留为 Git 回退点，不改写历史。
+- `design/rebuild-core` 继续保留为未合入 `main` 的共享逻辑历史；三个最终候选在各自分支独立维护，旧提交保留为 Git 回退点，不改写历史。
 - 友链 JSON 当前由构建期 eager glob 汇总，不是运行时远程 API；重构保留多 JSON 文件驱动协议，不额外发明网络数据层。
 - 当前 Swup containers 固定为 `main` 与 `#toc`；各独立 Shell 必须保留稳定容器契约或在分支内同步调整配置并覆盖所有路由。
-- Umami helper 已修复，但 Fuwari 消费端仍有重复内联脚本、`0` 初始占位和局部仅 PV 的旧逻辑；`design/rebuild-core` 只提供统一访问层、DOM 属性协议和测试，三个风格分支分别移除旧脚本并接入全站/首页文章/详情页 PV+UV 的 `--` 占位契约。
+- Fuwari 与三个候选前端都已移除统计失败时的可见占位；统计根在 ready 前不会占用布局或进入可访问性树。
 - 安全复核发现旧 helper 会把动态分享令牌缓存到 `localStorage` 一小时；现已改为仅内存复用并清理历史持久缓存，令牌与接口探测安全边界不变。
 - 2026-07-29 实时复核确认 Cloud 免费账户会把 `startAt=0` 截断：直接查询仅返回约 2,903 PV。未来空窗 + 单个 `prev` comparison 可一次覆盖完整历史，实时返回约 335,847 PV / 140,105 UV；具体数值会随访问增长，且不再通过跨窗口相加而重复计算 UV。
 - 仓库基线仍有既存类型检查问题：缺少 `hast` 类型；生产构建不受影响。实施时必须确认无新增类型错误。
-- 用户要求最多同时使用 3 个子代理；三个候选分支全部完成、推送并展示证据后，将 Goal 标记为 `blocked`，等待用户选择，不自动合并或继续。
+- 用户要求最多同时使用 3 个子代理；三个候选分支全部完成、推送并展示证据后，将 Goal 标记为 `blocked`，等待用户选择，不自动合并或继续。当前下一步只允许用户选定 `ARCADE`、`GLASS` 或 `MONO` 后再执行合并。
