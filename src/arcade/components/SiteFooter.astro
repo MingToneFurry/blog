@@ -1,0 +1,21 @@
+---
+import { profileConfig, siteConfig } from "@/config";
+---
+
+<footer class="arcade-footer">
+	<div>
+		<strong>{siteConfig.title}</strong>
+		<span>由 {profileConfig.name} 持续维护</span>
+	</div>
+	<nav aria-label="页脚导航">
+		{profileConfig.links.map((link) => (
+			<a href={link.url} target="_blank" rel="me noopener noreferrer">{link.name.toUpperCase()}</a>
+		))}
+		<a href="/rss.xml">RSS</a>
+		<a href="/sitemap-index.xml">SITEMAP</a>
+		<a href="/privacy/">PRIVACY</a>
+		<a href="https://stats.uptimerobot.com/6zqrufirxf" target="_blank" rel="noopener noreferrer">STATUS</a>
+		<a href="https://cloud.umami.is/analytics/us/share/HdVBrs2TcRJ2LJd4" target="_blank" rel="noopener noreferrer">ANALYTICS</a>
+	</nav>
+	<small>FIELD NODE // {new Date().getFullYear()} // ALL SYSTEMS NOMINAL</small>
+</footer>

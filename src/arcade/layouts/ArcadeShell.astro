@@ -1,0 +1,172 @@
+---
+import "@fontsource-variable/geist";
+import "@fontsource-variable/jetbrains-mono";
+import "@fontsource-variable/jetbrains-mono/wght-italic.css";
+import "katex/dist/katex.css";
+import "@/styles/arcade/index.css";
+
+import { profileConfig, siteConfig, umamiConfig } from "@/config";
+import { defaultFavicons } from "@/constants/icon";
+import type { Favicon } from "@/types/config";
+import { url } from "@/utils/url-utils";
+import CommandConsole from "../components/CommandConsole.astro";
+import MissionRail from "../components/MissionRail.astro";
+import MobileDock from "../components/MobileDock.astro";
+import SiteFooter from "../components/SiteFooter.astro";
+import SystemBar from "../components/SystemBar.astro";
+
+interface Props {
+	title?: string;
+	description?: string;
+	lang?: string;
+	article?: boolean;
+	hasToc?: boolean;
+}
+
+const {
+	title,
+	description = siteConfig.description,
+	lang = siteConfig.lang,
+	article = false,
+	hasToc = false,
+} = Astro.props;
+const pageTitle = title
+	? `${title} - ${siteConfig.title}`
+	: `${siteConfig.title} - ${siteConfig.subtitle}`;
+const siteLang = lang.replace("_", "-");
+const favicons: Favicon[] =
+	siteConfig.favicon.length > 0 ? siteConfig.favicon : defaultFavicons;
+---
+
+<!doctype html>
+<html
+	lang={siteLang}
+	data-product="arcade-field-node"
+	data-route-kind={article ? "article" : "module"}
+	data-site-stats-state="idle"
+	data-umami-base={umamiConfig.baseUrl}
+	data-umami-share={umamiConfig.shareId}
+	data-umami-timezone={umamiConfig.timezone}
+>
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="generator" content={Astro.generator} />
+		<meta name="description" content={description} />
+		<meta name="author" content={profileConfig.name} />
+		<title>{pageTitle}</title>
+		<link rel="canonical" href={Astro.url} />
+		<meta property="og:site_name" content={siteConfig.title} />
+		<meta property="og:url" content={Astro.url} />
+		<meta property="og:title" content={pageTitle} />
+		<meta property="og:description" content={description} />
+		<meta property="og:type" content={article ? "article" : "website"} />
+		<meta name="twitter:card" content="summary_large_image" />
+		<meta name="twitter:title" content={pageTitle} />
+		<meta name="twitter:description" content={description} />
+		<meta name="theme-color" content="#08090c" media="(prefers-color-scheme: dark)" />
+		<meta name="theme-color" content="#f2f2ee" media="(prefers-color-scheme: light)" />
+		{favicons.map((favicon) => (
+			<link
+				rel="icon"
+				href={favicon.src.startsWith("/") ? url(favicon.src) : favicon.src}
+				sizes={favicon.sizes}
+				media={favicon.theme && `(prefers-color-scheme: ${favicon.theme})`}
+			/>
+		))}
+		<link rel="alternate" type="application/rss+xml" title={profileConfig.name} href="/rss.xml" />
+
+		<script is:inline>
+			(() => {
+				const root = document.documentElement;
+				let theme = "auto";
+				let backgroundVisible = true;
+				let backgroundBlur = 4;
+				try {
+					theme = ["light", "dark", "auto"].includes(localStorage.getItem("theme"))
+						? localStorage.getItem("theme")
+						: "auto";
+					backgroundVisible = localStorage.getItem("hide-bg") !== "true";
+					const storedBlur = Number.parseFloat(localStorage.getItem("bg-blur") || "4");
+					backgroundBlur = Number.isFinite(storedBlur) ? Math.min(24, Math.max(0, storedBlur)) : 4;
+				} catch {}
+				const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+				const colorScheme = theme === "auto" ? (prefersDark ? "dark" : "light") : theme;
+				root.dataset.themePreference = theme;
+				root.dataset.colorScheme = colorScheme;
+				root.dataset.backgroundVisible = String(backgroundVisible);
+				root.dataset.backgroundBlur = String(backgroundBlur);
+				root.style.colorScheme = colorScheme;
+			})();
+		</script>
+
+		<slot name="head" />
+		<script is:inline data-swup-ignore-script define:vars={{ umamiConfig }}>
+			window.__BLOG_STATS_CONFIG__ = {
+				enabled: umamiConfig.enable,
+				baseUrl: umamiConfig.baseUrl,
+				shareId: umamiConfig.shareId,
+				timezone: umamiConfig.timezone,
+				requestTimeout: 8000,
+			};
+			window.blogStats?.configure(window.__BLOG_STATS_CONFIG__);
+		</script>
+		<script defer src="/js/umami-share.js" data-swup-ignore-script></script>
+		<script defer src="/js/blog-stats.js" data-swup-ignore-script></script>
+		<script defer src="/js/blog-background.js" data-swup-ignore-script></script>
+		<script
+			defer
+			src="https://cloud.umami.is/script.js"
+			data-website-id="360509f2-5a9e-466f-9944-25af72447192"
+			data-swup-ignore-script
+		></script>
+	</head>
+	<body class="arcade-body">
+		<a class="arcade-skip-link" href="#arcade-main">跳到主要内容</a>
+		<div
+			class="arcade-scene"
+			data-blog-background
+			data-background-state="idle"
+			data-background-visible="true"
+			aria-hidden="true"
+		>
+			<img data-background-image alt="" decoding="async" />
+			<div class="arcade-scene-shutter"></div>
+			<div class="arcade-scene-grid"></div>
+		</div>
+
+		<div class="arcade-shell" id="arcade-shell">
+			<SystemBar />
+			<MissionRail />
+
+			<main id="arcade-main" tabindex="-1">
+				<slot />
+			</main>
+
+			<aside id="toc" class:list={["arcade-toc-rail", { "has-toc": hasToc }]} aria-label="文章目录">
+				<slot name="toc">
+					<span class="sr-only">此页面没有文章目录</span>
+				</slot>
+			</aside>
+
+			<div class="arcade-reading-rail" aria-hidden="true" data-reading-rail>
+				<span>READ</span>
+				<div><i data-reading-progress></i></div>
+				<b data-reading-percentage>000</b>
+			</div>
+
+			<button type="button" class="arcade-back-top cut-control" data-back-top aria-label="返回顶部">
+				<span aria-hidden="true">↑</span>
+			</button>
+
+			<SiteFooter />
+			<MobileDock />
+			<CommandConsole />
+		</div>
+
+		<script>
+			import { startArcadeRuntime } from "../runtime/arcade-runtime";
+			startArcadeRuntime();
+		</script>
+	</body>
+</html>

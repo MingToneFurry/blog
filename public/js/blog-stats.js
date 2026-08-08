@@ -67,12 +67,22 @@
 		return [...root.querySelectorAll("[data-stats-value]")];
 	}
 
+	function syncSiteState(root, state) {
+		if (root.dataset.statsScope !== "site") return;
+		const documentElement =
+			typeof document === "undefined" ? null : document.documentElement;
+		if (documentElement?.dataset) {
+			documentElement.dataset.siteStatsState = state;
+		}
+	}
+
 	function setState(root, state) {
 		const ready = state === "ready";
 		root.dataset.statsState = state;
 		root.hidden = !ready;
 		root.setAttribute?.("aria-hidden", String(!ready));
 		root.setAttribute?.("aria-busy", state === "loading" ? "true" : "false");
+		syncSiteState(root, state);
 		for (const node of getValueNodes(root)) {
 			node.dataset.statsState = state;
 			if (!ready) node.textContent = "";

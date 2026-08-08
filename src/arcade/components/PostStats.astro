@@ -1,0 +1,25 @@
+---
+interface Props {
+	path: string;
+	label?: string;
+	class?: string;
+}
+
+const { path, label = "累计统计", class: className = "" } = Astro.props;
+---
+
+<div
+	class:list={["arcade-inline-stats", className]}
+	data-blog-stats
+	data-stats-scope="post"
+	data-stats-path={path}
+	data-stats-state="idle"
+	aria-label={label}
+	aria-live="polite"
+	aria-hidden="true"
+	aria-busy="false"
+	hidden
+>
+	<span>累计浏览 PV <strong data-stats-value="pageviews" data-stats-state="idle"></strong></span>
+	<span>累计访客 UV <strong data-stats-value="visitors" data-stats-state="idle"></strong></span>
+</div>

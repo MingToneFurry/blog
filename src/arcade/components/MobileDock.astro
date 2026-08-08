@@ -1,0 +1,22 @@
+---
+import { Icon } from "astro-icon/components";
+
+const entries = [
+	{ label: "任务", href: "/", icon: "material-symbols:home-outline" },
+	{ label: "归档", href: "/archive/", icon: "material-symbols:inventory-2-outline" },
+	{ label: "友链", href: "/friends/", icon: "material-symbols:hub-outline" },
+];
+---
+
+<nav class="arcade-mobile-dock" aria-label="移动模块导航">
+	{entries.map((entry) => (
+		<a href={entry.href} data-route-link data-route-path={entry.href}>
+			<Icon name={entry.icon} />
+			<span>{entry.label}</span>
+		</a>
+	))}
+	<button type="button" data-command-open="search" aria-label="打开命令面板">
+		<Icon name="material-symbols:terminal" />
+		<span>命令</span>
+	</button>
+</nav>

@@ -1,10 +1,7 @@
 ---
 title: "关于我"
-layout: "../layouts/MainGridLayout.astro"
+layout: "../arcade/layouts/ArcadeContentLayout.astro"
 ---
-
-<div class="card-base p-6 md:p-8">
-<div class="prose dark:prose-invert prose-base !max-w-none custom-md">
 
 ##  谁是 MingTone？
 
@@ -70,6 +67,3 @@ layout: "../layouts/MainGridLayout.astro"
 ⣾⣿⣿⣿⣿⣿⣿⡀⠻⠟⠃<br>
 ⠙⠛⠻⢿⣿⣿⣿⡇<br>
 ⠀⠀⠀ ⠈⠙⠋⠁<br>
-
-</div>
-</div>

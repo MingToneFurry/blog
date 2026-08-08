@@ -1,0 +1,29 @@
+---
+import type { Page } from "astro";
+
+interface Props {
+	page: Page;
+}
+
+const { page } = Astro.props;
+const pageNumbers = Array.from({ length: page.lastPage }, (_, index) => index + 1);
+const getPageUrl = (pageNumber: number) => pageNumber === 1 ? "/" : `/${pageNumber}/`;
+---
+
+<nav class="arcade-pagination" aria-label="文章分页">
+	{page.url.prev ? (
+		<a href={page.url.prev} aria-label="上一页">←</a>
+	) : (
+		<span class="is-disabled" aria-hidden="true">←</span>
+	)}
+	{pageNumbers.map((pageNumber) => pageNumber === page.currentPage ? (
+		<span aria-current="page">{String(pageNumber).padStart(2, "0")}</span>
+	) : (
+		<a href={getPageUrl(pageNumber)} aria-label={`第 ${pageNumber} 页`}>{String(pageNumber).padStart(2, "0")}</a>
+	))}
+	{page.url.next ? (
+		<a href={page.url.next} aria-label="下一页">→</a>
+	) : (
+		<span class="is-disabled" aria-hidden="true">→</span>
+	)}
+</nav>

@@ -1,0 +1,22 @@
+---
+const modules = [
+	{ code: "MOD_002", title: "Archive", description: "按时间回溯全部任务传输。", href: "/archive/" },
+	{ code: "MOD_003", title: "Identity", description: "读取节点维护者与站点档案。", href: "/about/" },
+	{ code: "MOD_004", title: "Contact", description: "通过可用频道与维护者建立联络。", href: "/contact/" },
+	{ code: "MOD_005", title: "Network", description: "访问已连接的友链节点。", href: "/friends/" },
+	{ code: "MOD_006", title: "Privacy", description: "读取统计、评论与数据处理边界。", href: "/privacy/" },
+];
+---
+
+<div class="arcade-module-grid">
+	{modules.map((module) => (
+		<a
+			class="arcade-module-link"
+			href={module.href}
+		>
+			<span>{module.code}</span>
+			<strong>{module.title}</strong>
+			<small>{module.description}</small>
+		</a>
+	))}
+</div>

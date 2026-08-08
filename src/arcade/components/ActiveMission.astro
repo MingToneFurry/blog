@@ -1,0 +1,41 @@
+---
+import type { CollectionEntry } from "astro:content";
+import { formatDateToYYYYMMDD } from "@/utils/date-utils";
+import { getPostUrlBySlug } from "@/utils/url-utils";
+import { toPostSummary } from "@/utils/content-core";
+import PostStats from "./PostStats.astro";
+
+interface Props {
+	entry: CollectionEntry<"posts">;
+	priority: number;
+	index: number;
+}
+
+const { entry, priority, index } = Astro.props;
+const summary = toPostSummary(entry);
+const { remarkPluginFrontmatter } = await entry.render();
+const path = getPostUrlBySlug(entry.slug);
+const excerpt = entry.data.description || remarkPluginFrontmatter.excerpt || "任务情报已入库，等待节点读取完整简报。";
+const priorityLabel = String(priority).padStart(2, "0");
+const headingId = `active-mission-title-${index}`;
+---
+
+<article class="arcade-mission-card" aria-labelledby={headingId} data-active-mission data-priority={priorityLabel}>
+	<header>
+		<span class="arcade-status-chip">ACTIVE MISSION</span>
+		<span class="hud-kicker">PRIORITY_{priorityLabel}</span>
+	</header>
+	<h2 id={headingId}>{entry.data.title}</h2>
+	<p>{excerpt}</p>
+	<div class="arcade-mission-meta">
+		<span>{formatDateToYYYYMMDD(entry.data.published).replaceAll("-", ".")}</span>
+		<span>{summary.category}</span>
+		<span>{remarkPluginFrontmatter.words} 字</span>
+		<span>{remarkPluginFrontmatter.minutes} 分钟</span>
+	</div>
+	<PostStats path={path} label={`${entry.data.title} 累计统计`} />
+	<a class="arcade-mission-link" href={path}>
+		<span>进入任务简报</span>
+		<span aria-hidden="true">↗</span>
+	</a>
+</article>

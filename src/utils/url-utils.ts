@@ -21,6 +21,28 @@ export function getDir(path: string): string {
 	return path.substring(0, lastSlashIndex + 1);
 }
 
+export function normalizePathname(input: string): string {
+	const raw = String(input || "/").trim();
+	let pathname = raw;
+
+	try {
+		pathname = new URL(raw, "https://blog.invalid").pathname;
+	} catch {
+		pathname = raw.split(/[?#]/, 1)[0] || "/";
+	}
+
+	try {
+		pathname = decodeURIComponent(pathname);
+	} catch {
+		// Preserve malformed percent sequences instead of throwing in UI runtimes.
+	}
+
+	pathname = pathname.replace(/\\/g, "/").replace(/\/{2,}/g, "/");
+	if (!pathname.startsWith("/")) pathname = `/${pathname}`;
+	if (pathname !== "/" && !pathname.endsWith("/")) pathname += "/";
+	return pathname;
+}
+
 export function url(path: string) {
 	return joinUrl("", import.meta.env.BASE_URL, path);
 }

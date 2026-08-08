@@ -1,0 +1,22 @@
+---
+import { licenseConfig, profileConfig } from "@/config";
+import { formatDateToYYYYMMDD } from "@/utils/date-utils";
+
+interface Props {
+	title: string;
+	pubDate: Date;
+}
+
+const { title, pubDate } = Astro.props;
+---
+
+<section class="arcade-license-panel" aria-label="文章许可信息">
+	<span class="hud-kicker">LICENSE / CREATIVE COMMONS</span>
+	<strong>{title}</strong>
+	<p>除另有说明外，本任务简报按下列许可协议共享。</p>
+	<div class="arcade-license-grid">
+		<div><span>作者</span><strong>{profileConfig.name}</strong></div>
+		<div><span>发布</span><strong>{formatDateToYYYYMMDD(pubDate)}</strong></div>
+		<div><span>协议</span><a href={licenseConfig.url} target="_blank" rel="license noopener noreferrer">{licenseConfig.name}</a></div>
+	</div>
+</section>

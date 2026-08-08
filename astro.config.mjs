@@ -6,7 +6,6 @@ import { pluginLineNumbers } from "@expressive-code/plugin-line-numbers";
 import swup from "@swup/astro";
 import expressiveCode from "astro-expressive-code";
 import icon from "astro-icon";
-import { defineConfig } from "astro/config";
 import { defineConfig, passthroughImageService } from "astro/config";
 import rehypeAutolinkHeadings from "rehype-autolink-headings";
 import rehypeComponents from "rehype-components"; /* Render the custom directive content */
@@ -89,7 +88,7 @@ export default defineConfig({
 			},
 			styleOverrides: {
 				codeBackground: "var(--codeblock-bg)",
-				borderRadius: "0.25rem",
+				borderRadius: "0",
 				borderColor: "none",
 				codeFontSize: "0.875rem",
 				codeFontFamily:
@@ -149,6 +148,7 @@ export default defineConfig({
 				rehypeExternalLinks,
 				{
 					target: "_blank",
+					rel: ["nofollow", "noopener", "noreferrer"],
 				},
 			],
 			[
