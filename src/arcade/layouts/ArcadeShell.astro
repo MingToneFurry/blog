@@ -10,6 +10,7 @@ import { defaultFavicons } from "@/constants/icon";
 import type { Favicon } from "@/types/config";
 import { url } from "@/utils/url-utils";
 import CommandConsole from "../components/CommandConsole.astro";
+import ImageLightbox from "../components/ImageLightbox.astro";
 import MissionRail from "../components/MissionRail.astro";
 import MobileDock from "../components/MobileDock.astro";
 import SiteFooter from "../components/SiteFooter.astro";
@@ -162,6 +163,7 @@ const favicons: Favicon[] =
 			<SiteFooter />
 			<MobileDock />
 			<CommandConsole />
+			<ImageLightbox />
 		</div>
 
 		<script>

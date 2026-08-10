@@ -15,6 +15,29 @@ type SearchRecord = {
 	searchable: string;
 };
 
+type LightboxItem = {
+	image: HTMLImageElement;
+	trigger: HTMLElement;
+	source: string;
+	caption: string;
+	actionHref: string | null;
+	actionLabel: string;
+};
+
+type ParkedImage = {
+	image: HTMLImageElement;
+	placeholder: HTMLElement;
+	fallback: HTMLImageElement;
+	stage: HTMLElement;
+	role: string | null;
+	tabIndex: string | null;
+	lightboxTrigger: string | null;
+	ariaHasPopup: string | null;
+	ariaLabel: string | null;
+};
+
+const directImagePath = /\.(?:avif|bmp|gif|jpe?g|png|svg|webp)$/i;
+
 const pageEvents = [
 	"astro:page-load",
 	"astro:after-swap",
@@ -26,6 +49,10 @@ let settings: AppearanceSettings;
 let searchIndexPromise: Promise<SearchRecord[]> | null = null;
 let commandReturnFocus: HTMLElement | null = null;
 let commandCloseTimer: number | null = null;
+let lightboxReturnFocus: HTMLElement | null = null;
+let lightboxItems: LightboxItem[] = [];
+let lightboxIndex = 0;
+let parkedImage: ParkedImage | null = null;
 
 function getStorage(): Storage | null {
 	try {
@@ -137,6 +164,201 @@ function focusableElements(container: HTMLElement): HTMLElement[] {
 	)].filter((element) => !element.hidden && element.offsetParent !== null);
 }
 
+function getLightbox(): HTMLElement | null {
+	return document.querySelector<HTMLElement>("[data-image-lightbox]");
+}
+
+function isDirectImageLink(anchor: HTMLAnchorElement, image: HTMLImageElement): boolean {
+	try {
+		const target = new URL(anchor.href, document.baseURI);
+		const sources = [image.currentSrc, image.src]
+			.filter(Boolean)
+			.map((source) => new URL(source, document.baseURI).href);
+		return sources.includes(target.href) || directImagePath.test(target.pathname);
+	} catch {
+		return false;
+	}
+}
+
+function isVolatileImageSource(source: string): boolean {
+	try {
+		const url = new URL(source, document.baseURI);
+		return url.searchParams.has("nocache") || (url.hostname === "api.furry.ist" && /^\/furry-img(?:\/|$)/.test(url.pathname));
+	} catch {
+		return false;
+	}
+}
+
+function getLightboxItems(): LightboxItem[] {
+	const items: LightboxItem[] = [];
+	for (const image of document.querySelectorAll<HTMLImageElement>(
+		"[data-article-body] img:not([data-no-lightbox]), .arcade-cover img:not([data-no-lightbox])",
+	)) {
+		const anchor = image.closest<HTMLAnchorElement>("a[href]");
+		const source = image.currentSrc || image.src;
+		if (!source) continue;
+		const directImage = Boolean(anchor && isDirectImageLink(anchor, image));
+		const linkedPage = anchor && !directImage ? anchor.href : null;
+		const imageTarget = directImage && anchor ? anchor.href : source;
+		items.push({
+			image,
+			trigger: anchor ?? image,
+			source,
+			caption: image.alt.trim() || image.closest("figure")?.querySelector("figcaption")?.textContent?.trim() || "文章图片",
+			actionHref: linkedPage ?? (isVolatileImageSource(imageTarget) ? null : imageTarget),
+			actionLabel: linkedPage ? "在新标签页打开图片链接" : "在新标签页打开原图",
+		});
+	}
+	return items;
+}
+
+function prepareLightboxTriggers(): void {
+	for (const item of getLightboxItems()) {
+		const { trigger } = item;
+		trigger.dataset.lightboxTrigger = "true";
+		trigger.setAttribute("aria-haspopup", "dialog");
+		if (!trigger.hasAttribute("aria-label")) trigger.setAttribute("aria-label", `查看大图：${item.caption}`);
+		if (trigger === item.image) {
+			item.image.tabIndex = 0;
+			item.image.setAttribute("role", "button");
+		}
+	}
+}
+
+function restoreParkedImage(): void {
+	if (!parkedImage) return;
+	const { image, placeholder, fallback, stage, role, tabIndex, lightboxTrigger, ariaHasPopup, ariaLabel } = parkedImage;
+	image.removeAttribute("data-lightbox-image");
+	if (role === null) image.removeAttribute("role");
+	else image.setAttribute("role", role);
+	if (tabIndex === null) image.removeAttribute("tabindex");
+	else image.setAttribute("tabindex", tabIndex);
+	if (lightboxTrigger === null) image.removeAttribute("data-lightbox-trigger");
+	else image.setAttribute("data-lightbox-trigger", lightboxTrigger);
+	if (ariaHasPopup === null) image.removeAttribute("aria-haspopup");
+	else image.setAttribute("aria-haspopup", ariaHasPopup);
+	if (ariaLabel === null) image.removeAttribute("aria-label");
+	else image.setAttribute("aria-label", ariaLabel);
+	if (fallback.isConnected) fallback.replaceWith(image);
+	else if (stage.isConnected) {
+		const caption = stage.querySelector("figcaption");
+		if (caption) stage.insertBefore(fallback, caption);
+		else stage.append(fallback);
+	}
+	if (placeholder.isConnected) placeholder.replaceWith(image);
+	else image.remove();
+	parkedImage = null;
+}
+
+function activateLightboxImage(item: LightboxItem, lightbox: HTMLElement): void {
+	if (parkedImage?.image === item.image) return;
+	restoreParkedImage();
+	const fallback = lightbox.querySelector<HTMLImageElement>("[data-lightbox-image]");
+	const stage = lightbox.querySelector<HTMLElement>(".arcade-lightbox-stage");
+	if (!fallback || !stage) return;
+	const rect = item.image.getBoundingClientRect();
+	const placeholder = document.createElement("span");
+	placeholder.className = "arcade-lightbox-placeholder";
+	placeholder.setAttribute("aria-hidden", "true");
+	placeholder.style.width = `${rect.width}px`;
+	placeholder.style.height = `${rect.height}px`;
+	placeholder.style.display = getComputedStyle(item.image).display === "inline" ? "inline-block" : "block";
+	item.image.replaceWith(placeholder);
+	fallback.remove();
+	const caption = stage.querySelector("figcaption");
+	if (caption) stage.insertBefore(item.image, caption);
+	else stage.append(item.image);
+	item.image.dataset.lightboxImage = "true";
+	const role = item.image.getAttribute("role");
+	const tabIndex = item.image.getAttribute("tabindex");
+	const lightboxTrigger = item.image.getAttribute("data-lightbox-trigger");
+	const ariaHasPopup = item.image.getAttribute("aria-haspopup");
+	const ariaLabel = item.image.getAttribute("aria-label");
+	item.image.removeAttribute("role");
+	item.image.removeAttribute("tabindex");
+	item.image.removeAttribute("data-lightbox-trigger");
+	item.image.removeAttribute("aria-haspopup");
+	item.image.removeAttribute("aria-label");
+	parkedImage = {
+		image: item.image,
+		placeholder,
+		fallback,
+		stage,
+		role,
+		tabIndex,
+		lightboxTrigger,
+		ariaHasPopup,
+		ariaLabel,
+	};
+}
+
+function renderLightboxItem(): void {
+	const lightbox = getLightbox();
+	const item = lightboxItems[lightboxIndex];
+	if (!lightbox || !item) return;
+	activateLightboxImage(item, lightbox);
+	const caption = lightbox.querySelector<HTMLElement>("[data-lightbox-caption]");
+	const counter = lightbox.querySelector<HTMLElement>("[data-lightbox-counter]");
+	const original = lightbox.querySelector<HTMLAnchorElement>("[data-lightbox-original]");
+	const previous = lightbox.querySelector<HTMLButtonElement>("[data-lightbox-prev]");
+	const next = lightbox.querySelector<HTMLButtonElement>("[data-lightbox-next]");
+	if (caption) {
+		caption.textContent = item.caption;
+		caption.hidden = !item.caption;
+	}
+	if (counter) {
+		counter.textContent = `IMAGE ${String(lightboxIndex + 1).padStart(2, "0")} / ${String(lightboxItems.length).padStart(2, "0")}`;
+	}
+	if (original) {
+		original.hidden = !item.actionHref;
+		if (item.actionHref) original.href = item.actionHref;
+		original.setAttribute("aria-label", item.actionLabel);
+		original.title = item.actionLabel.replace("在新标签页", "");
+	}
+	const hasMultiple = lightboxItems.length > 1;
+	if (previous) previous.hidden = !hasMultiple;
+	if (next) next.hidden = !hasMultiple;
+}
+
+function openLightbox(trigger: HTMLElement, requestedImage?: HTMLImageElement): void {
+	const image = requestedImage ?? (trigger instanceof HTMLImageElement ? trigger : trigger.querySelector<HTMLImageElement>("img"));
+	const lightbox = getLightbox();
+	if (!image || !lightbox) return;
+	closeCommand({ immediate: true, restoreFocus: false });
+	closeLightbox({ restoreFocus: false });
+	lightboxItems = getLightboxItems();
+	const index = lightboxItems.findIndex((item) => item.image === image && item.trigger === trigger);
+	if (index < 0) return;
+	lightboxIndex = index;
+	lightboxReturnFocus = lightboxItems[index].trigger;
+	lightbox.hidden = false;
+	lightbox.setAttribute("aria-hidden", "false");
+	document.documentElement.dataset.lightboxOpen = "true";
+	renderLightboxItem();
+	requestAnimationFrame(() => {
+		lightbox.querySelector<HTMLButtonElement>("button[data-lightbox-close]")?.focus();
+	});
+}
+
+function closeLightbox({ restoreFocus = true } = {}): void {
+	const lightbox = getLightbox();
+	restoreParkedImage();
+	if (lightbox) {
+		lightbox.hidden = true;
+		lightbox.setAttribute("aria-hidden", "true");
+	}
+	delete document.documentElement.dataset.lightboxOpen;
+	if (restoreFocus && lightboxReturnFocus?.isConnected) lightboxReturnFocus.focus();
+	lightboxReturnFocus = null;
+	lightboxItems = [];
+}
+
+function stepLightbox(offset: number): void {
+	if (lightboxItems.length < 2) return;
+	lightboxIndex = (lightboxIndex + offset + lightboxItems.length) % lightboxItems.length;
+	renderLightboxItem();
+}
+
 async function loadSearchIndex(): Promise<SearchRecord[]> {
 	if (searchIndexPromise) return searchIndexPromise;
 	searchIndexPromise = fetch("/rss.xml", { credentials: "same-origin" })
@@ -220,10 +442,12 @@ function updateRouteState(): void {
 	toc?.classList.toggle("has-toc", Boolean(toc.querySelector(".arcade-toc")));
 	updateReadingProgress();
 	initGiscus();
+	prepareLightboxTriggers();
 }
 
 function handlePageChange(): void {
 	closeCommand({ immediate: true, restoreFocus: false });
+	closeLightbox({ restoreFocus: false });
 	updateRouteState();
 }
 
@@ -346,6 +570,25 @@ function closestFromEvent<T extends Element>(event: Event, selector: string): T 
 }
 
 function handleDocumentClick(event: MouseEvent): void {
+	if (closestFromEvent(event, "[data-lightbox-close]")) {
+		closeLightbox();
+		return;
+	}
+	if (closestFromEvent(event, "[data-lightbox-prev]")) {
+		stepLightbox(-1);
+		return;
+	}
+	if (closestFromEvent(event, "[data-lightbox-next]")) {
+		stepLightbox(1);
+		return;
+	}
+	const lightboxTrigger = closestFromEvent<HTMLElement>(event, "[data-lightbox-trigger='true']");
+	if (lightboxTrigger && event.button === 0 && !event.ctrlKey && !event.metaKey && !event.shiftKey && !event.altKey) {
+		event.preventDefault();
+		const clickedImage = closestFromEvent<HTMLImageElement>(event, "img");
+		openLightbox(lightboxTrigger, clickedImage ?? undefined);
+		return;
+	}
 	const open = closestFromEvent<HTMLButtonElement>(event, "button[data-command-open]");
 	if (open) {
 		openCommand(open.dataset.commandOpen === "settings" ? "settings" : "search", open);
@@ -399,6 +642,41 @@ function handleDocumentInput(event: Event): void {
 function handleKeyboard(event: KeyboardEvent): void {
 	const target = event.target;
 	const isEditing = target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement;
+	const lightbox = getLightbox();
+	if (lightbox && !lightbox.hidden) {
+		if (event.key === "Escape") {
+			event.preventDefault();
+			closeLightbox();
+			return;
+		}
+		if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
+			event.preventDefault();
+			stepLightbox(event.key === "ArrowLeft" ? -1 : 1);
+			return;
+		}
+		if (event.key === "Tab") {
+			const items = focusableElements(lightbox);
+			if (items.length === 0) return;
+			const first = items[0];
+			const last = items[items.length - 1];
+			if (event.shiftKey && document.activeElement === first) {
+				event.preventDefault();
+				last.focus();
+			} else if (!event.shiftKey && document.activeElement === last) {
+				event.preventDefault();
+				first.focus();
+			}
+		}
+		return;
+	}
+	if ((event.key === "Enter" || event.key === " ") && target instanceof Element) {
+		const lightboxTrigger = target.closest<HTMLElement>("[data-lightbox-trigger='true']");
+		if (lightboxTrigger) {
+			event.preventDefault();
+			openLightbox(lightboxTrigger, target instanceof HTMLImageElement ? target : undefined);
+			return;
+		}
+	}
 	if ((event.ctrlKey || event.metaKey) && event.key.toLocaleLowerCase() === "k") {
 		event.preventDefault();
 		openCommand("search");

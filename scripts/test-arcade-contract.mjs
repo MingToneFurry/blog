@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { access, readdir, readFile } from "node:fs/promises";
+import { access, readFile, readdir } from "node:fs/promises";
 import path from "node:path";
 import { parse } from "node-html-parser";
 
@@ -89,6 +89,26 @@ for (const file of htmlFiles) {
 	assert.ok(
 		document.querySelector("[data-blog-background] [data-background-image]"),
 		`${file} must expose the background protocol`,
+	);
+	const lightbox = document.querySelector("[data-image-lightbox]");
+	assert.ok(lightbox, `${file} must expose the image lightbox`);
+	assert.ok(
+		lightbox.hasAttribute("hidden"),
+		`${file} lightbox must start hidden`,
+	);
+	assert.equal(
+		lightbox.getAttribute("aria-hidden"),
+		"true",
+		`${file} hidden lightbox must leave the accessibility tree`,
+	);
+	assert.ok(
+		lightbox.querySelector("[data-lightbox-original]"),
+		`${file} lightbox must expose the original image action`,
+	);
+	assert.equal(
+		lightbox.querySelector("[data-lightbox-counter]")?.getAttribute("aria-live"),
+		"polite",
+		`${file} lightbox counter must announce image changes`,
 	);
 	assert.equal(
 		document.querySelectorAll(".arcade-rail-axis").length,
@@ -371,6 +391,40 @@ const arcadeRuntime = await readFile(
 	path.join("src", "arcade", "runtime", "arcade-runtime.ts"),
 	"utf8",
 );
+
+function relativeLuminance(hex) {
+	const channels = [1, 3, 5]
+		.map((offset) => Number.parseInt(hex.slice(offset, offset + 2), 16) / 255)
+		.map((value) =>
+			value <= 0.03928 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4,
+		);
+	return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2];
+}
+
+function contrastRatio(first, second) {
+	const [lighter, darker] = [
+		relativeLuminance(first),
+		relativeLuminance(second),
+	].sort((a, b) => b - a);
+	return (lighter + 0.05) / (darker + 0.05);
+}
+
+const lightTheme =
+	arcadeCss.match(
+		/:root\[data-color-scheme="light"\]\s*\{([\s\S]*?)\n\}/,
+	)?.[1] ?? "";
+const lightAccent = lightTheme.match(/--ui-accent:\s*(#[0-9a-f]{6})/i)?.[1];
+const lightBackground = lightTheme.match(/--ui-bg:\s*(#[0-9a-f]{6})/i)?.[1];
+const lightSurface = lightTheme.match(/--ui-surface:\s*(#[0-9a-f]{6})/i)?.[1];
+assert.ok(
+	lightAccent && lightBackground && lightSurface,
+	"ARCADE light theme contrast tokens are missing",
+);
+assert.ok(
+	contrastRatio(lightAccent, lightBackground) >= 4.5 &&
+		contrastRatio(lightAccent, lightSurface) >= 4.5,
+	"ARCADE light accent text must meet WCAG AA against light backgrounds",
+);
 assert.match(
 	arcadeCss,
 	/border-radius:\s*0\s*!important/,
@@ -390,6 +444,25 @@ assert.match(
 	arcadeCss,
 	/@media \(max-width: 400px\)/,
 	"ARCADE must include a 390px-safe breakpoint",
+);
+assert.match(
+	arcadeCss,
+	/-webkit-text-size-adjust:\s*100%/,
+	"ARCADE must disable unpredictable mobile text autosizing",
+);
+const narrowHeroBlock =
+	arcadeCss.match(
+		/@media \(max-width: 820px\) \{([\s\S]*?)@media \(max-width: 640px\)/,
+	)?.[1] ?? "";
+assert.match(
+	narrowHeroBlock,
+	/\.arcade-scene-coordinates\s*\{[\s\S]*?position:\s*relative;[\s\S]*?margin:\s*1\.25rem 1\.25rem 0;/,
+	"ARCADE narrow hero labels must participate in layout instead of overlapping",
+);
+assert.match(
+	arcadeCss,
+	/\.arcade-lightbox\[hidden\]\s*\{[^}]*display:\s*none\s*!important/,
+	"ARCADE hidden lightbox must not intercept the page",
 );
 assert.match(
 	arcadeCss,
@@ -430,7 +503,7 @@ assert.doesNotMatch(
 );
 assert.match(
 	arcadeRuntime,
-	/document\.addEventListener\("click",\s*handleCommandNavigation,\s*\{\s*capture:\s*true\s*\}\)/,
+	/document\.addEventListener\(\s*"click",\s*handleCommandNavigation,\s*\{\s*capture:\s*true,?\s*\},?\s*\)/,
 	"ARCADE must close command-layer links before Swup intercepts navigation",
 );
 assert.match(
@@ -455,12 +528,62 @@ assert.match(
 );
 assert.match(
 	arcadeRuntime,
-	/function closestFromEvent<T extends Element>\(event: Event, selector: string\): T \| null \{[\s\S]*?getEventElements\(event\)[\s\S]*?element\.closest<T>\(selector\)/,
+	/function getLightboxItems\(\): LightboxItem\[\] \{[\s\S]*?data-article-body[\s\S]*?\.arcade-cover/,
+	"ARCADE lightbox gallery must include article and cover images",
+);
+assert.match(
+	arcadeRuntime,
+	/function isDirectImageLink\([\s\S]*?sources\.includes\(target\.href\)[\s\S]*?directImagePath\.test\(target\.pathname\)/,
+	"ARCADE lightbox must distinguish direct image links from normal page links",
+);
+assert.match(
+	arcadeRuntime,
+	/const directImage = Boolean\(anchor && isDirectImageLink\(anchor, image\)\);[\s\S]*?const linkedPage = anchor && !directImage \? anchor\.href : null;[\s\S]*?const imageTarget = directImage && anchor \? anchor\.href : source;/,
+	"ARCADE lightbox must preserve normal linked-image targets as dialog actions",
+);
+assert.match(
+	arcadeRuntime,
+	/function isVolatileImageSource\([\s\S]*?searchParams\.has\("nocache"\)[\s\S]*?api\.furry\.ist[\s\S]*?furry-img/,
+	"ARCADE lightbox must not reopen volatile random image sources",
+);
+assert.match(
+	arcadeRuntime,
+	/function openLightbox\(trigger: HTMLElement, requestedImage\?: HTMLImageElement\)[\s\S]*?requestedImage \?\?/,
+	"ARCADE lightbox must open the image that was actually selected",
+);
+assert.match(
+	arcadeRuntime,
+	/function prepareLightboxTriggers\(\): void \{[\s\S]*?dataset\.lightboxTrigger = "true"/,
+	"ARCADE runtime must enhance article and cover images as lightbox triggers",
+);
+assert.match(
+	arcadeRuntime,
+	/function closeLightbox\([\s\S]*?delete document\.documentElement\.dataset\.lightboxOpen[\s\S]*?lightboxReturnFocus\.focus\(\)/,
+	"ARCADE lightbox must restore scroll state and keyboard focus",
+);
+assert.match(
+	arcadeRuntime,
+	/function activateLightboxImage\([\s\S]*?stage\.insertBefore\(item\.image, caption\)/,
+	"ARCADE lightbox must reuse the clicked image node for cache-sensitive sources",
+);
+assert.match(
+	arcadeRuntime,
+	/function restoreParkedImage\([\s\S]*?placeholder\.replaceWith\(image\)[\s\S]*?else image\.remove\(\)/,
+	"ARCADE lightbox must restore the clicked image node after closing",
+);
+assert.match(
+	arcadeRuntime,
+	/querySelector<HTMLButtonElement>\("button\[data-lightbox-close\]"\)\s*\?\.focus\(\)/,
+	"ARCADE lightbox must focus the actionable close button",
+);
+assert.match(
+	arcadeRuntime,
+	/function closestFromEvent<T extends Element>\([\s\S]*?\): T \| null \{[\s\S]*?getEventElements\(event\)[\s\S]*?element\.closest<T>\(selector\)/,
 	"ARCADE delegated selectors must scan every composed event element",
 );
 assert.match(
 	arcadeRuntime,
-	/closestFromEvent<HTMLButtonElement>\(event, "button\[data-command-open\]"\)/,
+	/closestFromEvent<HTMLButtonElement>\(\s*event,\s*"button\[data-command-open\]",?\s*\)/,
 	"ARCADE command triggers must not match the root open-state attribute",
 );
 assert.match(
@@ -470,7 +593,7 @@ assert.match(
 );
 assert.match(
 	arcadeRuntime,
-	/querySelectorAll<HTMLInputElement>\("input\[data-background-blur-control\]"\)/,
+	/querySelectorAll<HTMLInputElement>\(\s*"input\[data-background-blur-control\]",?\s*\)/,
 	"ARCADE blur controls must not match the root blur-state attribute",
 );
 
